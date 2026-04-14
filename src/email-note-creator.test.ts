@@ -392,7 +392,7 @@ describe('EmailNoteCreator', () => {
         }))
       });
       const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
+        emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -401,7 +401,7 @@ describe('EmailNoteCreator', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        'Original <orig@test.com> | Original Subject | Actual body'
+        expect.stringMatching(/^Original <orig@test.com> \| Original Subject \| 2024-01-01T\d{2}:\d{2}:\d{2}.\d{3}Z \| Actual body$/)
       );
     });
 

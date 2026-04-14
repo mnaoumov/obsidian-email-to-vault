@@ -146,7 +146,7 @@ function extractEmailFromRfc822(emlContent: string): EmailData {
   return {
     body,
     cc: HEADER_CC_PATTERN.exec(headers)?.groups?.['value'] ?? '',
-    date: HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? '',
+    date: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
     from: HEADER_FROM_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     subject: HEADER_SUBJECT_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     to: HEADER_TO_PATTERN.exec(headers)?.groups?.['value'] ?? ''
@@ -167,7 +167,7 @@ function extractForwardedEmail(data: EmailData): EmailData {
   if (gmailMatch) {
     const headerBlock = gmailMatch[0];
     applyHeaderOverrides(result, headerBlock);
-    result.date = HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.date;
+    result.date = normalizeDate(HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.date);
 
     result.body = result.body.slice(gmailMatch.index + headerBlock.length);
     return result;
@@ -213,6 +213,14 @@ function formatDate(dateStr: string, format: string): string {
     ? momentFn(dateStr, knownFormat.format)
     : momentFn(dateStr);
   return parsed.format(format);
+}
+
+function normalizeDate(dateStr: string): string {
+  const knownFormat = KNOWN_DATE_FORMATS.find((entry) => entry.pattern.test(dateStr));
+  if (!knownFormat) {
+    return dateStr;
+  }
+  return momentFn(dateStr, knownFormat.format).toISOString();
 }
 
 function replacePathTemplate(template: string, emailData: EmailData): string {
