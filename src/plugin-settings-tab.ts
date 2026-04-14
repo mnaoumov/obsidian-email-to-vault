@@ -7,7 +7,7 @@ import type { MailTmManager } from './mail-tm-manager.ts';
 import type { PluginTypes } from './plugin-types.ts';
 import type { Plugin } from './plugin.ts';
 
-import { FolderSuggest } from './folder-suggest.ts';
+import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
   public constructor(plugin: Plugin, private readonly mailTmManager: MailTmManager) {
@@ -66,21 +66,39 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       })
       .addSettingEx((setting) => {
         setting
-          .setName('Email notes folder')
-          .setDesc('The folder where email notes will be stored.')
-          .addText((text) => {
-            this.bind(text, 'emailNotesFolder');
-            new FolderSuggest(this.app, text.inputEl);
+          .setName('Email note path template')
+          .setDesc(createFragment((f) => {
+            f.appendText('Path template for saved email notes.');
+            f.createEl('br');
+            f.appendText('Variables: {{date:FORMAT}}, {{subject}}, {{from}}, {{to}}, {{cc}}');
+            f.createEl('br');
+            f.appendText('Date format tokens: YYYY, MM, DD, HH, mm, ss');
+          }))
+          .addCodeHighlighter((codeHighlighter) => {
+            codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
+            this.bind(codeHighlighter, 'emailNotePathTemplate');
           });
       })
       .addSettingEx((setting) => {
         setting
           .setName('Email note template')
-          .setDesc('The template to use for email notes.')
+          .setDesc('The template to use for email note content.')
           .addTextArea((textArea) => {
             this.bind(textArea, 'emailNoteTemplate', {
               shouldShowPlaceholderForDefaultValues: false
             });
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Strip forward markers')
+          .setDesc(createFragment((f) => {
+            f.appendText('When enabled, treats forwarded emails as direct messages.');
+            f.createEl('br');
+            f.appendText('Extracts original sender, recipients, and subject from Gmail/Outlook forward headers.');
+          }))
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldStripForwardMarkers');
           });
       });
   }

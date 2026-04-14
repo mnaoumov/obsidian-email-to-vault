@@ -82,6 +82,17 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
         textAreaCb({});
         return s;
       });
+      s['addCodeHighlighter'] = vi.fn((codeHighlighterCb: (c: Record<string, unknown>) => void) => {
+        const ch: Record<string, unknown> = {
+          setLanguage: vi.fn(() => ch)
+        };
+        codeHighlighterCb(ch);
+        return s;
+      });
+      s['addToggle'] = vi.fn((toggleCb: (c: unknown) => void) => {
+        toggleCb({});
+        return s;
+      });
       cb(s);
       return this;
     });

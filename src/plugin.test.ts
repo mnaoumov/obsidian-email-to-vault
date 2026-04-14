@@ -3,6 +3,7 @@ import type {
   PluginManifest
 } from 'obsidian';
 
+import { noop } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -35,6 +36,10 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-base', () => ({
       this.manifest = manifest;
     }
 
+    public addChild(): void {
+      noop();
+    }
+
     protected async onloadImpl(): Promise<void> {
       await Promise.resolve();
     }
@@ -43,6 +48,10 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-base', () => ({
       await Promise.resolve();
     }
   }
+}));
+
+vi.mock('./prism-component.ts', () => ({
+  PrismComponent: vi.fn()
 }));
 
 vi.mock('./mail-tm-manager.ts', () => ({
@@ -85,17 +94,19 @@ const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
 const BASE_SETTINGS = {
   emailAddress: '',
   emailCheckIntervalInMinutes: 10,
-  emailNotesFolder: 'Emails',
+  emailNotePathTemplate: '',
   emailNoteTemplate: '',
-  emailPasswordSecretKey: ''
+  emailPasswordSecretKey: '',
+  shouldStripForwardMarkers: false
 };
 
 const BASE_VALIDATION_MESSAGES = {
   emailAddress: '',
   emailCheckIntervalInMinutes: '',
-  emailNotesFolder: '',
+  emailNotePathTemplate: '',
   emailNoteTemplate: '',
-  emailPasswordSecretKey: ''
+  emailPasswordSecretKey: '',
+  shouldStripForwardMarkers: ''
 };
 
 interface SettingsWrapper {

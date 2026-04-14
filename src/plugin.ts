@@ -14,6 +14,7 @@ import { EmailChecker } from './email-checker.ts';
 import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsManager } from './plugin-settings-manager.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { PrismComponent } from './prism-component.ts';
 
 export class Plugin extends PluginBase<PluginTypes> {
   private readonly emailChecker: EmailChecker;
@@ -35,6 +36,7 @@ export class Plugin extends PluginBase<PluginTypes> {
 
   protected override async onloadImpl(): Promise<void> {
     await super.onloadImpl();
+    this.addChild(new PrismComponent());
     new OpenSettingsCommand(this).register();
     new CheckEmailsCommand(this, this.emailChecker).register();
     this.emailChecker.scheduleCheckEmails();

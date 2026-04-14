@@ -14,10 +14,13 @@ export const DEFAULT_EMAIL_NOTE_TEMPLATE = dedent`
 
 const DEFAULT_EMAIL_CHECK_INTERVAL_IN_MINUTES = 10;
 
+export const DEFAULT_EMAIL_NOTE_PATH_TEMPLATE = 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}';
+
 export class PluginSettings {
   public emailAddress = '';
   public emailCheckIntervalInMinutes = DEFAULT_EMAIL_CHECK_INTERVAL_IN_MINUTES;
-  public emailNotesFolder = 'Emails';
+  public emailNotePathTemplate = DEFAULT_EMAIL_NOTE_PATH_TEMPLATE;
   public emailNoteTemplate = DEFAULT_EMAIL_NOTE_TEMPLATE;
   public emailPasswordSecretKey = '';
+  public shouldStripForwardMarkers = false;
 }

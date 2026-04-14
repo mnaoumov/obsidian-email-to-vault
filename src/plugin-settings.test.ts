@@ -5,6 +5,7 @@ import {
 } from 'vitest';
 
 import {
+  DEFAULT_EMAIL_NOTE_PATH_TEMPLATE,
   DEFAULT_EMAIL_NOTE_TEMPLATE,
   PluginSettings
 } from './plugin-settings.ts';
@@ -14,7 +15,8 @@ describe('PluginSettings', () => {
     const settings = new PluginSettings();
     expect(settings.emailAddress).toBe('');
     expect(settings.emailCheckIntervalInMinutes).toBe(10);
-    expect(settings.emailNotesFolder).toBe('Emails');
+    expect(settings.emailNotePathTemplate).toBe(DEFAULT_EMAIL_NOTE_PATH_TEMPLATE);
+    expect(settings.shouldStripForwardMarkers).toBe(false);
     expect(settings.emailNoteTemplate).toBe(DEFAULT_EMAIL_NOTE_TEMPLATE);
     expect(settings.emailPasswordSecretKey).toBe('');
   });
