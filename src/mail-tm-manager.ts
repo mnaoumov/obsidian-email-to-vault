@@ -4,9 +4,10 @@ import {
   Notice,
   requestUrl
 } from 'obsidian';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type { Plugin } from './plugin.ts';
+
+import { generateRandomString } from './generate-random-string.ts';
 
 const MAIL_TM_API_BASE_URL = 'https://api.mail.tm';
 const RANDOM_ADDRESS_LENGTH = 10;
@@ -182,16 +183,4 @@ export class MailTmManager {
     const data = response.json as MailTmTokenResponse;
     return data.token;
   }
-}
-
-function generateRandomString(length: number): string {
-  const CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
-  for (const byte of array) {
-    const char = ensureNonNullable(CHARS[byte % CHARS.length]);
-    result += char;
-  }
-  return result;
 }

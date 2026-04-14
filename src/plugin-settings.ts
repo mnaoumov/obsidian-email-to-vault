@@ -1,12 +1,16 @@
-export const DEFAULT_EMAIL_NOTE_TEMPLATE = `---
-from: "{{from}}"
-to: "{{to}}"
-cc: "{{cc}}"
-subject: "{{subject}}"
-date: {{date}}
----
+import dedent from 'dedent';
 
-{{body}}`;
+export const DEFAULT_EMAIL_NOTE_TEMPLATE = dedent`
+  ---
+  from: "{{from}}"
+  to: "{{to}}"
+  cc: "{{cc}}"
+  subject: "{{subject}}"
+  date: {{date}}
+  ---
+
+  {{body}}
+`;
 
 const DEFAULT_EMAIL_CHECK_INTERVAL_IN_MINUTES = 10;
 
