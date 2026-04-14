@@ -10,7 +10,7 @@ import type {
 } from './mail-tm-manager.ts';
 import type { Plugin } from './plugin.ts';
 
-const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW): /;
+const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW): ?/;
 
 const GMAIL_FORWARD_HEADER_PATTERN = /---------- Forwarded message ---------\r?\n(?:.*\r?\n)*?\r?\n/;
 

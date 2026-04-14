@@ -811,6 +811,45 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should handle Gmail forward with empty original subject', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-04-14T21:55:44+00:00',
+          downloadUrl: '',
+          from: { address: 'mnaoumov@gmail.com', name: 'Michael Naumov' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd:',
+          text:
+            'Regards,\nMichael Naumov\n\n\n---------- Forwarded message ---------\nFrom: Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject:\nTo: Michael Naumov <mnaoumov@gmail.com>\n\n\nнапечатай пж 4 на 10см',
+          to: [{ address: 'email-to-vault-ohqlfltv1i@deltajohnsons.com', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const consoleWarnSpy = vi.spyOn(console, 'warn');
+      const plugin = createMockPlugin({
+        emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
+        emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ id: 'msg1', subject: 'Fwd:' }));
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        'Emails/2026-04-14 12-55 Untitled.md',
+        expect.stringContaining('Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>')
+      );
+    });
+
     it('should skip saving when note file already exists', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
