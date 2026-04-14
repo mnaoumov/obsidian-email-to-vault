@@ -19,6 +19,11 @@ export interface MailTmAddress {
   name: string;
 }
 
+export interface MailTmAttachment {
+  filename: string;
+  id: string;
+}
+
 export interface MailTmMessage {
   createdAt: string;
   downloadUrl: string;
@@ -33,6 +38,7 @@ export interface MailTmMessage {
 }
 
 export interface MailTmMessageFull extends MailTmMessage {
+  attachments: MailTmAttachment[];
   cc: MailTmAddress[];
   html: string[];
   text: string;
@@ -65,6 +71,25 @@ export class MailTmManager {
 
   public constructor(private readonly plugin: Plugin) {
     this.app = plugin.app;
+  }
+
+  public async deleteMessage(messageId: string): Promise<void> {
+    const token = await this.getToken();
+    await requestUrl({
+      headers: { Authorization: `Bearer ${token}` },
+      method: 'DELETE',
+      url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}`
+    });
+  }
+
+  public async downloadAttachment(messageId: string, attachmentId: string): Promise<ArrayBuffer> {
+    const token = await this.getToken();
+    const response = await requestUrl({
+      headers: { Authorization: `Bearer ${token}` },
+      method: 'GET',
+      url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}/attachment/${attachmentId}`
+    });
+    return response.arrayBuffer;
   }
 
   public async getMessage(messageId: string): Promise<MailTmMessageFull> {

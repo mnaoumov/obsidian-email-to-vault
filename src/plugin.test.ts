@@ -15,6 +15,8 @@ import {
 
 import { CheckEmailsCommand } from './commands/check-emails-command.ts';
 import { OpenSettingsCommand } from './commands/open-settings-command.ts';
+import { RedownloadAllEmailsCommand } from './commands/redownload-all-emails-command.ts';
+import { RedownloadRecentEmailsCommand } from './commands/redownload-recent-emails-command.ts';
 import { EmailChecker } from './email-checker.ts';
 import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsManager } from './plugin-settings-manager.ts';
@@ -24,6 +26,8 @@ import { Plugin } from './plugin.ts';
 const mocks = vi.hoisted(() => ({
   mockCheckEmailsRegister: vi.fn(),
   mockOpenSettingsRegister: vi.fn(),
+  mockRedownloadAllEmailsRegister: vi.fn(),
+  mockRedownloadRecentEmailsRegister: vi.fn(),
   mockScheduleCheckEmails: vi.fn()
 }));
 
@@ -76,6 +80,18 @@ vi.mock('./commands/check-emails-command.ts', () => ({
   })
 }));
 
+vi.mock('./commands/redownload-all-emails-command.ts', () => ({
+  RedownloadAllEmailsCommand: vi.fn(function redownloadAllEmailsCommandMock(this: Record<string, unknown>) {
+    this['register'] = mocks.mockRedownloadAllEmailsRegister;
+  })
+}));
+
+vi.mock('./commands/redownload-recent-emails-command.ts', () => ({
+  RedownloadRecentEmailsCommand: vi.fn(function redownloadRecentEmailsCommandMock(this: Record<string, unknown>) {
+    this['register'] = mocks.mockRedownloadRecentEmailsRegister;
+  })
+}));
+
 vi.mock('./plugin-settings-manager.ts', () => ({
   PluginSettingsManager: vi.fn()
 }));
@@ -90,6 +106,8 @@ const MockMailTmManager = vi.mocked(MailTmManager);
 const MockOpenSettingsCommand = vi.mocked(OpenSettingsCommand);
 const MockPluginSettingsManager = vi.mocked(PluginSettingsManager);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
+const MockRedownloadAllEmailsCommand = vi.mocked(RedownloadAllEmailsCommand);
+const MockRedownloadRecentEmailsCommand = vi.mocked(RedownloadRecentEmailsCommand);
 
 const BASE_SETTINGS = {
   emailAddress: '',
@@ -97,6 +115,7 @@ const BASE_SETTINGS = {
   emailNotePathTemplate: '',
   emailNoteTemplate: '',
   emailPasswordSecretKey: '',
+  shouldDeleteSeenEmails: false,
   shouldStripForwardMarkers: false
 };
 
@@ -106,6 +125,7 @@ const BASE_VALIDATION_MESSAGES = {
   emailNotePathTemplate: '',
   emailNoteTemplate: '',
   emailPasswordSecretKey: '',
+  shouldDeleteSeenEmails: '',
   shouldStripForwardMarkers: ''
 };
 
@@ -182,6 +202,24 @@ describe('Plugin', () => {
 
       expect(MockCheckEmailsCommand).toHaveBeenCalledWith(plugin, MockEmailChecker.mock.instances[0]);
       expect(mocks.mockCheckEmailsRegister).toHaveBeenCalledOnce();
+    });
+
+    it('should register RedownloadAllEmailsCommand with email checker', async () => {
+      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
+
+      await plugin['onloadImpl']();
+
+      expect(MockRedownloadAllEmailsCommand).toHaveBeenCalledWith(plugin, MockEmailChecker.mock.instances[0]);
+      expect(mocks.mockRedownloadAllEmailsRegister).toHaveBeenCalledOnce();
+    });
+
+    it('should register RedownloadRecentEmailsCommand with email checker', async () => {
+      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
+
+      await plugin['onloadImpl']();
+
+      expect(MockRedownloadRecentEmailsCommand).toHaveBeenCalledWith(plugin, MockEmailChecker.mock.instances[0]);
+      expect(mocks.mockRedownloadRecentEmailsRegister).toHaveBeenCalledOnce();
     });
 
     it('should schedule email checking', async () => {

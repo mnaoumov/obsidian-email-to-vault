@@ -64,6 +64,60 @@ describe('MailTmManager', () => {
     vi.clearAllMocks();
   });
 
+  describe('deleteMessage', () => {
+    it('should send DELETE request with auth token', async () => {
+      const plugin = createMockPlugin({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+      const manager = new MailTmManager(plugin);
+
+      mockRequestUrl
+        .mockResolvedValueOnce({
+          json: { token: 'jwt-token' }
+        } as never)
+        .mockResolvedValueOnce({} as never);
+
+      await manager.deleteMessage('msg-to-delete');
+
+      expect(mockRequestUrl).toHaveBeenCalledWith({
+        headers: { Authorization: 'Bearer jwt-token' },
+        method: 'DELETE',
+        url: 'https://api.mail.tm/messages/msg-to-delete'
+      });
+    });
+  });
+
+  describe('downloadAttachment', () => {
+    it('should fetch attachment with auth token', async () => {
+      const plugin = createMockPlugin({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+      const manager = new MailTmManager(plugin);
+
+      const mockArrayBuffer = new ArrayBuffer(8);
+      mockRequestUrl
+        .mockResolvedValueOnce({
+          json: { token: 'jwt-token' }
+        } as never)
+        .mockResolvedValueOnce({
+          arrayBuffer: mockArrayBuffer
+        } as never);
+
+      const result = await manager.downloadAttachment('msg1', 'att1');
+
+      expect(result).toBe(mockArrayBuffer);
+      expect(mockRequestUrl).toHaveBeenCalledWith({
+        headers: { Authorization: 'Bearer jwt-token' },
+        method: 'GET',
+        url: 'https://api.mail.tm/messages/msg1/attachment/att1'
+      });
+    });
+  });
+
   describe('getNewEmailAddress', () => {
     it('should create account and save credentials', async () => {
       const setSecretFn = vi.fn();
@@ -149,6 +203,7 @@ describe('MailTmManager', () => {
   describe('getMessage', () => {
     it('should fetch a single message with auth token', async () => {
       const mockMessage: MailTmMessageFull = {
+        attachments: [],
         cc: [],
         createdAt: '2026-01-01T00:00:00+00:00',
         downloadUrl: '/messages/abc123/download',

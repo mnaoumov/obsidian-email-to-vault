@@ -10,6 +10,8 @@ import type { PluginTypes } from './plugin-types.ts';
 
 import { CheckEmailsCommand } from './commands/check-emails-command.ts';
 import { OpenSettingsCommand } from './commands/open-settings-command.ts';
+import { RedownloadAllEmailsCommand } from './commands/redownload-all-emails-command.ts';
+import { RedownloadRecentEmailsCommand } from './commands/redownload-recent-emails-command.ts';
 import { EmailChecker } from './email-checker.ts';
 import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsManager } from './plugin-settings-manager.ts';
@@ -39,6 +41,8 @@ export class Plugin extends PluginBase<PluginTypes> {
     this.addChild(new PrismComponent());
     new OpenSettingsCommand(this).register();
     new CheckEmailsCommand(this, this.emailChecker).register();
+    new RedownloadAllEmailsCommand(this, this.emailChecker).register();
+    new RedownloadRecentEmailsCommand(this, this.emailChecker).register();
     this.emailChecker.scheduleCheckEmails();
   }
 

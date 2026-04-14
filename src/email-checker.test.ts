@@ -27,6 +27,8 @@ const mockNotice = vi.mocked(Notice);
 vi.stubGlobal('activeWindow', { setInterval: vi.fn(() => 0) });
 
 interface MockMailTmManagerOverrides {
+  deleteMessage?: MailTmManager['deleteMessage'];
+  downloadAttachment?: MailTmManager['downloadAttachment'];
   getMessage?: MailTmManager['getMessage'];
   getMessages?: MailTmManager['getMessages'];
 }
@@ -36,11 +38,14 @@ interface MockPluginOverrides {
   emailCheckIntervalInMinutes?: number;
   emailNotePathTemplate?: string;
   emailNoteTemplate?: string;
+  shouldDeleteSeenEmails?: boolean;
   shouldStripForwardMarkers?: boolean;
 }
 
 function createMockMailTmManager(overrides?: MockMailTmManagerOverrides): MailTmManager {
   return strictProxy<MailTmManager>({
+    deleteMessage: overrides?.deleteMessage ?? vi.fn(),
+    downloadAttachment: overrides?.downloadAttachment ?? vi.fn(),
     getMessage: overrides?.getMessage ?? vi.fn(),
     getMessages: overrides?.getMessages ?? vi.fn(async () => [])
   });
@@ -49,8 +54,12 @@ function createMockMailTmManager(overrides?: MockMailTmManagerOverrides): MailTm
 function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
   return strictProxy<Plugin>({
     app: {
+      fileManager: {
+        getAvailablePathForAttachment: vi.fn(async (filename: string) => `Emails/${filename}`)
+      },
       vault: {
         create: vi.fn(),
+        createBinary: vi.fn(),
         createFolder: vi.fn(),
         getFolderByPath: vi.fn(() => null)
       }
@@ -61,6 +70,7 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
       emailCheckIntervalInMinutes: overrides?.emailCheckIntervalInMinutes ?? 10,
       emailNotePathTemplate: overrides?.emailNotePathTemplate ?? 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
       emailNoteTemplate: overrides?.emailNoteTemplate ?? DEFAULT_EMAIL_NOTE_TEMPLATE,
+      shouldDeleteSeenEmails: overrides?.shouldDeleteSeenEmails ?? false,
       shouldStripForwardMarkers: overrides?.shouldStripForwardMarkers ?? false
     }
   });
@@ -111,6 +121,7 @@ describe('EmailChecker', () => {
     it('should save unseen messages as notes', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [{ address: 'cc@example.com', name: 'CC User' }],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -156,6 +167,7 @@ describe('EmailChecker', () => {
     it('should use template with all variables', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [{ address: 'cc@example.com', name: '' }],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -201,6 +213,7 @@ describe('EmailChecker', () => {
     it('should format from address with name when available', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -246,6 +259,7 @@ describe('EmailChecker', () => {
     it('should not create folder if it already exists', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -287,6 +301,7 @@ describe('EmailChecker', () => {
     it('should sanitize subject in filename', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -330,6 +345,7 @@ describe('EmailChecker', () => {
     it('should use custom path template', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -373,6 +389,7 @@ describe('EmailChecker', () => {
     it('should format date in path template', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-03-15T14:30:45+00:00',
           downloadUrl: '',
@@ -416,6 +433,7 @@ describe('EmailChecker', () => {
     it('should use Untitled in path template when subject is empty', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -459,6 +477,7 @@ describe('EmailChecker', () => {
     it('should not strip forward markers when disabled', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -509,6 +528,7 @@ describe('EmailChecker', () => {
     it('should extract original sender from Gmail forward header', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -556,6 +576,7 @@ describe('EmailChecker', () => {
     it('should extract original sender from Outlook forward header', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -602,6 +623,7 @@ describe('EmailChecker', () => {
     it('should strip Fwd: prefix from subject', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -648,6 +670,7 @@ describe('EmailChecker', () => {
     it('should strip FW: prefix from subject', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -694,6 +717,7 @@ describe('EmailChecker', () => {
     it('should keep message as-is when no forward markers found', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -740,6 +764,7 @@ describe('EmailChecker', () => {
     it('should use Untitled when subject is empty', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
+          attachments: [],
           cc: [],
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -778,6 +803,341 @@ describe('EmailChecker', () => {
         expect.stringContaining('Untitled'),
         expect.any(String)
       );
+    });
+
+    it('should download and save attachments', async () => {
+      const mockAttachmentData = new ArrayBuffer(8);
+      const mockManager = createMockMailTmManager({
+        downloadAttachment: vi.fn(async () => mockAttachmentData),
+        getMessage: vi.fn(async () => ({
+          attachments: [
+            { filename: 'photo.png', id: 'att1' },
+            { filename: 'doc.pdf', id: 'att2' }
+          ],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: true,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'With Attachments',
+          text: 'Body',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: true,
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'With Attachments',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin();
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.checkEmails();
+
+      expect(mockManager.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
+      expect(mockManager.downloadAttachment).toHaveBeenCalledWith('msg1', 'att2');
+      expect(plugin.app.vault.createBinary).toHaveBeenCalledTimes(2);
+    });
+
+    it('should add attachment links to note content', async () => {
+      const mockAttachmentData = new ArrayBuffer(8);
+      const mockManager = createMockMailTmManager({
+        downloadAttachment: vi.fn(async () => mockAttachmentData),
+        getMessage: vi.fn(async () => ({
+          attachments: [{ filename: 'photo.png', id: 'att1' }],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: true,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Body',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: true,
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}\n{{attachments}}'
+      });
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.checkEmails();
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'Body\n![[photo.png]]'
+      );
+    });
+
+    it('should skip attachments when none present', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Body',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}{{attachments}}'
+      });
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.checkEmails();
+
+      expect(mockManager.downloadAttachment).not.toHaveBeenCalled();
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'Body'
+      );
+    });
+
+    it('should delete message after save when shouldDeleteSeenEmails is enabled', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: '',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin({ shouldDeleteSeenEmails: true });
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.checkEmails();
+
+      expect(mockManager.deleteMessage).toHaveBeenCalledWith('msg1');
+    });
+
+    it('should not delete message when shouldDeleteSeenEmails is disabled', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: '',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin({ shouldDeleteSeenEmails: false });
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.checkEmails();
+
+      expect(mockManager.deleteMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('redownloadEmails', () => {
+    it('should redownload all messages regardless of seen status', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: true,
+          size: 0,
+          subject: 'Test',
+          text: '',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg1',
+            seen: true,
+            size: 0,
+            subject: 'Test',
+            to: [],
+            updatedAt: ''
+          },
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg2',
+            seen: true,
+            size: 0,
+            subject: 'Test2',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin();
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.redownloadEmails();
+
+      expect(mockManager.getMessage).toHaveBeenCalledTimes(2);
+      expect(mockNotice).toHaveBeenCalledWith('Redownloaded 2 email(s)');
+    });
+
+    it('should limit to count when specified', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: '',
+          to: [],
+          updatedAt: ''
+        })),
+        getMessages: vi.fn(async () => [
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            to: [],
+            updatedAt: ''
+          },
+          {
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'msg2',
+            seen: false,
+            size: 0,
+            subject: 'Test2',
+            to: [],
+            updatedAt: ''
+          }
+        ])
+      });
+      const plugin = createMockPlugin();
+      const checker = new EmailChecker(plugin, mockManager);
+
+      await checker.redownloadEmails(1);
+
+      expect(mockManager.getMessage).toHaveBeenCalledTimes(1);
+      expect(mockNotice).toHaveBeenCalledWith('Redownloaded 1 email(s)');
     });
   });
 

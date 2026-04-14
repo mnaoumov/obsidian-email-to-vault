@@ -91,6 +91,18 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       })
       .addSettingEx((setting) => {
         setting
+          .setName('Delete seen emails')
+          .setDesc(createFragment((f) => {
+            f.appendText('When enabled, emails are deleted from the mailbox after being saved as notes.');
+            f.createEl('br');
+            f.appendText('Warning: deleted emails cannot be recovered.');
+          }))
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldDeleteSeenEmails');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
           .setName('Strip forward markers')
           .setDesc(createFragment((f) => {
             f.appendText('When enabled, treats forwarded emails as direct messages.');

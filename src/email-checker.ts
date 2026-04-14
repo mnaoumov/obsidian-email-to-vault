@@ -1,4 +1,8 @@
-import { Notice } from 'obsidian';
+import {
+  moment as momentLib,
+  Notice
+} from 'obsidian';
+import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { replace } from 'obsidian-dev-utils/string';
 
 import type {
@@ -56,9 +60,21 @@ export class EmailChecker {
 
     for (const message of unseenMessages) {
       await this.saveEmailAsNote(message);
+      if (this.plugin.settings.shouldDeleteSeenEmails) {
+        await this.mailTmManager.deleteMessage(message.id);
+      }
     }
 
     new Notice(`Saved ${String(unseenMessages.length)} new email(s)`);
+  }
+
+  public async redownloadEmails(count?: number): Promise<void> {
+    const messages = await this.mailTmManager.getMessages();
+    const toProcess = count ? messages.slice(0, count) : messages;
+    for (const message of toProcess) {
+      await this.saveEmailAsNote(message);
+    }
+    new Notice(`Redownloaded ${String(toProcess.length)} email(s)`);
   }
 
   public scheduleCheckEmails(): void {
@@ -78,6 +94,23 @@ export class EmailChecker {
     const pathTemplate = this.plugin.settings.emailNotePathTemplate;
     const path = replacePathTemplate(pathTemplate, emailData);
     return `${path}.md`;
+  }
+
+  private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<string> {
+    if (fullMessage.attachments.length === 0) {
+      return '';
+    }
+
+    const links: string[] = [];
+    for (const attachment of fullMessage.attachments) {
+      const data = await this.mailTmManager.downloadAttachment(fullMessage.id, attachment.id);
+      const attachmentPath = await this.plugin.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
+      await this.plugin.app.vault.createBinary(attachmentPath, data);
+      const filename = extractFilename(attachmentPath);
+      links.push(`![[${filename}]]`);
+    }
+
+    return links.join('\n');
   }
 
   private async ensureFolderExists(filePath: string): Promise<void> {
@@ -125,8 +158,11 @@ export class EmailChecker {
     const emailData = this.extractEmailData(fullMessage);
     const filePath = this.buildNotePath(emailData);
 
+    const attachmentLinks = await this.downloadAttachments(fullMessage, filePath);
+
     const template = this.plugin.settings.emailNoteTemplate;
     const content = replace(template, {
+      '{{attachments}}': attachmentLinks,
       '{{body}}': emailData.body,
       '{{cc}}': emailData.cc,
       '{{date}}': emailData.date,
@@ -144,6 +180,11 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
   data.from = HEADER_FROM_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.from;
   data.to = HEADER_TO_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.to;
   data.subject = HEADER_SUBJECT_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.subject;
+}
+
+function extractFilename(path: string): string {
+  const lastSlash = path.lastIndexOf('/');
+  return lastSlash === -1 ? path : path.slice(lastSlash + 1);
 }
 
 function extractForwardedEmail(data: EmailData): EmailData {
@@ -183,22 +224,10 @@ function formatAddresses(addresses: MailTmAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
 }
 
-const PAD_WIDTH = 2;
+const momentFn = extractDefaultExportInterop(momentLib);
 
 function formatDate(isoDate: string, format: string): string {
-  const date = new Date(isoDate);
-
-  return format
-    .replace('YYYY', String(date.getFullYear()))
-    .replace('MM', pad(date.getMonth() + 1))
-    .replace('DD', pad(date.getDate()))
-    .replace('HH', pad(date.getHours()))
-    .replace('mm', pad(date.getMinutes()))
-    .replace('ss', pad(date.getSeconds()));
-}
-
-function pad(n: number): string {
-  return String(n).padStart(PAD_WIDTH, '0');
+  return momentFn(isoDate).format(format);
 }
 
 function replacePathTemplate(template: string, emailData: EmailData): string {
