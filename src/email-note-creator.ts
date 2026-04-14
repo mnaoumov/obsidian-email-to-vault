@@ -197,30 +197,35 @@ function formatAddresses(addresses: MailTmAddress[]): string {
 
 const momentFn = extractDefaultExportInterop(momentLib);
 
-interface DateFormatEntry {
-  format: string;
-  pattern: RegExp;
-}
-
-const KNOWN_DATE_FORMATS: DateFormatEntry[] = [
-  { format: 'ddd, MMM D, YYYY [at] h:mm A', pattern: /^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4} at \d{1,2}:\d{2} [AP]M$/ },
-  { format: 'ddd, D MMM YYYY', pattern: /^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/ }
+const KNOWN_DATE_FORMATS = [
+  'ddd, MMM D, YYYY [at] h:mm A',
+  'ddd, D MMM YYYY'
 ];
 
 function formatDate(dateStr: string, format: string): string {
-  const knownFormat = KNOWN_DATE_FORMATS.find((entry) => entry.pattern.test(dateStr));
-  const parsed = knownFormat
-    ? momentFn(dateStr, knownFormat.format)
-    : momentFn(dateStr);
-  return parsed.format(format);
+  return parseDateStr(dateStr).format(format);
 }
 
 function normalizeDate(dateStr: string): string {
-  const knownFormat = KNOWN_DATE_FORMATS.find((entry) => entry.pattern.test(dateStr));
-  if (!knownFormat) {
-    return dateStr;
+  const normalized = normalizeWhitespace(dateStr);
+  const parsed = momentFn(normalized, KNOWN_DATE_FORMATS, true);
+  if (parsed.isValid()) {
+    return parsed.toISOString();
   }
-  return momentFn(dateStr, knownFormat.format).toISOString();
+  return dateStr;
+}
+
+function normalizeWhitespace(str: string): string {
+  return str.replace(/\s/g, ' ');
+}
+
+function parseDateStr(dateStr: string): ReturnType<typeof momentFn> {
+  const normalized = normalizeWhitespace(dateStr);
+  const parsed = momentFn(normalized, KNOWN_DATE_FORMATS, true);
+  if (parsed.isValid()) {
+    return parsed;
+  }
+  return momentFn(dateStr);
 }
 
 function replacePathTemplate(template: string, emailData: EmailData): string {

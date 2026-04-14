@@ -811,6 +811,49 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should handle Gmail forward date with narrow no-break space before AM/PM', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-04-14T23:27:48+00:00',
+          downloadUrl: '',
+          from: { address: 'forwarder@example.com', name: 'Forwarder' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd: Original Subject',
+          text:
+            '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const consoleWarnSpy = vi.spyOn(console, 'warn');
+      const plugin = createMockPlugin({
+        emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
+        emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.stringMatching(/^Emails\/2026-04-14 \d{2}-16 Original Subject\.md$/),
+        expect.stringContaining('Original <orig@test.com>')
+      );
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringMatching(/\| 2026-04-14T\d{2}:16:00\.000Z \|/)
+      );
+    });
+
     it('should handle Gmail forward with empty original subject', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
