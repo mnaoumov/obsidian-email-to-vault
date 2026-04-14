@@ -192,8 +192,22 @@ function formatAddresses(addresses: MailTmAddress[]): string {
 
 const momentFn = extractDefaultExportInterop(momentLib);
 
-function formatDate(isoDate: string, format: string): string {
-  return momentFn(isoDate).format(format);
+interface DateFormatEntry {
+  format: string;
+  pattern: RegExp;
+}
+
+const KNOWN_DATE_FORMATS: DateFormatEntry[] = [
+  { format: 'ddd, MMM D, YYYY [at] h:mm A', pattern: /^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4} at \d{1,2}:\d{2} [AP]M$/ },
+  { format: 'ddd, D MMM YYYY', pattern: /^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/ }
+];
+
+function formatDate(dateStr: string, format: string): string {
+  const knownFormat = KNOWN_DATE_FORMATS.find((entry) => entry.pattern.test(dateStr));
+  const parsed = knownFormat
+    ? momentFn(dateStr, knownFormat.format)
+    : momentFn(dateStr);
+  return parsed.format(format);
 }
 
 function replacePathTemplate(template: string, emailData: EmailData): string {

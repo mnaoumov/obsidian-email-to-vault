@@ -503,6 +503,43 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should parse Gmail-style date in path template without warnings', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'forwarder@example.com', name: 'Forwarder' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd: Original Subject',
+          text:
+            '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const consoleWarnSpy = vi.spyOn(console, 'warn');
+      const plugin = createMockPlugin({
+        emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        '2026-04-14/Original Subject.md',
+        expect.any(String)
+      );
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
+    });
+
     it('should keep message as-is when no forward markers found', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
