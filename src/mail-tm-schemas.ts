@@ -22,8 +22,6 @@ export const mailTmMessageSchema = z.object({
   from: mailTmAddressSchema,
   hasAttachments: z.boolean(),
   id: z.string(),
-  intro: z.string(),
-  msgid: z.string(),
   seen: z.boolean(),
   size: z.number(),
   subject: z.string(),

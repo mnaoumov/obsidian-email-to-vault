@@ -25,8 +25,6 @@ export interface MailTmMessage {
   from: MailTmAddress;
   hasAttachments: boolean;
   id: string;
-  intro: string;
-  msgid: string;
   seen: boolean;
   size: number;
   subject: string;

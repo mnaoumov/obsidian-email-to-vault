@@ -90,8 +90,6 @@ describe('EmailChecker', () => {
             from: { address: 'a@b.com', name: '' },
             hasAttachments: false,
             id: '1',
-            intro: '',
-            msgid: '',
             seen: true,
             size: 0,
             subject: 'Old',
@@ -118,8 +116,6 @@ describe('EmailChecker', () => {
           hasAttachments: false,
           html: [],
           id: 'msg1',
-          intro: 'Hello there',
-          msgid: '<msg1@example.com>',
           seen: false,
           size: 100,
           subject: 'Test Email',
@@ -134,8 +130,6 @@ describe('EmailChecker', () => {
             from: { address: 'sender@example.com', name: 'Sender' },
             hasAttachments: false,
             id: 'msg1',
-            intro: 'Hello there',
-            msgid: '<msg1@example.com>',
             seen: false,
             size: 100,
             subject: 'Test Email',
@@ -167,8 +161,6 @@ describe('EmailChecker', () => {
           hasAttachments: false,
           html: [],
           id: 'msg1',
-          intro: 'Preview text',
-          msgid: '<msg1@example.com>',
           seen: false,
           size: 100,
           subject: 'Subject Line',
@@ -183,8 +175,6 @@ describe('EmailChecker', () => {
             from: { address: 'sender@example.com', name: '' },
             hasAttachments: false,
             id: 'msg1',
-            intro: '',
-            msgid: '',
             seen: false,
             size: 0,
             subject: 'Subject Line',
@@ -194,7 +184,7 @@ describe('EmailChecker', () => {
         ])
       });
       const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}} {{id}} {{intro}} {{msgid}}'
+        emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}}'
       });
       const checker = new EmailChecker(plugin, mockManager);
 
@@ -202,7 +192,7 @@ describe('EmailChecker', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        'sender@example.com me@mail.tm cc@example.com Subject Line 2026-01-01T00:00:00+00:00 Body text msg1 Preview text <msg1@example.com>'
+        'sender@example.com me@mail.tm cc@example.com Subject Line 2026-01-01T00:00:00+00:00 Body text'
       );
     });
 
@@ -216,8 +206,6 @@ describe('EmailChecker', () => {
           hasAttachments: false,
           html: [],
           id: 'msg1',
-          intro: '',
-          msgid: '',
           seen: false,
           size: 0,
           subject: 'Test',
@@ -232,8 +220,6 @@ describe('EmailChecker', () => {
             from: { address: 'sender@example.com', name: 'John Doe' },
             hasAttachments: false,
             id: 'msg1',
-            intro: '',
-            msgid: '',
             seen: false,
             size: 0,
             subject: 'Test',
@@ -265,8 +251,6 @@ describe('EmailChecker', () => {
           hasAttachments: false,
           html: [],
           id: 'msg1',
-          intro: '',
-          msgid: '',
           seen: false,
           size: 0,
           subject: 'Test',
@@ -281,8 +265,6 @@ describe('EmailChecker', () => {
             from: { address: 'a@b.com', name: '' },
             hasAttachments: false,
             id: 'msg1',
-            intro: '',
-            msgid: '',
             seen: false,
             size: 0,
             subject: 'Test',
@@ -310,8 +292,6 @@ describe('EmailChecker', () => {
           hasAttachments: false,
           html: [],
           id: 'msg1',
-          intro: '',
-          msgid: '',
           seen: false,
           size: 0,
           subject: 'Re: Test/File<Name>',
@@ -326,8 +306,6 @@ describe('EmailChecker', () => {
             from: { address: 'a@b.com', name: '' },
             hasAttachments: false,
             id: 'msg1',
-            intro: '',
-            msgid: '',
             seen: false,
             size: 0,
             subject: 'Re: Test/File<Name>',
@@ -357,8 +335,6 @@ describe('EmailChecker', () => {
           hasAttachments: false,
           html: [],
           id: 'msg1',
-          intro: '',
-          msgid: '',
           seen: false,
           size: 0,
           subject: '',
@@ -373,8 +349,6 @@ describe('EmailChecker', () => {
             from: { address: 'a@b.com', name: '' },
             hasAttachments: false,
             id: 'msg1',
-            intro: '',
-            msgid: '',
             seen: false,
             size: 0,
             subject: '',

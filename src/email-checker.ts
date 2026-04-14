@@ -82,9 +82,6 @@ export class EmailChecker {
       '{{from}}': fullMessage.from.name
         ? `${fullMessage.from.name} <${fullMessage.from.address}>`
         : fullMessage.from.address,
-      '{{id}}': fullMessage.id,
-      '{{intro}}': fullMessage.intro,
-      '{{msgid}}': fullMessage.msgid,
       '{{subject}}': fullMessage.subject,
       '{{to}}': formatAddresses(fullMessage.to)
     });
