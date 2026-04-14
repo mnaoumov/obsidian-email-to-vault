@@ -73,6 +73,7 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
         create: vi.fn(),
         createBinary: vi.fn(),
         createFolder: vi.fn(),
+        getFileByPath: vi.fn(() => null),
         getFolderByPath: vi.fn(() => null)
       }
     },
@@ -808,6 +809,34 @@ describe('EmailNoteCreator', () => {
         expect.any(String),
         'Original <orig@test.com> | Original Subject | Actual body'
       );
+    });
+
+    it('should skip saving when note file already exists', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Body',
+          to: [],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin();
+      vi.mocked(plugin.app.vault.getFileByPath).mockReturnValue({} as never);
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).not.toHaveBeenCalled();
     });
   });
 });

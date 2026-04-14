@@ -56,6 +56,11 @@ export class EmailNoteCreator {
       '{{to}}': emailData.to
     });
 
+    const existingFile = this.plugin.app.vault.getFileByPath(filePath);
+    if (existingFile) {
+      return;
+    }
+
     await this.ensureFolderExists(filePath);
     await this.plugin.app.vault.create(filePath, content);
   }
