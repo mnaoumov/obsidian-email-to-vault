@@ -73,6 +73,7 @@ async function sendTestEmail(to: string): Promise<void> {
   const smtpPass = getRequiredEnv('SMTP_PASS');
   const smtpHost = getRequiredEnv('SMTP_HOST');
   const smtpPort = Number(getRequiredEnv('SMTP_PORT'));
+  const smtpSecure = process.env['SMTP_SECURE'] === 'true';
 
   const transport = createTransport({
     auth: {
@@ -81,7 +82,7 @@ async function sendTestEmail(to: string): Promise<void> {
     },
     host: smtpHost,
     port: smtpPort,
-    secure: false
+    secure: smtpSecure
   });
 
   await transport.sendMail({
