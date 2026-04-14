@@ -68,7 +68,7 @@ async function sendTestEmail(to: string): Promise<void> {
   const smtpHost = process.env['SMTP_HOST'] ?? 'smtp.gmail.com';
 
   if (!smtpUser || !smtpPass) {
-    throw new Error('SMTP_USER and SMTP_PASS environment variables are required for integration tests');
+    throw new Error('SMTP_USER and SMTP_PASS environment variables are required. Add them to your .env file (e.g., Gmail address + app password).');
   }
 
   const transport = createTransport({
@@ -91,8 +91,6 @@ async function sendTestEmail(to: string): Promise<void> {
 }
 
 let testAccount: TestAccount;
-
-const hasSmtpCredentials = Boolean(process.env['SMTP_USER'] && process.env['SMTP_PASS']);
 
 describe('Mail.tm API', () => {
   beforeAll(async () => {
@@ -181,7 +179,7 @@ describe('Mail.tm API', () => {
     });
   });
 
-  describe.runIf(hasSmtpCredentials)('GET /messages/{id} (with sent email)', () => {
+  describe('GET /messages/{id} (with sent email)', () => {
     it('should receive and validate full message schema', async () => {
       await sendTestEmail(testAccount.address);
 
