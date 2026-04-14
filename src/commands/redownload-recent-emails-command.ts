@@ -19,6 +19,7 @@ class RedownloadRecentEmailsCommandInvocation extends CommandInvocationBase<Plug
   }
 }
 
+/* v8 ignore start -- Modal UI requires Obsidian runtime. */
 class RedownloadRecentEmailsModal extends Modal {
   public constructor(app: App, private readonly emailChecker: EmailChecker) {
     super(app);
@@ -51,6 +52,7 @@ class RedownloadRecentEmailsModal extends Modal {
     );
   }
 }
+/* v8 ignore stop */
 
 export class RedownloadRecentEmailsCommand extends NonEditorCommandBase<Plugin> {
   public constructor(plugin: Plugin, private readonly emailChecker: EmailChecker) {
