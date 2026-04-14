@@ -1,0 +1,32 @@
+{
+  "version": "0.2",
+  "ignorePaths": [
+    "coverage/",
+    "dist/",
+    "node_modules/",
+    "tsconfig.tsbuildinfo"
+  ],
+  "dictionaryDefinitions": [],
+  "dictionaries": [],
+  "words": [
+    "Collapsibles",
+    "commitlint",
+    "contenteditable",
+    "davidvkimball",
+    "dblclick",
+    "Evernote's",
+    "frontmatter",
+    "marr",
+    "mnaoumov",
+    "mriechers",
+    "multitext",
+    "nodomain",
+    "Naumov",
+    "OliverStaub",
+    "Promisable",
+    "tsbuildinfo"
+  ],
+  "ignoreWords": [],
+  "import": [],
+  "enabled": true
+}

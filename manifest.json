@@ -1,0 +1,11 @@
+{
+  "author": "mnaoumov",
+  "authorUrl": "https://github.com/mnaoumov/",
+  "description": "Sends emails to your vault as notes. Create a free mailbox with one click — no backend or paid service required.",
+  "fundingUrl": "https://www.buymeacoffee.com/mnaoumov",
+  "id": "email-to-vault",
+  "isDesktopOnly": false,
+  "name": "Email to Vault",
+  "version": "0.0.0",
+  "minAppVersion": "1.12.7"
+}
