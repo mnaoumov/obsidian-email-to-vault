@@ -210,7 +210,7 @@ function normalizeDate(dateStr: string): string {
   const normalized = normalizeWhitespace(dateStr);
   const parsed = momentFn(normalized, KNOWN_DATE_FORMATS, true);
   if (parsed.isValid()) {
-    return parsed.toISOString();
+    return parsed.format();
   }
   return dateStr;
 }

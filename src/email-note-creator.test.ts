@@ -401,7 +401,7 @@ describe('EmailNoteCreator', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        expect.stringMatching(/^Original <orig@test.com> \| Original Subject \| 2024-01-01T\d{2}:\d{2}:\d{2}.\d{3}Z \| Actual body$/)
+        expect.stringMatching(/^Original <orig@test.com> \| Original Subject \| 2024-01-01T00:00:00[+-]\d{2}:\d{2} \| Actual body$/)
       );
     });
 
@@ -850,7 +850,7 @@ describe('EmailNoteCreator', () => {
       );
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        expect.stringMatching(/\| 2026-04-14T\d{2}:16:00\.000Z \|/)
+        expect.stringMatching(/\| 2026-04-14T05:16:00[+-]\d{2}:\d{2} \|/)
       );
     });
 
