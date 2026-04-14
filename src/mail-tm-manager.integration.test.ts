@@ -21,8 +21,6 @@ const RANDOM_ADDRESS_LENGTH = 10;
 const RANDOM_PASSWORD_LENGTH = 20;
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;
-const SMTP_PORT = 587;
-
 interface TestAccount {
   address: string;
   password: string;
@@ -35,6 +33,14 @@ const nativeFetch = fetch;
 async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
   const response = await nativeFetch(url, options);
   return response.json();
+}
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required. Add it to your .env file.`);
+  }
+  return value;
 }
 
 async function pollForMessage(token: string): Promise<string> {
@@ -63,13 +69,10 @@ async function pollForMessage(token: string): Promise<string> {
 }
 
 async function sendTestEmail(to: string): Promise<void> {
-  const smtpUser = process.env['SMTP_USER'];
-  const smtpPass = process.env['SMTP_PASS'];
-  const smtpHost = process.env['SMTP_HOST'] ?? 'smtp.gmail.com';
-
-  if (!smtpUser || !smtpPass) {
-    throw new Error('SMTP_USER and SMTP_PASS environment variables are required. Add them to your .env file (e.g., Gmail address + app password).');
-  }
+  const smtpUser = getRequiredEnv('SMTP_USER');
+  const smtpPass = getRequiredEnv('SMTP_PASS');
+  const smtpHost = getRequiredEnv('SMTP_HOST');
+  const smtpPort = Number(getRequiredEnv('SMTP_PORT'));
 
   const transport = createTransport({
     auth: {
@@ -77,7 +80,7 @@ async function sendTestEmail(to: string): Promise<void> {
       user: smtpUser
     },
     host: smtpHost,
-    port: SMTP_PORT,
+    port: smtpPort,
     secure: false
   });
 
