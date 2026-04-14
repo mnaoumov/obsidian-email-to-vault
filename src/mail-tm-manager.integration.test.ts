@@ -1,3 +1,4 @@
+import { createTransport } from 'nodemailer';
 import {
   afterAll,
   beforeAll,
@@ -10,6 +11,7 @@ import { generateRandomString } from './generate-random-string.ts';
 import {
   mailTmAccountResponseSchema,
   mailTmDomainsResponseSchema,
+  mailTmMessageFullSchema,
   mailTmMessagesResponseSchema,
   mailTmTokenResponseSchema
 } from './mail-tm-schemas.ts';
@@ -17,6 +19,9 @@ import {
 const MAIL_TM_API_BASE_URL = 'https://api.mail.tm';
 const RANDOM_ADDRESS_LENGTH = 10;
 const RANDOM_PASSWORD_LENGTH = 20;
+const POLL_INTERVAL_IN_MILLISECONDS = 3000;
+const MAX_WAIT_IN_MILLISECONDS = 60_000;
+const SMTP_PORT = 587;
 
 interface TestAccount {
   address: string;
@@ -32,7 +37,62 @@ async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
   return response.json();
 }
 
+async function pollForMessage(token: string): Promise<string> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < MAX_WAIT_IN_MILLISECONDS) {
+    const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = mailTmMessagesResponseSchema.parse(json);
+    const messages = data['hydra:member'];
+
+    if (messages.length > 0) {
+      const firstMessage = messages[0];
+      if (firstMessage) {
+        return firstMessage.id;
+      }
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
+    });
+  }
+
+  throw new Error(`No message received within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
+}
+
+async function sendTestEmail(to: string): Promise<void> {
+  const smtpUser = process.env['SMTP_USER'];
+  const smtpPass = process.env['SMTP_PASS'];
+  const smtpHost = process.env['SMTP_HOST'] ?? 'smtp.gmail.com';
+
+  if (!smtpUser || !smtpPass) {
+    throw new Error('SMTP_USER and SMTP_PASS environment variables are required for integration tests');
+  }
+
+  const transport = createTransport({
+    auth: {
+      pass: smtpPass,
+      user: smtpUser
+    },
+    host: smtpHost,
+    port: SMTP_PORT,
+    secure: false
+  });
+
+  await transport.sendMail({
+    cc: 'test-cc@example.com',
+    from: smtpUser,
+    subject: 'Integration test email',
+    text: 'This is a test email body.',
+    to
+  });
+}
+
 let testAccount: TestAccount;
+
+const HAS_SMTP_CREDENTIALS = Boolean(process.env['SMTP_USER'] && process.env['SMTP_PASS']);
 
 describe('Mail.tm API', () => {
   beforeAll(async () => {
@@ -119,14 +179,39 @@ describe('Mail.tm API', () => {
 
       expect(result.success).toBe(true);
     });
+  });
 
-    it('should return empty list for new account', async () => {
+  describe.runIf(HAS_SMTP_CREDENTIALS)('GET /messages/{id} (with sent email)', () => {
+    it('should receive and validate full message schema', async () => {
+      await sendTestEmail(testAccount.address);
+
+      const messageId = await pollForMessage(testAccount.token);
+
+      const messageJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages/${messageId}`, {
+        headers: { Authorization: `Bearer ${testAccount.token}` }
+      });
+
+      const result = mailTmMessageFullSchema.safeParse(messageJson);
+
+      if (!result.success) {
+        const JSON_INDENT = 2;
+        console.error('Schema validation errors:', JSON.stringify(result.error.issues, null, JSON_INDENT));
+        console.debug('API response:', JSON.stringify(messageJson, null, JSON_INDENT));
+      }
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should have correct sender and subject in received message', async () => {
       const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
         headers: { Authorization: `Bearer ${testAccount.token}` }
       });
       const data = mailTmMessagesResponseSchema.parse(json);
+      const firstMessage = data['hydra:member'][0];
 
-      expect(data['hydra:member']).toHaveLength(0);
+      expect(firstMessage).toBeDefined();
+      expect(firstMessage?.subject).toBe('Integration test email');
+      expect(firstMessage?.from.address).toBe(process.env['SMTP_USER']);
     });
   });
 });
