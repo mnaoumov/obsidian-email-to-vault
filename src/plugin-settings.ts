@@ -10,6 +10,8 @@ export const DEFAULT_EMAIL_NOTE_TEMPLATE = dedent`
   ---
 
   {{body}}
+
+  {{attachments}}
 `;
 
 const DEFAULT_EMAIL_CHECK_INTERVAL_IN_MINUTES = 10;
