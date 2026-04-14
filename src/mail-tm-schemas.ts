@@ -29,7 +29,13 @@ export const mailTmMessageSchema = z.object({
   updatedAt: z.string()
 });
 
+export const mailTmAttachmentSchema = z.object({
+  filename: z.string(),
+  id: z.string()
+});
+
 export const mailTmMessageFullSchema = mailTmMessageSchema.extend({
+  attachments: z.array(mailTmAttachmentSchema),
   cc: z.array(mailTmAddressSchema),
   html: z.array(z.string()),
   text: z.string()

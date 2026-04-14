@@ -73,7 +73,7 @@ async function sendTestEmail(to: string): Promise<void> {
   const smtpPass = getRequiredEnv('SMTP_PASS');
   const smtpHost = getRequiredEnv('SMTP_HOST');
   const smtpPort = Number(getRequiredEnv('SMTP_PORT'));
-  const smtpSecure = process.env['SMTP_SECURE'] === 'true';
+  const smtpSecure = getRequiredEnv('SMTP_SECURE') === 'true';
 
   const transport = createTransport({
     auth: {
@@ -86,6 +86,18 @@ async function sendTestEmail(to: string): Promise<void> {
   });
 
   await transport.sendMail({
+    attachments: [
+      {
+        content: 'Hello from attachment 1',
+        contentType: 'text/plain',
+        filename: 'test-file-1.txt'
+      },
+      {
+        content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        contentType: 'image/png',
+        filename: 'test-image.png'
+      }
+    ],
     cc: 'test-cc@example.com',
     from: smtpUser,
     subject: 'Integration test email',
@@ -214,6 +226,27 @@ describe('Mail.tm API', () => {
       expect(firstMessage).toBeDefined();
       expect(firstMessage?.subject).toBe('Integration test email');
       expect(firstMessage?.from.address).toBe(process.env['SMTP_USER']);
+      expect(firstMessage?.hasAttachments).toBe(true);
+    });
+
+    it('should have multiple attachments in full message', async () => {
+      const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
+        headers: { Authorization: `Bearer ${testAccount.token}` }
+      });
+      const data = mailTmMessagesResponseSchema.parse(json);
+      const firstMessage = data['hydra:member'][0];
+      expect(firstMessage).toBeDefined();
+      const messageId = firstMessage?.id ?? '';
+
+      const fullJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages/${messageId}`, {
+        headers: { Authorization: `Bearer ${testAccount.token}` }
+      });
+      const fullMessage = mailTmMessageFullSchema.parse(fullJson);
+
+      const EXPECTED_ATTACHMENT_COUNT = 2;
+      expect(fullMessage.attachments).toHaveLength(EXPECTED_ATTACHMENT_COUNT);
+      expect(fullMessage.attachments[0]?.filename).toBe('test-file-1.txt');
+      expect(fullMessage.attachments[1]?.filename).toBe('test-image.png');
     });
   });
 });
