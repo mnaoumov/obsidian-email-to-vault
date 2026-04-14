@@ -1,3 +1,5 @@
+/* v8 ignore start -- Schema definitions are validated by integration tests, not unit tests. */
+
 import { z } from 'zod';
 
 export const mailTmAddressSchema = z.object({
@@ -50,3 +52,5 @@ export const mailTmAccountResponseSchema = z.object({
   'address': z.string(),
   'id': z.string()
 });
+
+/* v8 ignore stop */

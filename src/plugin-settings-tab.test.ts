@@ -74,6 +74,14 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
         numCb({});
         return s;
       });
+      s['addText'] = vi.fn((textCb: (c: unknown) => void) => {
+        textCb({});
+        return s;
+      });
+      s['addTextArea'] = vi.fn((textAreaCb: (c: unknown) => void) => {
+        textAreaCb({});
+        return s;
+      });
       cb(s);
       return this;
     });

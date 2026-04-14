@@ -66,8 +66,18 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
         setting
           .setName('Email notes folder')
           .setDesc('The folder where email notes will be stored.')
-          .addNumber((numberComponent) => {
-            this.bind(numberComponent, 'emailCheckIntervalInMinutes');
+          .addText((text) => {
+            this.bind(text, 'emailNotesFolder');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Email note template')
+          .setDesc('The template to use for email notes.')
+          .addTextArea((textArea) => {
+            this.bind(textArea, 'emailNoteTemplate', {
+              shouldShowPlaceholderForDefaultValues: false
+            });
           });
       });
   }
