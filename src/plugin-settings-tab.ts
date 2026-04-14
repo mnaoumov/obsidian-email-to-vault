@@ -7,6 +7,8 @@ import type { MailTmManager } from './mail-tm-manager.ts';
 import type { PluginTypes } from './plugin-types.ts';
 import type { Plugin } from './plugin.ts';
 
+import { FolderSuggest } from './folder-suggest.ts';
+
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
   public constructor(plugin: Plugin, private readonly mailTmManager: MailTmManager) {
     super(plugin);
@@ -68,6 +70,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
           .setDesc('The folder where email notes will be stored.')
           .addText((text) => {
             this.bind(text, 'emailNotesFolder');
+            new FolderSuggest(this.app, text.inputEl);
           });
       })
       .addSettingEx((setting) => {
