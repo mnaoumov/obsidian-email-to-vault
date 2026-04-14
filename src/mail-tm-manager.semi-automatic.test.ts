@@ -117,10 +117,13 @@ describe.skipIf(IS_CI)('Mail.tm message schema (semi-automatic)', () => {
       headers: { Authorization: `Bearer ${testAccount.token}` }
     });
 
+    const JSON_INDENT = 2;
+    console.debug('API response:', JSON.stringify(messageJson, null, JSON_INDENT));
+
     const result = mailTmMessageFullSchema.safeParse(messageJson);
 
     if (!result.success) {
-      console.error('Schema validation errors:', JSON.stringify(result.error.issues, null, 2));
+      console.error('Schema validation errors:', JSON.stringify(result.error.issues, null, JSON_INDENT));
     }
 
     expect(result.success).toBe(true);
