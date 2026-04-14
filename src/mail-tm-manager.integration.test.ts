@@ -92,7 +92,7 @@ async function sendTestEmail(to: string): Promise<void> {
 
 let testAccount: TestAccount;
 
-const HAS_SMTP_CREDENTIALS = Boolean(process.env['SMTP_USER'] && process.env['SMTP_PASS']);
+const hasSmtpCredentials = Boolean(process.env['SMTP_USER'] && process.env['SMTP_PASS']);
 
 describe('Mail.tm API', () => {
   beforeAll(async () => {
@@ -181,7 +181,7 @@ describe('Mail.tm API', () => {
     });
   });
 
-  describe.runIf(HAS_SMTP_CREDENTIALS)('GET /messages/{id} (with sent email)', () => {
+  describe.runIf(hasSmtpCredentials)('GET /messages/{id} (with sent email)', () => {
     it('should receive and validate full message schema', async () => {
       await sendTestEmail(testAccount.address);
 
