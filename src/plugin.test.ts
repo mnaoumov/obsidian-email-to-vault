@@ -18,6 +18,7 @@ import { OpenSettingsCommand } from './commands/open-settings-command.ts';
 import { RedownloadAllEmailsCommand } from './commands/redownload-all-emails-command.ts';
 import { RedownloadRecentEmailsCommand } from './commands/redownload-recent-emails-command.ts';
 import { EmailChecker } from './email-checker.ts';
+import { EmailNoteCreator } from './email-note-creator.ts';
 import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsManager } from './plugin-settings-manager.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
@@ -68,6 +69,10 @@ vi.mock('./email-checker.ts', () => ({
   })
 }));
 
+vi.mock('./email-note-creator.ts', () => ({
+  EmailNoteCreator: vi.fn()
+}));
+
 vi.mock('./commands/open-settings-command.ts', () => ({
   OpenSettingsCommand: vi.fn(function openSettingsCommandMock(this: Record<string, unknown>) {
     this['register'] = mocks.mockOpenSettingsRegister;
@@ -102,6 +107,7 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 
 const MockCheckEmailsCommand = vi.mocked(CheckEmailsCommand);
 const MockEmailChecker = vi.mocked(EmailChecker);
+const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
 const MockMailTmManager = vi.mocked(MailTmManager);
 const MockOpenSettingsCommand = vi.mocked(OpenSettingsCommand);
 const MockPluginSettingsManager = vi.mocked(PluginSettingsManager);
@@ -156,10 +162,16 @@ describe('Plugin', () => {
       expect(MockMailTmManager).toHaveBeenCalledWith(plugin);
     });
 
-    it('should create EmailChecker with plugin and mail manager', () => {
+    it('should create EmailNoteCreator with plugin and mail manager', () => {
       const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
 
-      expect(MockEmailChecker).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0]);
+      expect(MockEmailNoteCreator).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0]);
+    });
+
+    it('should create EmailChecker with plugin, mail manager, and note creator', () => {
+      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
+
+      expect(MockEmailChecker).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0], MockEmailNoteCreator.mock.instances[0]);
     });
   });
 

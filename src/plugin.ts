@@ -13,6 +13,7 @@ import { OpenSettingsCommand } from './commands/open-settings-command.ts';
 import { RedownloadAllEmailsCommand } from './commands/redownload-all-emails-command.ts';
 import { RedownloadRecentEmailsCommand } from './commands/redownload-recent-emails-command.ts';
 import { EmailChecker } from './email-checker.ts';
+import { EmailNoteCreator } from './email-note-creator.ts';
 import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsManager } from './plugin-settings-manager.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
@@ -25,7 +26,8 @@ export class Plugin extends PluginBase<PluginTypes> {
   public constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
     this.mailTmManager = new MailTmManager(this);
-    this.emailChecker = new EmailChecker(this, this.mailTmManager);
+    const noteCreator = new EmailNoteCreator(this, this.mailTmManager);
+    this.emailChecker = new EmailChecker(this, this.mailTmManager, noteCreator);
   }
 
   protected override createSettingsManager(): PluginSettingsManager {
