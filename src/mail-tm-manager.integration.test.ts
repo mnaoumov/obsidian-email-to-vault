@@ -1,3 +1,6 @@
+import type { z } from 'zod';
+
+import dedent from 'dedent';
 import { createTransport } from 'nodemailer';
 import {
   afterAll,
@@ -21,6 +24,16 @@ const RANDOM_ADDRESS_LENGTH = 10;
 const RANDOM_PASSWORD_LENGTH = 20;
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;
+const FORWARDED_EMAIL_RFC822 = dedent`
+  From: original-sender@example.com
+  To: original-recipient@example.com
+  Subject: Original subject
+  Date: Mon, 14 Apr 2026 10:00:00 +0000
+  Content-Type: text/plain; charset=utf-8
+
+  This is the original forwarded email body.
+`.replaceAll('\n', '\r\n');
+
 interface TestAccount {
   address: string;
   password: string;
@@ -29,6 +42,22 @@ interface TestAccount {
 
 // eslint-disable-next-line no-restricted-globals -- Integration tests run in Node.js, not Obsidian. Using native fetch.
 const nativeFetch = fetch;
+
+function addSuffix(address: string, suffix: string): string {
+  return address.replace('@', `+${suffix}@`);
+}
+
+function createSmtpTransport(): ReturnType<typeof createTransport> {
+  return createTransport({
+    auth: {
+      pass: getRequiredEnv('SMTP_PASS'),
+      user: getRequiredEnv('SMTP_USER')
+    },
+    host: getRequiredEnv('SMTP_HOST'),
+    port: Number(getRequiredEnv('SMTP_PORT')),
+    secure: getRequiredEnv('SMTP_SECURE') === 'true'
+  });
+}
 
 async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
   const response = await nativeFetch(url, options);
@@ -43,7 +72,7 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-async function pollForMessage(token: string): Promise<string> {
+async function pollForMessages(token: string, expectedCount: number): Promise<z.infer<typeof mailTmMessagesResponseSchema>['hydra:member']> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < MAX_WAIT_IN_MILLISECONDS) {
@@ -53,11 +82,8 @@ async function pollForMessage(token: string): Promise<string> {
     const data = mailTmMessagesResponseSchema.parse(json);
     const messages = data['hydra:member'];
 
-    if (messages.length > 0) {
-      const firstMessage = messages[0];
-      if (firstMessage) {
-        return firstMessage.id;
-      }
+    if (messages.length >= expectedCount) {
+      return messages;
     }
 
     await new Promise((resolve) => {
@@ -65,25 +91,31 @@ async function pollForMessage(token: string): Promise<string> {
     });
   }
 
-  throw new Error(`No message received within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
+  throw new Error(`Expected ${String(expectedCount)} messages but did not receive them within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
 }
 
-async function sendTestEmail(to: string): Promise<void> {
+async function sendForwardedEmail(baseAddress: string): Promise<void> {
   const smtpUser = getRequiredEnv('SMTP_USER');
-  const smtpPass = getRequiredEnv('SMTP_PASS');
-  const smtpHost = getRequiredEnv('SMTP_HOST');
-  const smtpPort = Number(getRequiredEnv('SMTP_PORT'));
-  const smtpSecure = getRequiredEnv('SMTP_SECURE') === 'true';
+  const transport = createSmtpTransport();
 
-  const transport = createTransport({
-    auth: {
-      pass: smtpPass,
-      user: smtpUser
-    },
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure
+  await transport.sendMail({
+    attachments: [
+      {
+        content: FORWARDED_EMAIL_RFC822,
+        contentType: 'message/rfc822',
+        filename: 'forwarded.eml'
+      }
+    ],
+    from: smtpUser,
+    subject: 'Fwd: Original subject',
+    text: 'See the forwarded message attached.',
+    to: baseAddress
   });
+}
+
+async function sendNormalEmail(baseAddress: string): Promise<void> {
+  const smtpUser = getRequiredEnv('SMTP_USER');
+  const transport = createSmtpTransport();
 
   await transport.sendMail({
     attachments: [
@@ -96,17 +128,37 @@ async function sendTestEmail(to: string): Promise<void> {
         content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
         contentType: 'image/png',
         filename: 'test-image.png'
+      },
+      {
+        content: '<h1>Hello</h1>',
+        contentType: 'text/html',
+        filename: 'test-page.html'
       }
     ],
-    cc: 'test-cc@example.com',
+    bcc: addSuffix(baseAddress, 'bcc'),
+    cc: addSuffix(baseAddress, 'cc'),
     from: smtpUser,
     subject: 'Integration test email',
     text: 'This is a test email body.',
-    to
+    to: addSuffix(baseAddress, 'to')
   });
 }
 
 let testAccount: TestAccount;
+
+async function fetchAttachmentContent(messageId: string, attachmentId: string): Promise<Response> {
+  return nativeFetch(
+    `${MAIL_TM_API_BASE_URL}/messages/${messageId}/attachment/${attachmentId}`,
+    { headers: { Authorization: `Bearer ${testAccount.token}` } }
+  );
+}
+
+async function getFullMessage(messageId: string): Promise<z.infer<typeof mailTmMessageFullSchema>> {
+  const fullJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages/${messageId}`, {
+    headers: { Authorization: `Bearer ${testAccount.token}` }
+  });
+  return mailTmMessageFullSchema.parse(fullJson);
+}
 
 describe('Mail.tm API', () => {
   beforeAll(async () => {
@@ -195,12 +247,13 @@ describe('Mail.tm API', () => {
     });
   });
 
-  describe('GET /messages/{id} (with sent email)', () => {
+  describe('normal email', () => {
     it('should receive and validate full message schema', async () => {
-      await sendTestEmail(testAccount.address);
+      await sendNormalEmail(testAccount.address);
 
-      const messageId = await pollForMessage(testAccount.token);
-
+      const EXPECTED_NORMAL_MESSAGE_COUNT = 3;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_NORMAL_MESSAGE_COUNT);
+      const messageId = messages[0]?.id ?? '';
       const messageJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages/${messageId}`, {
         headers: { Authorization: `Bearer ${testAccount.token}` }
       });
@@ -216,37 +269,74 @@ describe('Mail.tm API', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should have correct sender and subject in received message', async () => {
-      const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
-        headers: { Authorization: `Bearer ${testAccount.token}` }
-      });
-      const data = mailTmMessagesResponseSchema.parse(json);
-      const firstMessage = data['hydra:member'][0];
+    it('should have correct sender, recipients, and subject', async () => {
+      const EXPECTED_NORMAL_MESSAGE_COUNT = 3;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_NORMAL_MESSAGE_COUNT);
+      const toMessage = messages.find((m) => m.to[0]?.address === addSuffix(testAccount.address, 'to'));
 
-      expect(firstMessage).toBeDefined();
-      expect(firstMessage?.subject).toBe('Integration test email');
-      expect(firstMessage?.from.address).toBe(process.env['SMTP_USER']);
-      expect(firstMessage?.hasAttachments).toBe(true);
+      expect(toMessage).toBeDefined();
+      expect(toMessage?.subject).toBe('Integration test email');
+      expect(toMessage?.from.address).toBe(process.env['SMTP_USER']);
+      expect(toMessage?.hasAttachments).toBe(true);
     });
 
-    it('should have multiple attachments in full message', async () => {
-      const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
-        headers: { Authorization: `Bearer ${testAccount.token}` }
-      });
-      const data = mailTmMessagesResponseSchema.parse(json);
-      const firstMessage = data['hydra:member'][0];
-      expect(firstMessage).toBeDefined();
-      const messageId = firstMessage?.id ?? '';
+    it('should have correct cc', async () => {
+      const EXPECTED_NORMAL_MESSAGE_COUNT = 3;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_NORMAL_MESSAGE_COUNT);
+      const toMessage = messages.find((m) => m.to[0]?.address === addSuffix(testAccount.address, 'to'));
+      const fullMessage = await getFullMessage(toMessage?.id ?? '');
 
-      const fullJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages/${messageId}`, {
-        headers: { Authorization: `Bearer ${testAccount.token}` }
-      });
-      const fullMessage = mailTmMessageFullSchema.parse(fullJson);
+      expect(fullMessage.cc[0]?.address).toBe(addSuffix(testAccount.address, 'cc'));
+    });
 
-      const EXPECTED_ATTACHMENT_COUNT = 2;
+    it('should have attachments with correct content', async () => {
+      const EXPECTED_NORMAL_MESSAGE_COUNT = 3;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_NORMAL_MESSAGE_COUNT);
+      const toMessage = messages.find((m) => m.to[0]?.address === addSuffix(testAccount.address, 'to'));
+      const fullMessage = await getFullMessage(toMessage?.id ?? '');
+
+      const EXPECTED_ATTACHMENT_COUNT = 3;
       expect(fullMessage.attachments).toHaveLength(EXPECTED_ATTACHMENT_COUNT);
       expect(fullMessage.attachments[0]?.filename).toBe('test-file-1.txt');
       expect(fullMessage.attachments[1]?.filename).toBe('test-image.png');
+      expect(fullMessage.attachments[2]?.filename).toBe('test-page.html');
+
+      const textResponse = await fetchAttachmentContent(fullMessage.id, fullMessage.attachments[0]?.id ?? '');
+      expect(await textResponse.text()).toBe('Hello from attachment 1');
+
+      const imageResponse = await fetchAttachmentContent(fullMessage.id, fullMessage.attachments[1]?.id ?? '');
+      expect(Buffer.from(await imageResponse.arrayBuffer())).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+      const htmlResponse = await fetchAttachmentContent(fullMessage.id, fullMessage.attachments[2]?.id ?? '');
+      expect(await htmlResponse.text()).toBe('<h1>Hello</h1>');
+    });
+  });
+
+  describe('forwarded email', () => {
+    it('should receive forwarded email with message/rfc822 attachment', async () => {
+      await sendForwardedEmail(testAccount.address);
+
+      const EXPECTED_MESSAGE_COUNT = 4;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
+      const forwardedMessage = messages.find((m) => m.subject === 'Fwd: Original subject');
+
+      expect(forwardedMessage).toBeDefined();
+      expect(forwardedMessage?.hasAttachments).toBe(true);
+    });
+
+    it('should have message/rfc822 attachment with original email content', async () => {
+      const EXPECTED_MESSAGE_COUNT = 4;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
+      const forwardedMessage = messages.find((m) => m.subject === 'Fwd: Original subject');
+      const fullMessage = await getFullMessage(forwardedMessage?.id ?? '');
+
+      expect(fullMessage.attachments).toHaveLength(1);
+      expect(fullMessage.attachments[0]?.filename).toBe('forwarded.eml');
+
+      const emlResponse = await fetchAttachmentContent(fullMessage.id, fullMessage.attachments[0]?.id ?? '');
+      const emlContent = await emlResponse.text();
+      expect(emlContent).toContain('Subject: Original subject');
+      expect(emlContent).toContain('This is the original forwarded email body.');
     });
   });
 });

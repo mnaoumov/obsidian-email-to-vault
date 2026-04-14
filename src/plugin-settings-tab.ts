@@ -1,5 +1,6 @@
 import { SecretComponent } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
+import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab-base';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
@@ -21,20 +22,24 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       .setHeading('Mail.tm')
       .addSettingEx((setting) => {
         setting
+          .addButton((button) =>
+            button
+              .setButtonText('Register random email address')
+              .setDisabled(this.plugin.settings.emailAddress !== '')
+              .onClick(convertAsyncToSync(async () => {
+                await this.mailTmManager.registerRandomEmailAddress();
+                this.display();
+              }))
+          );
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setClass('email-address')
           .setName('Email address')
           .setDesc('The email address to check for emails.')
           .addEmail((emailComponent) => {
             this.bind(emailComponent, 'emailAddress');
-          })
-          .addButton((button) =>
-            button
-              .setButtonText('Get new email address')
-              .setDisabled(this.plugin.settings.emailAddress !== '')
-              .onClick(convertAsyncToSync(async () => {
-                await this.mailTmManager.getNewEmailAddress();
-                this.display();
-              }))
-          );
+          });
       })
       .addSettingEx((setting) => {
         setting
@@ -48,6 +53,18 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
             settings.emailPasswordSecretKey = value;
           });
         }));
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Delete seen emails')
+          .setDesc(createFragment((f) => {
+            f.appendText('Whether to delete emails from the mailbox after being saved as notes.');
+            f.createEl('br');
+            f.appendText('⚠️ WARNING: deleted emails cannot be recovered.');
+          }))
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldDeleteSeenEmails');
+          });
       });
 
     new SettingGroupEx(this.containerEl)
@@ -61,6 +78,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
             f.appendText('Set to 0 to disable automatic email checking.');
           }))
           .addNumber((numberComponent) => {
+            numberComponent.setMin(0);
             this.bind(numberComponent, 'emailCheckIntervalInMinutes');
           });
       })
@@ -70,9 +88,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
           .setDesc(createFragment((f) => {
             f.appendText('Path template for saved email notes.');
             f.createEl('br');
-            f.appendText('Variables: {{date:FORMAT}}, {{subject}}, {{from}}, {{to}}, {{cc}}');
-            f.createEl('br');
-            f.appendText('Date format tokens: YYYY, MM, DD, HH, mm, ss');
+            appendVariables(f);
           }))
           .addCodeHighlighter((codeHighlighter) => {
             codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
@@ -81,37 +97,44 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       })
       .addSettingEx((setting) => {
         setting
+          .setClass('email-note-template')
           .setName('Email note template')
-          .setDesc('The template to use for email note content.')
-          .addTextArea((textArea) => {
-            this.bind(textArea, 'emailNoteTemplate', {
-              shouldShowPlaceholderForDefaultValues: false
-            });
-          });
-      })
-      .addSettingEx((setting) => {
-        setting
-          .setName('Delete seen emails')
           .setDesc(createFragment((f) => {
-            f.appendText('When enabled, emails are deleted from the mailbox after being saved as notes.');
+            f.appendText('The template to use for email note content.');
             f.createEl('br');
-            f.appendText('Warning: deleted emails cannot be recovered.');
+            appendVariables(f);
           }))
-          .addToggle((toggle) => {
-            this.bind(toggle, 'shouldDeleteSeenEmails');
+          .addCodeHighlighter((codeHighlighter) => {
+            codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
+            this.bind(codeHighlighter, 'emailNoteTemplate');
           });
       })
       .addSettingEx((setting) => {
         setting
-          .setName('Strip forward markers')
+          .setName('Extract forwarded email')
           .setDesc(createFragment((f) => {
+            f.appendText('Whether to extract the original sender, recipients, and subject from forwarded emails.');
+            f.createEl('br');
             f.appendText('When enabled, treats forwarded emails as direct messages.');
-            f.createEl('br');
-            f.appendText('Extracts original sender, recipients, and subject from Gmail/Outlook forward headers.');
           }))
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldStripForwardMarkers');
+            this.bind(toggle, 'shouldExtractForwardedEmail');
           });
       });
   }
+}
+
+function appendVariables(f: DocumentFragment): void {
+  const variables = ['{{cc}}', '{{date:FORMAT}}', '{{from}}', '{{subject}}', '{{to}}'];
+
+  f.appendText('Variables:');
+  const ol = f.createEl('ul');
+  for (const variable of variables) {
+    const li = ol.createEl('li');
+    appendCodeBlock(li, variable);
+  }
+
+  f.appendText('Date format uses ');
+  f.createEl('a', { href: 'https://momentjs.com/docs/#/displaying/format/', text: 'Moment.js format' });
+  f.appendText('.');
 }

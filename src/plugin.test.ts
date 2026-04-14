@@ -122,7 +122,7 @@ const BASE_SETTINGS = {
   emailNoteTemplate: '',
   emailPasswordSecretKey: '',
   shouldDeleteSeenEmails: false,
-  shouldStripForwardMarkers: false
+  shouldExtractForwardedEmail: false
 };
 
 const BASE_VALIDATION_MESSAGES = {
@@ -132,7 +132,7 @@ const BASE_VALIDATION_MESSAGES = {
   emailNoteTemplate: '',
   emailPasswordSecretKey: '',
   shouldDeleteSeenEmails: '',
-  shouldStripForwardMarkers: ''
+  shouldExtractForwardedEmail: ''
 };
 
 interface SettingsWrapper {

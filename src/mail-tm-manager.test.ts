@@ -139,7 +139,7 @@ describe('MailTmManager', () => {
           status: 201
         } as never);
 
-      await manager.getNewEmailAddress();
+      await manager.registerRandomEmailAddress();
 
       expect(setSecretFn).toHaveBeenCalledOnce();
       expect(editAndSaveFn).toHaveBeenCalledOnce();
@@ -153,7 +153,7 @@ describe('MailTmManager', () => {
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: false }] }
       } as never);
 
-      await expect(manager.getNewEmailAddress()).rejects.toThrow('No active Mail.tm domains available');
+      await expect(manager.registerRandomEmailAddress()).rejects.toThrow('No active Mail.tm domains available');
     });
 
     it('should throw when account creation fails', async () => {
@@ -168,7 +168,7 @@ describe('MailTmManager', () => {
           status: 400
         } as never);
 
-      await expect(manager.getNewEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 400');
+      await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 400');
     });
 
     it('should find unique secret key when existing keys are taken', async () => {
@@ -191,7 +191,7 @@ describe('MailTmManager', () => {
           status: 201
         } as never);
 
-      await manager.getNewEmailAddress();
+      await manager.registerRandomEmailAddress();
 
       expect(setSecretFn).toHaveBeenCalledWith(
         'email-to-vault--password1',

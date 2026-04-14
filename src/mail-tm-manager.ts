@@ -1,9 +1,6 @@
 import type { App } from 'obsidian';
 
-import {
-  Notice,
-  requestUrl
-} from 'obsidian';
+import { requestUrl } from 'obsidian';
 
 import type { Plugin } from './plugin.ts';
 
@@ -20,6 +17,7 @@ export interface MailTmAddress {
 }
 
 export interface MailTmAttachment {
+  contentType: string;
   filename: string;
   id: string;
 }
@@ -38,7 +36,7 @@ export interface MailTmMessage {
 }
 
 export interface MailTmMessageFull extends MailTmMessage {
-  attachments: MailTmAttachment[];
+  attachments?: MailTmAttachment[];
   cc: MailTmAddress[];
   html: string[];
   text: string;
@@ -113,10 +111,10 @@ export class MailTmManager {
     return data['hydra:member'];
   }
 
-  public async getNewEmailAddress(): Promise<void> {
+  public async registerRandomEmailAddress(): Promise<void> {
     const domain = await this.getAvailableDomain();
-    const EMAIL_ADDRESS_PREFIX = `${this.plugin.manifest.id}-`;
-    const address = `${EMAIL_ADDRESS_PREFIX}${generateRandomString(RANDOM_ADDRESS_LENGTH)}@${domain}`;
+    const EMAIL_ADDRESS_PREFIX = this.plugin.manifest.id;
+    const address = `${EMAIL_ADDRESS_PREFIX}-${generateRandomString(RANDOM_ADDRESS_LENGTH)}@${domain}`;
     const password = generateRandomString(RANDOM_PASSWORD_LENGTH);
 
     await this.createAccount({ address, password });
@@ -136,8 +134,6 @@ export class MailTmManager {
       settings.emailAddress = address;
       settings.emailPasswordSecretKey = emailPasswordSecretKey;
     });
-
-    new Notice(`Created mailbox: ${address}`);
   }
 
   public async validateEmailDomain(address: string): Promise<boolean> {

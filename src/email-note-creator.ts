@@ -19,6 +19,7 @@ const OUTLOOK_FORWARD_HEADER_PATTERN = /(?:^|\r?\n)From: .*\r?\nSent: .*\r?\nTo:
 const HEADER_FROM_PATTERN = /From: (?<value>.+)/;
 const HEADER_SUBJECT_PATTERN = /Subject: (?<value>.+)/;
 const HEADER_TO_PATTERN = /To: (?<value>.+)/;
+const HEADER_CC_PATTERN = /Cc: (?<value>.+)/;
 const HEADER_DATE_PATTERN = /Date: (?<value>.+)/;
 
 interface EmailData {
@@ -39,7 +40,7 @@ export class EmailNoteCreator {
 
   public async saveEmailAsNote(message: MailTmMessage): Promise<void> {
     const fullMessage = await this.mailTmManager.getMessage(message.id);
-    const emailData = this.extractEmailData(fullMessage);
+    const emailData = await this.extractEmailData(fullMessage);
     const filePath = this.buildNotePath(emailData);
 
     const attachmentLinks = await this.downloadAttachments(fullMessage, filePath);
@@ -66,12 +67,13 @@ export class EmailNoteCreator {
   }
 
   private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<string> {
-    if (fullMessage.attachments.length === 0) {
+    const attachments = fullMessage.attachments ?? [];
+    if (attachments.length === 0) {
       return '';
     }
 
     const links: string[] = [];
-    for (const attachment of fullMessage.attachments) {
+    for (const attachment of attachments) {
       const data = await this.mailTmManager.downloadAttachment(fullMessage.id, attachment.id);
       const attachmentPath = await this.plugin.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
       await this.plugin.app.vault.createBinary(attachmentPath, data);
@@ -94,7 +96,7 @@ export class EmailNoteCreator {
     }
   }
 
-  private extractEmailData(fullMessage: MailTmMessageFull): EmailData {
+  private async extractEmailData(fullMessage: MailTmMessageFull): Promise<EmailData> {
     const fromFormatted = formatAddress(fullMessage.from);
     const toFormatted = formatAddresses(fullMessage.to);
     const ccFormatted = formatAddresses(fullMessage.cc);
@@ -108,11 +110,18 @@ export class EmailNoteCreator {
       to: toFormatted
     };
 
-    if (this.plugin.settings.shouldStripForwardMarkers) {
-      return extractForwardedEmail(data);
+    if (!this.plugin.settings.shouldExtractForwardedEmail) {
+      return data;
     }
 
-    return data;
+    const rfc822Attachment = (fullMessage.attachments ?? []).find((a) => a.contentType === 'message/rfc822');
+    if (rfc822Attachment) {
+      const attachmentData = await this.mailTmManager.downloadAttachment(fullMessage.id, rfc822Attachment.id);
+      const emlContent = new TextDecoder().decode(attachmentData);
+      return extractEmailFromRfc822(emlContent);
+    }
+
+    return extractForwardedEmail(data);
   }
 }
 
@@ -120,6 +129,23 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
   data.from = HEADER_FROM_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.from;
   data.to = HEADER_TO_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.to;
   data.subject = HEADER_SUBJECT_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.subject;
+}
+
+function extractEmailFromRfc822(emlContent: string): EmailData {
+  const headerBodySeparator = /\r?\n\r?\n/;
+  const separatorMatch = headerBodySeparator.exec(emlContent);
+
+  const headers = separatorMatch ? emlContent.slice(0, separatorMatch.index) : emlContent;
+  const body = separatorMatch ? emlContent.slice(separatorMatch.index + separatorMatch[0].length) : '';
+
+  return {
+    body,
+    cc: HEADER_CC_PATTERN.exec(headers)?.groups?.['value'] ?? '',
+    date: HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? '',
+    from: HEADER_FROM_PATTERN.exec(headers)?.groups?.['value'] ?? '',
+    subject: HEADER_SUBJECT_PATTERN.exec(headers)?.groups?.['value'] ?? '',
+    to: HEADER_TO_PATTERN.exec(headers)?.groups?.['value'] ?? ''
+  };
 }
 
 function extractFilename(path: string): string {

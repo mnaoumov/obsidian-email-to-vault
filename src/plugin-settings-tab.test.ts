@@ -124,7 +124,7 @@ interface MockPluginOverrides {
 
 function createMockMailTmManager(): MailTmManager {
   return strictProxy<MailTmManager>({
-    getNewEmailAddress: vi.fn()
+    registerRandomEmailAddress: vi.fn()
   });
 }
 
@@ -197,7 +197,7 @@ describe('PluginSettingsTab', () => {
       const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
       await onClick();
 
-      expect(manager.getNewEmailAddress).toHaveBeenCalledOnce();
+      expect(manager.registerRandomEmailAddress).toHaveBeenCalledOnce();
     });
 
     it('should refresh display after getting new email address', async () => {

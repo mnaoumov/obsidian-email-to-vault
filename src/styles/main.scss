@@ -1,0 +1,11 @@
+.email-to-vault {
+  &.plugin-settings-tab {
+    .email-note-template .obsidian-dev-utils.code-highlighter-component textarea {
+      height: 20em;
+    }
+
+    .email-address input {
+      width: 25em;
+    }
+  }
+}

@@ -40,9 +40,9 @@ export const config = defineConfig({
         test: {
           environment: 'node',
           fileParallelism: false,
-          globalSetup: 'obsidian-integration-testing/obsidian-plugin-vitest-setup',
           include: [INTEGRATION_TEST_FILES],
           name: 'integration-tests',
+          setupFiles: ['./scripts/load-env-file.ts'],
           testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
         }
       }
