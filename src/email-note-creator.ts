@@ -25,6 +25,11 @@ const HEADER_TO_PATTERN = /To: (?<value>.+)/;
 const HEADER_CC_PATTERN = /Cc: (?<value>.+)/;
 const HEADER_DATE_PATTERN = /Date: (?<value>.+)/;
 
+interface DownloadAttachmentsResult {
+  attachmentLinks: string;
+  savedAttachments: Map<string, string>;
+}
+
 interface EmailData {
   body: string;
   cc: string;
@@ -47,12 +52,13 @@ export class EmailNoteCreator {
     const basePath = this.buildNotePath(emailData);
     const filePath = this.plugin.app.vault.getAvailablePath(basePath, 'md');
 
-    const attachmentLinks = await this.downloadAttachments(fullMessage, filePath);
+    const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
+    const body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
 
     const template = this.plugin.settings.emailNoteTemplate;
     const content = replace(template, {
       '{{attachments}}': attachmentLinks,
-      '{{body}}': emailData.body,
+      '{{body}}': body,
       '{{cc}}': emailData.cc,
       '{{date}}': emailData.date,
       '{{from}}': emailData.from,
@@ -69,22 +75,24 @@ export class EmailNoteCreator {
     return replacePathTemplate(pathTemplate, emailData);
   }
 
-  private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<string> {
+  private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<DownloadAttachmentsResult> {
     const attachments = fullMessage.attachments ?? [];
     if (attachments.length === 0) {
-      return '';
+      return { attachmentLinks: '', savedAttachments: new Map() };
     }
 
     const links: string[] = [];
+    const savedAttachments = new Map<string, string>();
     for (const attachment of attachments) {
       const data = await this.mailTmManager.downloadAttachment(fullMessage.id, attachment.id);
       const attachmentPath = await this.plugin.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
       await this.plugin.app.vault.createBinary(attachmentPath, data);
       const filename = extractFilename(attachmentPath);
       links.push(`![[${filename}]]`);
+      savedAttachments.set(attachment.id, filename);
     }
 
-    return links.join('\n');
+    return { attachmentLinks: links.join('\n'), savedAttachments };
   }
 
   private async ensureFolderExists(filePath: string): Promise<void> {
@@ -135,6 +143,8 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
   data.to = extractHeaderValue(headerBlock, HEADER_TO_PATTERN) ?? data.to;
   data.subject = extractHeaderValue(headerBlock, HEADER_SUBJECT_PATTERN) ?? data.subject;
 }
+
+const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:[^)]+\)/g;
 
 function extractBody(fullMessage: MailTmMessageFull): string {
   const html = fullMessage.html.join('');
@@ -209,6 +219,19 @@ function formatAddress(address: MailTmAddress): string {
 
 function formatAddresses(addresses: MailTmAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
+}
+
+function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string, string>): string {
+  const savedFilenames = [...savedAttachments.values()];
+  return body.replace(INLINE_ATTACHMENT_PATTERN, (...args: unknown[]) => {
+    const groups = args.at(-1) as Record<string, string>;
+    const alt = groups['alt'] ?? '';
+    const matchedFilename = savedFilenames.find((f) => f.startsWith(alt) || alt.startsWith(f.replace(/\.[^.]+$/, '')));
+    if (matchedFilename) {
+      return `![[${matchedFilename}]]`;
+    }
+    return `![[${alt || 'attachment'}]]`;
+  });
 }
 
 function stripMarkdownFormatting(text: string): string {
