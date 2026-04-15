@@ -144,7 +144,7 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
   data.subject = extractHeaderValue(headerBlock, HEADER_SUBJECT_PATTERN) ?? data.subject;
 }
 
-const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:[^)]+\)/g;
+const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:(?<attachId>[^)]+)\)/g;
 
 function extractBody(fullMessage: MailTmMessageFull): string {
   const html = fullMessage.html.join('');
@@ -222,13 +222,13 @@ function formatAddresses(addresses: MailTmAddress[]): string {
 }
 
 function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string, string>): string {
-  const savedFilenames = [...savedAttachments.values()];
   return body.replace(INLINE_ATTACHMENT_PATTERN, (...args: unknown[]) => {
     const groups = args.at(-1) as Record<string, string>;
+    const attachId = groups['attachId'] ?? '';
     const alt = groups['alt'] ?? '';
-    const matchedFilename = savedFilenames.find((f) => f.startsWith(alt) || alt.startsWith(f.replace(/\.[^.]+$/, '')));
-    if (matchedFilename) {
-      return `![[${matchedFilename}]]`;
+    const savedFilename = savedAttachments.get(attachId);
+    if (savedFilename) {
+      return `![[${savedFilename}]]`;
     }
     return `![[${alt || 'attachment'}]]`;
   });

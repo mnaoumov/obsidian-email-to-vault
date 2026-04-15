@@ -113,6 +113,55 @@ async function sendForwardedEmail(baseAddress: string): Promise<void> {
   });
 }
 
+async function sendGmailForwardedEmail(baseAddress: string): Promise<void> {
+  const smtpUser = getRequiredEnv('SMTP_USER');
+  const transport = createSmtpTransport();
+
+  await transport.sendMail({
+    from: smtpUser,
+    html: dedent`
+      <div><br clear="all"></div>
+      <div><div dir="ltr" class="gmail_signature"><div dir="ltr"><div><br></div><div>Regards,</div><div>Test User</div></div></div></div>
+      <br><br>
+      <div class="gmail_quote gmail_quote_container">
+        <div dir="ltr" class="gmail_attr">---------- Forwarded message ---------<br>
+          From: <strong class="gmail_sendername" dir="auto">Original Sender</strong> <span dir="auto">&lt;orig@test.com&gt;</span><br><!-- cspell:ignore sendername -->
+          Date: Tue, Apr 14, 2026 at 5:16\u202FAM<br>
+          Subject: Test Forward Subject<br>
+          To: dest@test.com<br>
+        </div>
+        <br><br>
+        <div dir="ltr">Forwarded body content</div>
+      </div>
+    `,
+    subject: 'Fwd: Test Forward Subject',
+    text:
+      'Regards,\nTest User\n\n\n---------- Forwarded message ---------\nFrom: Original Sender <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Test Forward Subject\nTo: dest@test.com\n\nForwarded body content',
+    to: baseAddress
+  });
+}
+
+async function sendInlineImageEmail(baseAddress: string): Promise<void> {
+  const smtpUser = getRequiredEnv('SMTP_USER');
+  const transport = createSmtpTransport();
+
+  await transport.sendMail({
+    attachments: [
+      {
+        cid: 'test-image-cid',
+        content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        contentType: 'image/png',
+        filename: 'inline-test.png'
+      }
+    ],
+    from: smtpUser,
+    html: '<div><img src="cid:test-image-cid" alt="inline-test.png"><p>Email with inline image</p></div>',
+    subject: 'Inline image test',
+    text: '[image: inline-test.png]\nEmail with inline image',
+    to: baseAddress
+  });
+}
+
 async function sendNormalEmail(baseAddress: string): Promise<void> {
   const smtpUser = getRequiredEnv('SMTP_USER');
   const transport = createSmtpTransport();
@@ -312,11 +361,66 @@ describe('Mail.tm API', () => {
     });
   });
 
+  describe('inline image email', () => {
+    it('should receive email with inline image attachment', async () => {
+      await sendInlineImageEmail(testAccount.address);
+
+      const EXPECTED_MESSAGE_COUNT = 4;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
+      const inlineMessage = messages.find((m) => m.subject === 'Inline image test');
+
+      expect(inlineMessage).toBeDefined();
+      expect(inlineMessage?.hasAttachments).toBe(true);
+    });
+
+    it('should have inline image as attachment and HTML with cid reference', async () => {
+      const EXPECTED_MESSAGE_COUNT = 4;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
+      const inlineMessage = messages.find((m) => m.subject === 'Inline image test');
+      const fullMessage = await getFullMessage(inlineMessage?.id ?? '');
+
+      expect(fullMessage.attachments.length).toBeGreaterThanOrEqual(1);
+      const inlineAttachment = fullMessage.attachments.find((a) => a.filename === 'inline-test.png');
+      expect(inlineAttachment).toBeDefined();
+
+      const html = fullMessage.html.join('');
+      expect(html).toContain('attachment:');
+      expect(html).toContain('inline-test.png');
+    });
+  });
+
+  describe('gmail-style forwarded email', () => {
+    it('should receive Gmail forwarded email with forward headers in body', async () => {
+      await sendGmailForwardedEmail(testAccount.address);
+
+      const EXPECTED_MESSAGE_COUNT = 5;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
+      const gmailForward = messages.find((m) => m.subject === 'Fwd: Test Forward Subject');
+
+      expect(gmailForward).toBeDefined();
+    });
+
+    it('should have Gmail forward header pattern in text body', async () => {
+      const EXPECTED_MESSAGE_COUNT = 5;
+      const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
+      const gmailForward = messages.find((m) => m.subject === 'Fwd: Test Forward Subject');
+      const fullMessage = await getFullMessage(gmailForward?.id ?? '');
+
+      expect(fullMessage.text).toContain('---------- Forwarded message ---------');
+      expect(fullMessage.text).toContain('From: Original Sender <orig@test.com>');
+      expect(fullMessage.text).toContain('Forwarded body content');
+
+      const html = fullMessage.html.join('');
+      expect(html).toContain('gmail_quote');
+      expect(html).toContain('gmail_attr');
+    });
+  });
+
   describe('forwarded email', () => {
     it('should receive forwarded email with message/rfc822 attachment', async () => {
       await sendForwardedEmail(testAccount.address);
 
-      const EXPECTED_MESSAGE_COUNT = 4;
+      const EXPECTED_MESSAGE_COUNT = 6;
       const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
       const forwardedMessage = messages.find((m) => m.subject === 'Fwd: Original subject');
 
@@ -325,7 +429,7 @@ describe('Mail.tm API', () => {
     });
 
     it('should have message/rfc822 attachment with original email content', async () => {
-      const EXPECTED_MESSAGE_COUNT = 4;
+      const EXPECTED_MESSAGE_COUNT = 6;
       const messages = await pollForMessages(testAccount.token, EXPECTED_MESSAGE_COUNT);
       const forwardedMessage = messages.find((m) => m.subject === 'Fwd: Original subject');
       const fullMessage = await getFullMessage(forwardedMessage?.id ?? '');
