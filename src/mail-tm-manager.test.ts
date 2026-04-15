@@ -172,6 +172,39 @@ describe('MailTmManager', () => {
     });
   });
 
+  describe('unregisterEmailAddress', () => {
+    it('should delete account, clear secret, and reset settings', async () => {
+      const setSecretFn = vi.fn();
+      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        cb(new PluginSettings());
+      });
+      const plugin = createMockPlugin({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: 'test-password-key',
+        secretStorageGetSecret: () => 'password123',
+        secretStorageSetSecret: setSecretFn,
+        settingsManagerEditAndSave: editAndSaveFn
+      });
+      const manager = new MailTmManager(plugin);
+
+      const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-123' }))}.sig`;
+      mockRequestUrl
+        .mockResolvedValueOnce({
+          json: { token: TEST_JWT }
+        } as never)
+        .mockResolvedValueOnce({} as never);
+
+      await manager.unregisterEmailAddress();
+
+      expect(mockRequestUrl).toHaveBeenCalledWith(expect.objectContaining({
+        method: 'DELETE',
+        url: 'https://api.mail.tm/accounts/account-uuid-123'
+      }));
+      expect(setSecretFn).toHaveBeenCalledWith('test-password-key', '');
+      expect(editAndSaveFn).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('getMessage', () => {
     it('should fetch a single message with auth token', async () => {
       const mockMessage: MailTmMessageFull = {

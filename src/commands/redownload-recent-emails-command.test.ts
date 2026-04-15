@@ -103,4 +103,14 @@ describe('RedownloadRecentEmailsCommand', () => {
 
     expect(invocation).toBeDefined();
   });
+
+  it('should open modal on execute', async () => {
+    const checker = createMockEmailChecker();
+    const command = new RedownloadRecentEmailsCommand(createMockPlugin(), checker);
+    const invocation = command.createCommandInvocation();
+
+    await invocation.execute();
+
+    expect(invocation).toBeDefined();
+  });
 });

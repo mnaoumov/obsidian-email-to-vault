@@ -1,4 +1,5 @@
 import { noop } from 'obsidian-dev-utils/function';
+import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
@@ -202,6 +203,38 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(displaySpy).toHaveBeenCalledOnce();
+    });
+
+    it('should unregister old address and register new one when email exists and user confirms', async () => {
+      vi.mocked(confirm).mockResolvedValue(true);
+      const manager = createMockMailTmManager();
+      const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'old@mail.tm' }), manager);
+      tab.display();
+      vi.spyOn(tab, 'display').mockImplementation(noop);
+
+      const button = ensureNonNullable(captured.buttons[0]);
+      const onClickMock = ensureNonNullable(button['onClick']);
+      const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
+      await onClick();
+
+      expect(manager.unregisterEmailAddress).toHaveBeenCalledOnce();
+      expect(manager.registerRandomEmailAddress).toHaveBeenCalledOnce();
+    });
+
+    it('should not register when email exists and user cancels', async () => {
+      vi.mocked(confirm).mockResolvedValue(false);
+      const manager = createMockMailTmManager();
+      const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'old@mail.tm' }), manager);
+      tab.display();
+      vi.spyOn(tab, 'display').mockImplementation(noop);
+
+      const button = ensureNonNullable(captured.buttons[0]);
+      const onClickMock = ensureNonNullable(button['onClick']);
+      const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
+      await onClick();
+
+      expect(manager.unregisterEmailAddress).not.toHaveBeenCalled();
+      expect(manager.registerRandomEmailAddress).not.toHaveBeenCalled();
     });
   });
 });
