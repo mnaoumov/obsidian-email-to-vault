@@ -1,6 +1,7 @@
-import { SecretComponent } from 'obsidian';
+import { Notice } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
+import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab-base';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
@@ -24,9 +25,23 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
         setting
           .addButton((button) =>
             button
-              .setButtonText('Register random email address')
-              .setDisabled(this.plugin.settings.emailAddress !== '')
+              .setButtonText('Register new random email address')
               .onClick(convertAsyncToSync(async () => {
+                if (this.plugin.settings.emailAddress) {
+                  const result = await confirm({
+                    app: this.app,
+                    cancelButtonText: 'No',
+                    message:
+                      'You already have a registered email address. Do you want to register a new one? The old registered email address will be unregistered and you will not have access to it anymore.',
+                    okButtonText: 'Yes',
+                    title: 'Register new random email address?'
+                  });
+                  if (!result) {
+                    return;
+                  }
+
+                  await this.mailTmManager.unregisterEmailAddress();
+                }
                 await this.mailTmManager.registerRandomEmailAddress();
                 this.display();
               }))
@@ -36,23 +51,44 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
         setting
           .setClass('email-address')
           .setName('Email address')
-          .setDesc('The email address to check for emails.')
+          .setDesc('Generated email address.')
           .addEmail((emailComponent) => {
+            emailComponent.setDisabled(true);
             this.bind(emailComponent, 'emailAddress');
+          })
+          .addExtraButton((button) => {
+            button
+              .setTooltip('Copy to clipboard')
+              .setIcon('clipboard')
+              .onClick(convertAsyncToSync(async () => {
+                await navigator.clipboard.writeText(this.plugin.settings.emailAddress);
+                new Notice('Email address copied to clipboard');
+              }));
           });
       })
       .addSettingEx((setting) => {
         setting
-          .setName('Email password secret key')
-          .setDesc('The secret key to access the email password.');
-
-        const secretComponent = new SecretComponent(this.app, setting.settingEl);
-        secretComponent.setValue(this.plugin.settings.emailPasswordSecretKey);
-        secretComponent.onChange(convertAsyncToSync(async (value) => {
-          await this.plugin.settingsManager.editAndSave((settings) => {
-            settings.emailPasswordSecretKey = value;
+          .setName('Email password')
+          .setDesc('Generated email password.')
+          .addPassword((passwordComponent) => {
+            passwordComponent.setDisabled(true);
+            const password = this.app.secretStorage.getSecret(this.plugin.settings.emailPasswordSecretKey) ?? '';
+            passwordComponent.setValue(password);
+          })
+          .addExtraButton((button) => {
+            button
+              .setTooltip('Copy to clipboard')
+              .setIcon('clipboard')
+              .onClick(convertAsyncToSync(async () => {
+                const password = this.app.secretStorage.getSecret(this.plugin.settings.emailPasswordSecretKey);
+                if (!password) {
+                  new Notice('No email password found');
+                  return;
+                }
+                await navigator.clipboard.writeText(password);
+                new Notice('Email password copied to clipboard');
+              }));
           });
-        }));
       })
       .addSettingEx((setting) => {
         setting
