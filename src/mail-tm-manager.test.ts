@@ -170,34 +170,6 @@ describe('MailTmManager', () => {
 
       await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 400');
     });
-
-    it('should find unique secret key when existing keys are taken', async () => {
-      const setSecretFn = vi.fn();
-      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
-        cb(new PluginSettings());
-      });
-      const plugin = createMockPlugin({
-        secretStorageListSecrets: (): string[] => ['email-to-vault--password'],
-        secretStorageSetSecret: setSecretFn,
-        settingsManagerEditAndSave: editAndSaveFn
-      });
-      const manager = new MailTmManager(plugin);
-
-      mockRequestUrl
-        .mockResolvedValueOnce({
-          json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-        } as never)
-        .mockResolvedValueOnce({
-          status: 201
-        } as never);
-
-      await manager.registerRandomEmailAddress();
-
-      expect(setSecretFn).toHaveBeenCalledWith(
-        'email-to-vault--password1',
-        expect.any(String)
-      );
-    });
   });
 
   describe('getMessage', () => {

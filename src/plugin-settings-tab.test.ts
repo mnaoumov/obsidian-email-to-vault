@@ -1,4 +1,3 @@
-import { SecretComponent } from 'obsidian';
 import { noop } from 'obsidian-dev-utils/function';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -15,11 +14,9 @@ import type { MailTmManager } from './mail-tm-manager.ts';
 import type { Plugin } from './plugin.ts';
 
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
-import { PluginSettings } from './plugin-settings.ts';
 
 const captured = vi.hoisted(() => ({
-  buttons: [] as Record<string, ReturnType<typeof vi.fn>>[],
-  secretComponents: [] as Record<string, ReturnType<typeof vi.fn>>[]
+  buttons: [] as Record<string, ReturnType<typeof vi.fn>>[]
 }));
 
 interface MockPluginConstructorParams {
@@ -29,73 +26,80 @@ interface MockPluginConstructorParams {
 vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab-base', () => ({
   PluginSettingsTabBase: class MockPluginSettingsTabBase {
     public app: unknown;
-    public containerEl: HTMLElement;
-    public plugin: unknown;
-    public constructor(plugin: MockPluginConstructorParams) {
+    public bind = vi.fn();
+    public containerEl = document.createElement('div');
+    public plugin: Plugin;
+    public constructor(plugin: Plugin, _params?: MockPluginConstructorParams) {
       this.plugin = plugin;
       this.app = plugin.app;
-      this.containerEl = document.createElement('div');
-    }
-
-    public bind(): void {
-      noop();
     }
 
     public display(): void {
-      noop();
+      this.containerEl.empty();
     }
   }
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
-  SettingGroupEx: vi.fn(function settingGroupExMock(this: Record<string, unknown>) {
+  SettingGroupEx: vi.fn(function settingGroupExMock(this: Record<string, ReturnType<typeof vi.fn>>) {
+    this['addSettingEx'] = vi.fn(
+      function addSettingExMock(this: Record<string, ReturnType<typeof vi.fn>>, cb: (s: Record<string, ReturnType<typeof vi.fn>>) => void) {
+        const s: Record<string, ReturnType<typeof vi.fn>> = {};
+        s['addButton'] = vi.fn((buttonCb: (b: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const b: Record<string, ReturnType<typeof vi.fn>> = {};
+          b['setButtonText'] = vi.fn(() => b);
+          b['setDisabled'] = vi.fn(() => b);
+          b['onClick'] = vi.fn(() => b);
+          captured.buttons.push(b);
+          buttonCb(b);
+          return s;
+        });
+        s['addEmail'] = vi.fn((emailCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const c: Record<string, ReturnType<typeof vi.fn>> = {};
+          c['setDisabled'] = vi.fn(() => c);
+          emailCb(c);
+          return s;
+        });
+        s['addExtraButton'] = vi.fn((extraCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const c: Record<string, ReturnType<typeof vi.fn>> = {};
+          c['setTooltip'] = vi.fn(() => c);
+          c['setIcon'] = vi.fn(() => c);
+          c['onClick'] = vi.fn(() => c);
+          extraCb(c);
+          return s;
+        });
+        s['addPassword'] = vi.fn((passCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const c: Record<string, ReturnType<typeof vi.fn>> = {};
+          c['setDisabled'] = vi.fn(() => c);
+          c['setValue'] = vi.fn(() => c);
+          passCb(c);
+          return s;
+        });
+        s['addNumber'] = vi.fn((numCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const c: Record<string, ReturnType<typeof vi.fn>> = {};
+          c['setMin'] = vi.fn(() => c);
+          numCb(c);
+          return s;
+        });
+        s['addToggle'] = vi.fn((toggleCb: (c: unknown) => void) => {
+          toggleCb({});
+          return s;
+        });
+        s['addCodeHighlighter'] = vi.fn((chCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const ch: Record<string, ReturnType<typeof vi.fn>> = {};
+          ch['setLanguage'] = vi.fn(() => ch);
+          chCb(ch);
+          return s;
+        });
+        s['setName'] = vi.fn(() => s);
+        s['setDesc'] = vi.fn(() => s);
+        s['setClass'] = vi.fn(() => s);
+        cb(s);
+        return this;
+      }
+    );
     this['setHeading'] = vi.fn(() => this);
-    this['addSettingEx'] = vi.fn((cb: (s: Record<string, unknown>) => void) => {
-      const s: Record<string, unknown> = {
-        settingEl: document.createElement('div')
-      };
-      s['setName'] = vi.fn(() => s);
-      s['setDesc'] = vi.fn(() => s);
-      s['addEmail'] = vi.fn((emailCb: (c: unknown) => void) => {
-        emailCb({});
-        return s;
-      });
-      s['addButton'] = vi.fn((btnCb: (b: Record<string, unknown>) => void) => {
-        const btn: Record<string, ReturnType<typeof vi.fn>> = {
-          onClick: vi.fn(() => btn),
-          setButtonText: vi.fn(() => btn),
-          setDisabled: vi.fn(() => btn)
-        };
-        captured.buttons.push(btn);
-        btnCb(btn);
-        return s;
-      });
-      s['addNumber'] = vi.fn((numCb: (c: unknown) => void) => {
-        numCb({});
-        return s;
-      });
-      s['addText'] = vi.fn((textCb: (c: unknown) => void) => {
-        textCb({});
-        return s;
-      });
-      s['addTextArea'] = vi.fn((textAreaCb: (c: unknown) => void) => {
-        textAreaCb({});
-        return s;
-      });
-      s['addCodeHighlighter'] = vi.fn((codeHighlighterCb: (c: Record<string, unknown>) => void) => {
-        const ch: Record<string, unknown> = {
-          setLanguage: vi.fn(() => ch)
-        };
-        codeHighlighterCb(ch);
-        return s;
-      });
-      s['addToggle'] = vi.fn((toggleCb: (c: unknown) => void) => {
-        toggleCb({});
-        return s;
-      });
-      cb(s);
-      return this;
-    });
+    return this;
   })
 }));
 
@@ -103,11 +107,7 @@ vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   return {
     ...original,
-    SecretComponent: vi.fn(function secretComponentMock(this: Record<string, ReturnType<typeof vi.fn>>) {
-      this['onChange'] = vi.fn();
-      this['setValue'] = vi.fn();
-      captured.secretComponents.push(this);
-    })
+    Notice: vi.fn()
   };
 });
 
@@ -115,8 +115,11 @@ vi.mock('obsidian-dev-utils/async', () => ({
   convertAsyncToSync: vi.fn((fn: (...args: unknown[]) => unknown) => fn)
 }));
 
+vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
+  confirm: vi.fn(async () => true)
+}));
+
 const MockSettingGroupEx = vi.mocked(SettingGroupEx);
-const MockSecretComponent = vi.mocked(SecretComponent);
 
 interface MockPluginOverrides {
   emailAddress?: string;
@@ -124,13 +127,18 @@ interface MockPluginOverrides {
 
 function createMockMailTmManager(): MailTmManager {
   return strictProxy<MailTmManager>({
-    registerRandomEmailAddress: vi.fn()
+    registerRandomEmailAddress: vi.fn(),
+    unregisterEmailAddress: vi.fn()
   });
 }
 
 function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
   return strictProxy<Plugin>({
-    app: {},
+    app: {
+      secretStorage: {
+        getSecret: vi.fn(() => 'test-password')
+      }
+    },
     settings: {
       emailAddress: overrides?.emailAddress ?? '',
       emailPasswordSecretKey: 'test-key'
@@ -145,7 +153,6 @@ describe('PluginSettingsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     captured.buttons.length = 0;
-    captured.secretComponents.length = 0;
   });
 
   describe('display', () => {
@@ -170,23 +177,7 @@ describe('PluginSettingsTab', () => {
       expect(MockSettingGroupEx).toHaveBeenNthCalledWith(2, tab.containerEl);
     });
 
-    it('should enable get email button when no address configured', () => {
-      const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: '' }), createMockMailTmManager());
-
-      tab.display();
-
-      expect(ensureNonNullable(captured.buttons[0])['setDisabled']).toHaveBeenCalledWith(false);
-    });
-
-    it('should disable get email button when address exists', () => {
-      const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'test@mail.tm' }), createMockMailTmManager());
-
-      tab.display();
-
-      expect(ensureNonNullable(captured.buttons[0])['setDisabled']).toHaveBeenCalledWith(true);
-    });
-
-    it('should call getNewEmailAddress on button click', async () => {
+    it('should call registerRandomEmailAddress on button click when no address exists', async () => {
       const manager = createMockMailTmManager();
       const tab = new PluginSettingsTab(createMockPlugin(), manager);
       tab.display();
@@ -200,7 +191,7 @@ describe('PluginSettingsTab', () => {
       expect(manager.registerRandomEmailAddress).toHaveBeenCalledOnce();
     });
 
-    it('should refresh display after getting new email address', async () => {
+    it('should refresh display after registering new email address', async () => {
       const tab = new PluginSettingsTab(createMockPlugin(), createMockMailTmManager());
       tab.display();
       const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
@@ -211,34 +202,6 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(displaySpy).toHaveBeenCalledOnce();
-    });
-
-    it('should set SecretComponent with current password key', () => {
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockMailTmManager());
-
-      tab.display();
-
-      expect(MockSecretComponent).toHaveBeenCalledOnce();
-      expect(ensureNonNullable(captured.secretComponents[0])['setValue']).toHaveBeenCalledWith('test-key');
-    });
-
-    it('should save password key on SecretComponent change', async () => {
-      const plugin = createMockPlugin();
-      const editAndSaveMock = vi.mocked(plugin.settingsManager.editAndSave);
-      editAndSaveMock.mockImplementation(async (settingsEditor) => {
-        const settings = new PluginSettings();
-        await settingsEditor(settings);
-        expect(settings.emailPasswordSecretKey).toBe('new-key');
-      });
-      const tab = new PluginSettingsTab(plugin, createMockMailTmManager());
-      tab.display();
-
-      const secretComponent = ensureNonNullable(captured.secretComponents[0]);
-      const onChangeMock = ensureNonNullable(secretComponent['onChange']);
-      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as (value: string) => Promise<void>;
-      await onChange('new-key');
-
-      expect(editAndSaveMock).toHaveBeenCalledOnce();
     });
   });
 });
