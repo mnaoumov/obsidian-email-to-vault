@@ -131,9 +131,9 @@ export class EmailNoteCreator {
 }
 
 function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
-  data.from = HEADER_FROM_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.from;
-  data.to = HEADER_TO_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.to;
-  data.subject = HEADER_SUBJECT_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.subject;
+  data.from = extractHeaderValue(headerBlock, HEADER_FROM_PATTERN) ?? data.from;
+  data.to = extractHeaderValue(headerBlock, HEADER_TO_PATTERN) ?? data.to;
+  data.subject = extractHeaderValue(headerBlock, HEADER_SUBJECT_PATTERN) ?? data.subject;
 }
 
 function extractBody(fullMessage: MailTmMessageFull): string {
@@ -175,7 +175,7 @@ function extractForwardedEmail(data: EmailData): EmailData {
   if (gmailMatch) {
     const headerBlock = gmailMatch[0];
     applyHeaderOverrides(result, headerBlock);
-    result.date = normalizeDate(HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.date);
+    result.date = normalizeDate((HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.date).trim());
 
     result.body = result.body.slice(gmailMatch.index + headerBlock.length);
     return result;
@@ -193,6 +193,14 @@ function extractForwardedEmail(data: EmailData): EmailData {
   return result;
 }
 
+function extractHeaderValue(text: string, pattern: RegExp): string | undefined {
+  const raw = pattern.exec(text)?.groups?.['value'];
+  if (raw === undefined) {
+    return undefined;
+  }
+  return stripMarkdownFormatting(raw.trim());
+}
+
 function formatAddress(address: MailTmAddress): string {
   return address.name
     ? `${address.name} <${address.address}>`
@@ -201,6 +209,12 @@ function formatAddress(address: MailTmAddress): string {
 
 function formatAddresses(addresses: MailTmAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
+}
+
+function stripMarkdownFormatting(text: string): string {
+  return text
+    .replace(/\*\*(?<content>[^*]+)\*\*/g, '$<content>')
+    .replace(/\[(?<label>[^\]]+)\]\([^)]+\)/g, '$<label>');
 }
 
 const momentFn = extractDefaultExportInterop(momentLib);
