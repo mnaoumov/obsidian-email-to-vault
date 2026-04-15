@@ -47,6 +47,10 @@ interface CreateAccountParams {
   password: string;
 }
 
+interface JwtPayload {
+  id: string;
+}
+
 interface MailTmDomain {
   domain: string;
   isActive: boolean;
@@ -156,10 +160,16 @@ export class MailTmManager {
 
   public async unregisterEmailAddress(): Promise<void> {
     const token = await this.getToken();
+    const accountId = extractAccountIdFromToken(token);
     await requestUrl({
       headers: { Authorization: `Bearer ${token}` },
       method: 'DELETE',
-      url: `${MAIL_TM_API_BASE_URL}/accounts/${this.plugin.settings.emailAddress}`
+      url: `${MAIL_TM_API_BASE_URL}/accounts/${accountId}`
+    });
+
+    await this.plugin.settingsManager.editAndSave((settings) => {
+      settings.emailAddress = '';
+      settings.emailPasswordSecretKey = '';
     });
   }
 
@@ -229,4 +239,10 @@ export class MailTmManager {
     const data = response.json as MailTmTokenResponse;
     return data.token;
   }
+}
+
+function extractAccountIdFromToken(token: string): string {
+  const parts = token.split('.');
+  const payload = JSON.parse(atob(parts[1] ?? '')) as JwtPayload;
+  return payload.id;
 }
