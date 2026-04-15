@@ -20,6 +20,7 @@ vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   return {
     ...original,
+    htmlToMarkdown: vi.fn((html: string) => `markdown:${html}`),
     Notice: vi.fn()
   };
 });
@@ -119,6 +120,70 @@ describe('EmailNoteCreator', () => {
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.stringMatching(/^Emails\/\d{4}-\d{2}-\d{2} \d{2}-\d{2} Test Email\.md$/),
         expect.stringContaining('Hello body')
+      );
+    });
+
+    it('should convert HTML body to markdown', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'sender@example.com', name: '' },
+          hasAttachments: false,
+          html: ['<p>Hello <strong>world</strong></p>'],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Hello world',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}'
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'markdown:<p>Hello <strong>world</strong></p>'
+      );
+    });
+
+    it('should fall back to plain text when HTML is empty', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'sender@example.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Plain text body',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}'
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'Plain text body'
       );
     });
 

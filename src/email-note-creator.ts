@@ -1,4 +1,7 @@
-import { moment as momentLib } from 'obsidian';
+import {
+  htmlToMarkdown,
+  moment as momentLib
+} from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { replace } from 'obsidian-dev-utils/string';
 
@@ -106,8 +109,10 @@ export class EmailNoteCreator {
     const toFormatted = formatAddresses(fullMessage.to);
     const ccFormatted = formatAddresses(fullMessage.cc);
 
+    const body = extractBody(fullMessage);
+
     const data: EmailData = {
-      body: fullMessage.text,
+      body,
       cc: ccFormatted,
       date: fullMessage.createdAt,
       from: fromFormatted,
@@ -134,6 +139,14 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
   data.from = HEADER_FROM_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.from;
   data.to = HEADER_TO_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.to;
   data.subject = HEADER_SUBJECT_PATTERN.exec(headerBlock)?.groups?.['value'] ?? data.subject;
+}
+
+function extractBody(fullMessage: MailTmMessageFull): string {
+  const html = fullMessage.html.join('');
+  if (html) {
+    return htmlToMarkdown(html);
+  }
+  return fullMessage.text;
 }
 
 function extractEmailFromRfc822(emlContent: string): EmailData {
