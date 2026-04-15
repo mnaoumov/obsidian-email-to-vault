@@ -3,7 +3,10 @@ import {
   moment as momentLib
 } from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
-import { replace } from 'obsidian-dev-utils/string';
+import {
+  replace,
+  replaceAll
+} from 'obsidian-dev-utils/string';
 
 import type {
   MailTmAddress,
@@ -222,10 +225,9 @@ function formatAddresses(addresses: MailTmAddress[]): string {
 }
 
 function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string, string>): string {
-  return body.replace(INLINE_ATTACHMENT_PATTERN, (...args: unknown[]) => {
-    const groups = args.at(-1) as Record<string, string>;
-    const attachId = groups['attachId'] ?? '';
-    const alt = groups['alt'] ?? '';
+  return replaceAll(body, INLINE_ATTACHMENT_PATTERN, ({ groups }) => {
+    const attachId = groups?.['attachId'] ?? '';
+    const alt = groups?.['alt'] ?? '';
     const savedFilename = savedAttachments.get(attachId);
     if (savedFilename) {
       return `![[${savedFilename}]]`;
@@ -235,9 +237,8 @@ function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string,
 }
 
 function stripMarkdownFormatting(text: string): string {
-  return text
-    .replace(/\*\*(?<content>[^*]+)\*\*/g, '$<content>')
-    .replace(/\[(?<label>[^\]]+)\]\([^)]+\)/g, '$<label>');
+  const withoutBold = replaceAll(text, /\*\*(?<content>[^*]+)\*\*/g, ({ groups }) => groups?.['content'] ?? '');
+  return replaceAll(withoutBold, /\[(?<label>[^\]]+)\]\([^)]+\)/g, ({ groups }) => groups?.['label'] ?? '');
 }
 
 const momentFn = extractDefaultExportInterop(momentLib);
@@ -276,10 +277,7 @@ function parseDateStr(dateStr: string): ReturnType<typeof momentFn> {
 function replacePathTemplate(template: string, emailData: EmailData): string {
   const DATE_TOKEN_PATTERN = /\{\{date:(?<format>[^}]+)\}\}/g;
 
-  let result = template.replace(DATE_TOKEN_PATTERN, (...args: unknown[]) => {
-    const groups = args.at(-1) as Record<string, string>;
-    return formatDate(emailData.date, groups['format'] ?? '');
-  });
+  let result = replaceAll(template, DATE_TOKEN_PATTERN, ({ groups }) => formatDate(emailData.date, groups?.['format'] ?? ''));
 
   result = replace(result, {
     '{{cc}}': sanitizeFileName(emailData.cc),

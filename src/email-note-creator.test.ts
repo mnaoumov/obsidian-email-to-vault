@@ -20,7 +20,12 @@ vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   return {
     ...original,
-    htmlToMarkdown: vi.fn((html: string) => `markdown:${html}`),
+    htmlToMarkdown: vi.fn((html: string) => {
+      let result = html;
+      result = result.replace(/<img\s+src="(?<src>[^"]+)"\s+alt="(?<alt>[^"]*)"[^>]*>/g, '![$<alt>]($<src>)');
+      result = result.replace(/<\/?[^>]+>/g, '');
+      return result.trim();
+    }),
     Notice: vi.fn()
   };
 });
@@ -151,7 +156,7 @@ describe('EmailNoteCreator', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        'markdown:<p>Hello <strong>world</strong></p>'
+        'Hello world'
       );
     });
 
@@ -956,6 +961,105 @@ describe('EmailNoteCreator', () => {
         'Emails/2026-04-14 12-55 Untitled.md',
         expect.stringContaining('Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>')
       );
+    });
+
+    it('should replace inline attachment references with vault links', async () => {
+      const mockAttachmentData = new ArrayBuffer(8);
+      const mockManager = createMockMailTmManager({
+        downloadAttachment: vi.fn(async () => mockAttachmentData),
+        getMessage: vi.fn(async () => ({
+          attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'ATTACH000001' }],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: true,
+          html: ['<div><img src="attachment:ATTACH000001" alt="photo.png"><p>Text</p></div>'],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: '[image: photo.png]\nText',
+          to: [],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}'
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('![[photo.png]]')
+      );
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.not.stringContaining('attachment:')
+      );
+    });
+
+    it('should use alt text when inline attachment ID is not in saved attachments', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: ['<div><img src="attachment:UNKNOWN" alt="mystery.png"></div>'],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: '',
+          to: [],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}'
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('![[mystery.png]]')
+      );
+    });
+
+    it('should not create folder when path has no directory', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Body',
+          to: [],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({ emailNotePathTemplate: '{{subject}}' });
+      vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Test.md');
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.createFolder).not.toHaveBeenCalled();
+      expect(plugin.app.vault.create).toHaveBeenCalledWith('Test.md', expect.any(String));
     });
 
     it('should use available path from vault when note file already exists', async () => {
