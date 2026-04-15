@@ -104,10 +104,8 @@ export class EmailNoteCreator {
     const toFormatted = formatAddresses(fullMessage.to);
     const ccFormatted = formatAddresses(fullMessage.cc);
 
-    const body = extractBody(fullMessage);
-
     const data: EmailData = {
-      body,
+      body: fullMessage.text,
       cc: ccFormatted,
       date: fullMessage.createdAt,
       from: fromFormatted,
@@ -116,6 +114,7 @@ export class EmailNoteCreator {
     };
 
     if (!this.plugin.settings.shouldExtractForwardedEmail) {
+      data.body = extractBody(fullMessage);
       return data;
     }
 
