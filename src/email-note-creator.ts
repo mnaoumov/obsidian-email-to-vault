@@ -7,6 +7,7 @@ import {
   replace,
   replaceAll
 } from 'obsidian-dev-utils/string';
+import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type {
   MailTmAddress,
@@ -142,9 +143,9 @@ export class EmailNoteCreator {
 }
 
 function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
-  data.from = extractHeaderValue(headerBlock, HEADER_FROM_PATTERN) ?? data.from;
-  data.to = extractHeaderValue(headerBlock, HEADER_TO_PATTERN) ?? data.to;
-  data.subject = extractHeaderValue(headerBlock, HEADER_SUBJECT_PATTERN) ?? data.subject;
+  data.from = extractHeaderValue(headerBlock, HEADER_FROM_PATTERN, data.from);
+  data.to = extractHeaderValue(headerBlock, HEADER_TO_PATTERN, data.to);
+  data.subject = extractHeaderValue(headerBlock, HEADER_SUBJECT_PATTERN, data.subject);
 }
 
 const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:(?<attachId>[^)]+)\)/g;
@@ -206,10 +207,10 @@ function extractForwardedEmail(data: EmailData): EmailData {
   return result;
 }
 
-function extractHeaderValue(text: string, pattern: RegExp): string | undefined {
+function extractHeaderValue(text: string, pattern: RegExp, fallback: string): string {
   const raw = pattern.exec(text)?.groups?.['value'];
   if (raw === undefined) {
-    return undefined;
+    return fallback;
   }
   return stripMarkdownFormatting(raw.trim());
 }
@@ -235,8 +236,8 @@ function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string,
 }
 
 function stripMarkdownFormatting(text: string): string {
-  const withoutBold = replaceAll(text, /\*\*(?<content>[^*]+)\*\*/g, ({ capturedGroupArgs: [content = ''] }) => content);
-  return replaceAll(withoutBold, /\[(?<label>[^\]]+)\]\([^)]+\)/g, ({ capturedGroupArgs: [label = ''] }) => label);
+  const withoutBold = replaceAll(text, /\*\*(?<content>[^*]+)\*\*/g, ({ capturedGroupArgs: [content] }) => ensureNonNullable(content));
+  return replaceAll(withoutBold, /\[(?<label>[^\]]+)\]\([^)]+\)/g, ({ capturedGroupArgs: [label] }) => ensureNonNullable(label));
 }
 
 const momentFn = extractDefaultExportInterop(momentLib);
@@ -266,12 +267,7 @@ function normalizeWhitespace(str: string): string {
 function parseDateStr(dateStr: string): ReturnType<typeof momentFn> {
   const normalized = normalizeWhitespace(dateStr);
   const knownFormatResult = momentFn(normalized, KNOWN_DATE_FORMATS, true);
-  /* v8 ignore start -- v8 incorrectly marks this branch return as uncovered despite being exercised by Gmail date tests. */
-  if (knownFormatResult.isValid()) {
-    return knownFormatResult;
-  }
-  /* v8 ignore stop */
-  return momentFn(dateStr);
+  return knownFormatResult.isValid() ? knownFormatResult : momentFn(dateStr);
 }
 
 function replacePathTemplate(template: string, emailData: EmailData): string {
