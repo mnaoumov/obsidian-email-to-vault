@@ -74,7 +74,7 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
         create: vi.fn(),
         createBinary: vi.fn(),
         createFolder: vi.fn(),
-        getFileByPath: vi.fn(() => null),
+        getAvailablePath: vi.fn((path: string, ext: string) => `${path}.${ext}`),
         getFolderByPath: vi.fn(() => null)
       }
     },
@@ -958,7 +958,7 @@ describe('EmailNoteCreator', () => {
       );
     });
 
-    it('should use incremented path when note file already exists', async () => {
+    it('should use available path from vault when note file already exists', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
           attachments: [],
@@ -978,16 +978,12 @@ describe('EmailNoteCreator', () => {
         }))
       });
       const plugin = createMockPlugin({ emailNotePathTemplate: 'Emails/{{subject}}' });
-      vi.mocked(plugin.app.vault.getFileByPath).mockImplementation((path: string) => {
-        if (path === 'Emails/Test.md' || path === 'Emails/Test 1.md') {
-          return {} as never;
-        }
-        return null;
-      });
+      vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Emails/Test 2.md');
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
+      expect(plugin.app.vault.getAvailablePath).toHaveBeenCalledWith('Emails/Test', 'md');
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         'Emails/Test 2.md',
         expect.any(String)

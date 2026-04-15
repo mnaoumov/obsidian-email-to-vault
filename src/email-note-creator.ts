@@ -44,7 +44,8 @@ export class EmailNoteCreator {
   public async saveEmailAsNote(message: MailTmMessage): Promise<void> {
     const fullMessage = await this.mailTmManager.getMessage(message.id);
     const emailData = await this.extractEmailData(fullMessage);
-    const filePath = this.buildNotePath(emailData);
+    const basePath = this.buildNotePath(emailData);
+    const filePath = this.plugin.app.vault.getAvailablePath(basePath, 'md');
 
     const attachmentLinks = await this.downloadAttachments(fullMessage, filePath);
 
@@ -59,16 +60,13 @@ export class EmailNoteCreator {
       '{{to}}': emailData.to
     });
 
-    const availablePath = this.getAvailablePath(filePath);
-
-    await this.ensureFolderExists(availablePath);
-    await this.plugin.app.vault.create(availablePath, content);
+    await this.ensureFolderExists(filePath);
+    await this.plugin.app.vault.create(filePath, content);
   }
 
   private buildNotePath(emailData: EmailData): string {
     const pathTemplate = this.plugin.settings.emailNotePathTemplate;
-    const path = replacePathTemplate(pathTemplate, emailData);
-    return `${path}.md`;
+    return replacePathTemplate(pathTemplate, emailData);
   }
 
   private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<string> {
@@ -129,18 +127,6 @@ export class EmailNoteCreator {
     }
 
     return extractForwardedEmail(data);
-  }
-
-  private getAvailablePath(filePath: string): string {
-    const extension = filePath.slice(filePath.lastIndexOf('.'));
-    const basePath = filePath.slice(0, filePath.lastIndexOf('.'));
-    let candidate = filePath;
-    let counter = 1;
-    while (this.plugin.app.vault.getFileByPath(candidate)) {
-      candidate = `${basePath} ${String(counter)}${extension}`;
-      counter++;
-    }
-    return candidate;
   }
 }
 
