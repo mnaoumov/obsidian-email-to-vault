@@ -182,7 +182,7 @@ function extractFilename(path: string): string {
 function extractForwardedEmail(data: EmailData): EmailData {
   const result = { ...data };
 
-  result.subject = result.subject.replace(FORWARD_PREFIX_PATTERN, '');
+  result.subject = replaceAll(result.subject, FORWARD_PREFIX_PATTERN, '');
 
   const gmailMatch = GMAIL_FORWARD_HEADER_PATTERN.exec(result.body);
   if (gmailMatch) {
@@ -262,7 +262,7 @@ function normalizeDate(dateStr: string): string {
 }
 
 function normalizeWhitespace(str: string): string {
-  return str.replace(/\s/g, ' ');
+  return replaceAll(str, /\s/g, ' ');
 }
 
 function parseDateStr(dateStr: string): ReturnType<typeof momentFn> {
@@ -290,5 +290,5 @@ function replacePathTemplate(template: string, emailData: EmailData): string {
 }
 
 function sanitizeFileName(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, '_').trim();
+  return replaceAll(name, /[\\/:*?"<>|]/g, '_').trim();
 }
