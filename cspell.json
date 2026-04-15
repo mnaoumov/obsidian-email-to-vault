@@ -20,12 +20,14 @@
     "mnaoumov",
     "mriechers",
     "multitext",
-    "nodomain",
     "Naumov",
+    "nodomain",
     "OliverStaub",
     "Promisable",
     "Redownloaded",
-    "tsbuildinfo"
+    "sendername",
+    "tsbuildinfo",
+    "unstub"
   ],
   "ignoreWords": [],
   "import": [],

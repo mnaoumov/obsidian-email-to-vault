@@ -161,7 +161,7 @@ describe('PluginSettingsTab', () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals(); // Cspell:ignore unstub
+    vi.unstubAllGlobals();
   });
 
   describe('display', () => {

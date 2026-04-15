@@ -126,7 +126,7 @@ async function sendGmailForwardedEmail(baseAddress: string): Promise<void> {
       <br><br>
       <div class="gmail_quote gmail_quote_container">
         <div dir="ltr" class="gmail_attr">---------- Forwarded message ---------<br>
-          From: <strong class="gmail_sendername" dir="auto">Original Sender</strong> <span dir="auto">&lt;orig@test.com&gt;</span><br><!-- cspell:ignore sendername -->
+          From: <strong class="gmail_sendername" dir="auto">Original Sender</strong> <span dir="auto">&lt;orig@test.com&gt;</span><br>
           Date: Tue, Apr 14, 2026 at 5:16\u202FAM<br>
           Subject: Test Forward Subject<br>
           To: dest@test.com<br>
