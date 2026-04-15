@@ -15,9 +15,9 @@ import type { Plugin } from './plugin.ts';
 
 const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW): ?/;
 
-const GMAIL_FORWARD_HEADER_PATTERN = /---------- Forwarded message ---------\r?\n(?:.*\r?\n)*?\r?\n/;
+const GMAIL_FORWARD_HEADER_PATTERN = /---------- Forwarded message ---------\s*\r?\n(?:.*\r?\n)*?\s*\r?\n/;
 
-const OUTLOOK_FORWARD_HEADER_PATTERN = /(?:^|\r?\n)From: .*\r?\nSent: .*\r?\nTo: .*\r?\nSubject: .*\r?\n\r?\n/;
+const OUTLOOK_FORWARD_HEADER_PATTERN = /(?:^|\r?\n)From: .*\s*\r?\nSent: .*\s*\r?\nTo: .*\s*\r?\nSubject: .*\s*\r?\n\s*\r?\n/;
 
 const HEADER_FROM_PATTERN = /From: (?<value>.+)/;
 const HEADER_SUBJECT_PATTERN = /Subject: (?<value>.+)/;
@@ -113,8 +113,9 @@ export class EmailNoteCreator {
       to: toFormatted
     };
 
+    data.body = extractBody(fullMessage);
+
     if (!this.plugin.settings.shouldExtractForwardedEmail) {
-      data.body = extractBody(fullMessage);
       return data;
     }
 
