@@ -59,5 +59,9 @@
     "dompurify": "3.0.1",
     "type-fest": "latest",
     "typescript": "latest"
+  },
+  "dependencies": {
+    "generate-password": "latest",
+    "unique-username-generator": "latest"
   }
 }

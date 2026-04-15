@@ -1,7 +1,9 @@
 import type { z } from 'zod';
 
 import dedent from 'dedent';
+import { generate as generatePassword } from 'generate-password';
 import { createTransport } from 'nodemailer';
+import { generateUsername } from 'unique-username-generator';
 import {
   afterAll,
   beforeAll,
@@ -10,7 +12,6 @@ import {
   it
 } from 'vitest';
 
-import { generateRandomString } from './generate-random-string.ts';
 import {
   mailTmAccountResponseSchema,
   mailTmDomainsResponseSchema,
@@ -20,7 +21,7 @@ import {
 } from './mail-tm-schemas.ts';
 
 const MAIL_TM_API_BASE_URL = 'https://api.mail.tm';
-const RANDOM_ADDRESS_LENGTH = 10;
+const RANDOM_USERNAME_DIGITS = 3;
 const RANDOM_PASSWORD_LENGTH = 20;
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;
@@ -219,8 +220,9 @@ describe('Mail.tm API', () => {
       throw new Error('No active Mail.tm domains available for integration test');
     }
 
-    const address = `test-${generateRandomString(RANDOM_ADDRESS_LENGTH)}@${activeDomain.domain}`;
-    const password = generateRandomString(RANDOM_PASSWORD_LENGTH);
+    const username = generateUsername('-', RANDOM_USERNAME_DIGITS);
+    const address = `test-${username}@${activeDomain.domain}`;
+    const password = generatePassword({ length: RANDOM_PASSWORD_LENGTH, lowercase: true, numbers: true, uppercase: true });
 
     const accountJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/accounts`, {
       body: JSON.stringify({ address, password }),

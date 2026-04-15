@@ -1,13 +1,13 @@
 import type { App } from 'obsidian';
 
+import { generate as generatePassword } from 'generate-password';
 import { requestUrl } from 'obsidian';
+import { generateUsername } from 'unique-username-generator';
 
 import type { Plugin } from './plugin.ts';
 
-import { generateRandomString } from './generate-random-string.ts';
-
 const MAIL_TM_API_BASE_URL = 'https://api.mail.tm';
-const RANDOM_ADDRESS_LENGTH = 10;
+const RANDOM_USERNAME_DIGITS = 3;
 const RANDOM_PASSWORD_LENGTH = 20;
 const HTTP_STATUS_CREATED = 201;
 
@@ -125,8 +125,17 @@ export class MailTmManager {
   public async registerRandomEmailAddress(): Promise<void> {
     const domain = await this.getAvailableDomain();
     const EMAIL_ADDRESS_PREFIX = this.plugin.manifest.id;
-    const address = `${EMAIL_ADDRESS_PREFIX}-${generateRandomString(RANDOM_ADDRESS_LENGTH)}@${domain}`;
-    const password = generateRandomString(RANDOM_PASSWORD_LENGTH);
+    const username = generateUsername('-', RANDOM_USERNAME_DIGITS);
+    const address = `${EMAIL_ADDRESS_PREFIX}-${username}@${domain}`;
+    const password = generatePassword({
+      excludeSimilarCharacters: true,
+      length: RANDOM_PASSWORD_LENGTH,
+      lowercase: true,
+      numbers: true,
+      strict: true,
+      symbols: true,
+      uppercase: true
+    });
 
     await this.createAccount({ address, password });
 
