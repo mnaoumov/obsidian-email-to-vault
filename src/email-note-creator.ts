@@ -59,13 +59,10 @@ export class EmailNoteCreator {
       '{{to}}': emailData.to
     });
 
-    const existingFile = this.plugin.app.vault.getFileByPath(filePath);
-    if (existingFile) {
-      return;
-    }
+    const availablePath = this.getAvailablePath(filePath);
 
-    await this.ensureFolderExists(filePath);
-    await this.plugin.app.vault.create(filePath, content);
+    await this.ensureFolderExists(availablePath);
+    await this.plugin.app.vault.create(availablePath, content);
   }
 
   private buildNotePath(emailData: EmailData): string {
@@ -132,6 +129,18 @@ export class EmailNoteCreator {
     }
 
     return extractForwardedEmail(data);
+  }
+
+  private getAvailablePath(filePath: string): string {
+    const extension = filePath.slice(filePath.lastIndexOf('.'));
+    const basePath = filePath.slice(0, filePath.lastIndexOf('.'));
+    let candidate = filePath;
+    let counter = 1;
+    while (this.plugin.app.vault.getFileByPath(candidate)) {
+      candidate = `${basePath} ${String(counter)}${extension}`;
+      counter++;
+    }
+    return candidate;
   }
 }
 

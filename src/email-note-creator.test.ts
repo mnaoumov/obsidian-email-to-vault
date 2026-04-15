@@ -958,7 +958,7 @@ describe('EmailNoteCreator', () => {
       );
     });
 
-    it('should skip saving when note file already exists', async () => {
+    it('should use incremented path when note file already exists', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
           attachments: [],
@@ -977,13 +977,21 @@ describe('EmailNoteCreator', () => {
           updatedAt: ''
         }))
       });
-      const plugin = createMockPlugin();
-      vi.mocked(plugin.app.vault.getFileByPath).mockReturnValue({} as never);
+      const plugin = createMockPlugin({ emailNotePathTemplate: 'Emails/{{subject}}' });
+      vi.mocked(plugin.app.vault.getFileByPath).mockImplementation((path: string) => {
+        if (path === 'Emails/Test.md' || path === 'Emails/Test 1.md') {
+          return {} as never;
+        }
+        return null;
+      });
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).not.toHaveBeenCalled();
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        'Emails/Test 2.md',
+        expect.any(String)
+      );
     });
   });
 });
