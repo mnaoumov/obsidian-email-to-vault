@@ -141,15 +141,7 @@ export class MailTmManager {
 
     await this.createAccount({ address, password });
 
-    const storedSecretIds = new Set(this.app.secretStorage.listSecrets());
-    let suffix = 0;
-    let emailPasswordSecretKey = `${EMAIL_ADDRESS_PREFIX}-password`;
-
-    while (storedSecretIds.has(emailPasswordSecretKey)) {
-      suffix++;
-      emailPasswordSecretKey = `${EMAIL_ADDRESS_PREFIX}-password${String(suffix)}`;
-    }
-
+    const emailPasswordSecretKey = `${EMAIL_ADDRESS_PREFIX}-password`;
     this.app.secretStorage.setSecret(emailPasswordSecretKey, password);
 
     await this.plugin.settingsManager.editAndSave((settings) => {
@@ -166,6 +158,11 @@ export class MailTmManager {
       method: 'DELETE',
       url: `${MAIL_TM_API_BASE_URL}/accounts/${accountId}`
     });
+
+    const secretKey = this.plugin.settings.emailPasswordSecretKey;
+    if (secretKey) {
+      this.app.secretStorage.setSecret(secretKey, '');
+    }
 
     await this.plugin.settingsManager.editAndSave((settings) => {
       settings.emailAddress = '';
