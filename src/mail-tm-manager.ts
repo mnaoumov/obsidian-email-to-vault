@@ -128,12 +128,10 @@ export class MailTmManager {
     const username = generateUsername('-', RANDOM_USERNAME_DIGITS);
     const address = `${EMAIL_ADDRESS_PREFIX}-${username}@${domain}`;
     const password = generatePassword({
-      excludeSimilarCharacters: true,
       length: RANDOM_PASSWORD_LENGTH,
       lowercase: true,
       numbers: true,
       strict: true,
-      symbols: true,
       uppercase: true
     });
 
@@ -153,6 +151,15 @@ export class MailTmManager {
     await this.plugin.settingsManager.editAndSave((settings) => {
       settings.emailAddress = address;
       settings.emailPasswordSecretKey = emailPasswordSecretKey;
+    });
+  }
+
+  public async unregisterEmailAddress(): Promise<void> {
+    const token = await this.getToken();
+    await requestUrl({
+      headers: { Authorization: `Bearer ${token}` },
+      method: 'DELETE',
+      url: `${MAIL_TM_API_BASE_URL}/accounts/${this.plugin.settings.emailAddress}`
     });
   }
 
