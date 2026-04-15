@@ -111,6 +111,17 @@ export class MailTmManager {
     return data['hydra:member'];
   }
 
+  public async markMessageAsSeen(messageId: string): Promise<void> {
+    const token = await this.getToken();
+    await requestUrl({
+      body: JSON.stringify({ seen: true }),
+      contentType: 'application/merge-patch+json',
+      headers: { Authorization: `Bearer ${token}` },
+      method: 'PATCH',
+      url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}`
+    });
+  }
+
   public async registerRandomEmailAddress(): Promise<void> {
     const domain = await this.getAvailableDomain();
     const EMAIL_ADDRESS_PREFIX = this.plugin.manifest.id;

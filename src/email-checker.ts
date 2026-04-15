@@ -34,6 +34,8 @@ export class EmailChecker {
       await this.noteCreator.saveEmailAsNote(message);
       if (this.plugin.settings.shouldDeleteSeenEmails) {
         await this.mailTmManager.deleteMessage(message.id);
+      } else {
+        await this.mailTmManager.markMessageAsSeen(message.id);
       }
     }
 

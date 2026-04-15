@@ -29,6 +29,7 @@ vi.stubGlobal('activeWindow', { setInterval: vi.fn(() => 0) });
 interface MockMailTmManagerOverrides {
   deleteMessage?: MailTmManager['deleteMessage'];
   getMessages?: MailTmManager['getMessages'];
+  markMessageAsSeen?: MailTmManager['markMessageAsSeen'];
 }
 
 interface MockPluginOverrides {
@@ -40,7 +41,8 @@ interface MockPluginOverrides {
 function createMockMailTmManager(overrides?: MockMailTmManagerOverrides): MailTmManager {
   return strictProxy<MailTmManager>({
     deleteMessage: overrides?.deleteMessage ?? vi.fn(),
-    getMessages: overrides?.getMessages ?? vi.fn(async () => [])
+    getMessages: overrides?.getMessages ?? vi.fn(async () => []),
+    markMessageAsSeen: overrides?.markMessageAsSeen ?? vi.fn()
   });
 }
 
@@ -157,7 +159,7 @@ describe('EmailChecker', () => {
       expect(mockManager.deleteMessage).toHaveBeenCalledWith('msg1');
     });
 
-    it('should not delete message when shouldDeleteSeenEmails is disabled', async () => {
+    it('should mark message as seen when shouldDeleteSeenEmails is disabled', async () => {
       const mockManager = createMockMailTmManager({
         getMessages: vi.fn(async () => [
           {
@@ -181,6 +183,7 @@ describe('EmailChecker', () => {
       await checker.checkEmails();
 
       expect(mockManager.deleteMessage).not.toHaveBeenCalled();
+      expect(mockManager.markMessageAsSeen).toHaveBeenCalledWith('msg1');
     });
   });
 
