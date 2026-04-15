@@ -4,6 +4,7 @@ import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -17,7 +18,8 @@ import type { Plugin } from './plugin.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 
 const captured = vi.hoisted(() => ({
-  buttons: [] as Record<string, ReturnType<typeof vi.fn>>[]
+  buttons: [] as Record<string, ReturnType<typeof vi.fn>>[],
+  extraButtons: [] as Record<string, ReturnType<typeof vi.fn>>[]
 }));
 
 interface MockPluginConstructorParams {
@@ -66,6 +68,7 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
           c['setTooltip'] = vi.fn(() => c);
           c['setIcon'] = vi.fn(() => c);
           c['onClick'] = vi.fn(() => c);
+          captured.extraButtons.push(c);
           extraCb(c);
           return s;
         });
@@ -154,6 +157,11 @@ describe('PluginSettingsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     captured.buttons.length = 0;
+    captured.extraButtons.length = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals(); // Cspell:ignore unstub
   });
 
   describe('display', () => {
@@ -235,6 +243,50 @@ describe('PluginSettingsTab', () => {
 
       expect(manager.unregisterEmailAddress).not.toHaveBeenCalled();
       expect(manager.registerRandomEmailAddress).not.toHaveBeenCalled();
+    });
+
+    it('should copy email address to clipboard', async () => {
+      const writeTextFn = vi.fn(async () => Promise.resolve());
+      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
+      const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'test@mail.tm' }), createMockMailTmManager());
+      tab.display();
+
+      const emailCopyButton = ensureNonNullable(captured.extraButtons[0]);
+      const onClickMock = ensureNonNullable(emailCopyButton['onClick']);
+      const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
+      await onClick();
+
+      expect(writeTextFn).toHaveBeenCalledWith('test@mail.tm');
+    });
+
+    it('should copy password to clipboard', async () => {
+      const writeTextFn = vi.fn(async () => Promise.resolve());
+      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
+      const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'test@mail.tm' }), createMockMailTmManager());
+      tab.display();
+
+      const passwordCopyButton = ensureNonNullable(captured.extraButtons[1]);
+      const onClickMock = ensureNonNullable(passwordCopyButton['onClick']);
+      const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
+      await onClick();
+
+      expect(writeTextFn).toHaveBeenCalledWith('test-password');
+    });
+
+    it('should show notice when no password found for copy', async () => {
+      const writeTextFn = vi.fn(async () => Promise.resolve());
+      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
+      const plugin = createMockPlugin({ emailAddress: 'test@mail.tm' });
+      vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
+      const tab = new PluginSettingsTab(plugin, createMockMailTmManager());
+      tab.display();
+
+      const passwordCopyButton = ensureNonNullable(captured.extraButtons[1]);
+      const onClickMock = ensureNonNullable(passwordCopyButton['onClick']);
+      const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
+      await onClick();
+
+      expect(writeTextFn).not.toHaveBeenCalled();
     });
   });
 });

@@ -16,7 +16,7 @@ export const DEFAULT_EMAIL_NOTE_TEMPLATE = dedent`
 
 const DEFAULT_EMAIL_CHECK_INTERVAL_IN_MINUTES = 10;
 
-export const DEFAULT_EMAIL_NOTE_PATH_TEMPLATE = 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}';
+export const DEFAULT_EMAIL_NOTE_PATH_TEMPLATE = 'Emails/{{date:YYYY-MM-DD}} {{subject}}';
 
 export class PluginSettings {
   public emailAddress = '';

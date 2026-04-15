@@ -118,6 +118,33 @@ describe('MailTmManager', () => {
     });
   });
 
+  describe('markMessageAsSeen', () => {
+    it('should send PATCH request with seen: true', async () => {
+      const plugin = createMockPlugin({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+      const manager = new MailTmManager(plugin);
+
+      mockRequestUrl
+        .mockResolvedValueOnce({
+          json: { token: 'jwt-token' }
+        } as never)
+        .mockResolvedValueOnce({} as never);
+
+      await manager.markMessageAsSeen('msg1');
+
+      expect(mockRequestUrl).toHaveBeenCalledWith({
+        body: JSON.stringify({ seen: true }),
+        contentType: 'application/merge-patch+json',
+        headers: { Authorization: 'Bearer jwt-token' },
+        method: 'PATCH',
+        url: 'https://api.mail.tm/messages/msg1'
+      });
+    });
+  });
+
   describe('getNewEmailAddress', () => {
     it('should create account and save credentials', async () => {
       const setSecretFn = vi.fn();
