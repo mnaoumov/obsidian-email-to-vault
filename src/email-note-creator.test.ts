@@ -644,6 +644,41 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should handle rfc822 attachment with headers only and no body', async () => {
+      const emlContent = 'Content-Type: text/plain';
+      const mockManager = createMockMailTmManager({
+        downloadAttachment: vi.fn(async () => new TextEncoder().encode(emlContent).buffer),
+        getMessage: vi.fn(async () => ({
+          attachments: [{ contentType: 'message/rfc822', filename: 'forwarded.eml', id: 'att1' }],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'forwarder@example.com', name: 'Forwarder' },
+          hasAttachments: true,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd: Headers Only',
+          text: 'Forwarded.',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Headers Only' }));
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        ' |  | '
+      );
+    });
+
     it('should extract original email from message/rfc822 attachment', async () => {
       const emlContent =
         'From: original@test.com\r\nTo: dest@test.com\r\nCc: cc@test.com\r\nSubject: Original Subject\r\nDate: Mon, 1 Jan 2024 10:00:00 +0000\r\n\r\nOriginal body content';
@@ -881,6 +916,39 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should use original date when Gmail forward header has no Date line', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'forwarder@example.com', name: 'Forwarder' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd: Original Subject',
+          text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{date}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        '2026-01-01T00:00:00+00:00'
+      );
+    });
+
     it('should handle Gmail forward date with narrow no-break space before AM/PM', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => ({
@@ -1030,6 +1098,73 @@ describe('EmailNoteCreator', () => {
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('![[mystery.png]]')
+      );
+    });
+
+    it('should handle attachment path without folder', async () => {
+      const mockAttachmentData = new ArrayBuffer(8);
+      const mockManager = createMockMailTmManager({
+        downloadAttachment: vi.fn(async () => mockAttachmentData),
+        getMessage: vi.fn(async () => ({
+          attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'att1' }],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: true,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: 'Body',
+          to: [],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{attachments}}'
+      });
+      vi.mocked(plugin.app.fileManager.getAvailablePathForAttachment).mockResolvedValue('photo.png');
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        '![[photo.png]]'
+      );
+    });
+
+    it('should use fallback name when inline attachment has empty alt', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          html: ['<div><img src="attachment:UNKNOWN" alt=""></div>'],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Test',
+          text: '',
+          to: [],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{body}}'
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('![[attachment]]')
       );
     });
 

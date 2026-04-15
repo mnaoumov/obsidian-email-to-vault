@@ -239,7 +239,7 @@ export class MailTmManager {
 }
 
 function extractAccountIdFromToken(token: string): string {
-  const parts = token.split('.');
-  const payload = JSON.parse(atob(parts[1] ?? '')) as JwtPayload;
+  const [, encodedPayload = ''] = token.split('.');
+  const payload = JSON.parse(atob(encodedPayload)) as JwtPayload;
   return payload.id;
 }

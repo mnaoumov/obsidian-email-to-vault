@@ -200,6 +200,33 @@ describe('MailTmManager', () => {
   });
 
   describe('unregisterEmailAddress', () => {
+    it('should delete account without clearing secret when key is empty', async () => {
+      const setSecretFn = vi.fn();
+      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        cb(new PluginSettings());
+      });
+      const plugin = createMockPlugin({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: '',
+        secretStorageGetSecret: () => 'password123',
+        secretStorageSetSecret: setSecretFn,
+        settingsManagerEditAndSave: editAndSaveFn
+      });
+      const manager = new MailTmManager(plugin);
+
+      const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-456' }))}.sig`;
+      mockRequestUrl
+        .mockResolvedValueOnce({
+          json: { token: TEST_JWT }
+        } as never)
+        .mockResolvedValueOnce({} as never);
+
+      await manager.unregisterEmailAddress();
+
+      expect(setSecretFn).not.toHaveBeenCalled();
+      expect(editAndSaveFn).toHaveBeenCalledOnce();
+    });
+
     it('should delete account, clear secret, and reset settings', async () => {
       const setSecretFn = vi.fn();
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
