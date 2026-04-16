@@ -6,7 +6,11 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-email-to-vault/total)](https://github.com/mnaoumov/obsidian-email-to-vault/releases)
 -->
 
-This is a plugin for [Obsidian](https://obsidian.md/) that creates a free email mailbox with one click, so you can forward emails to your vault as notes. No backend or paid service required. Inspired by Evernote's `email to notebook` feature.
+This is a plugin for [Obsidian](https://obsidian.md/) that creates a free email mailbox with one click, so you can forward emails to your vault as notes. No backend or paid service required. Inspired by []`Save emails into Evernote`](<https://help.evernote.com/hc/en-us/articles/209005347-Save-emails-into-Evernote>) feature.
+
+![settings](<./images/settings.png>)
+
+![note](<./images/note.png>)
 
 ## Features
 
