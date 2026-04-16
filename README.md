@@ -25,6 +25,22 @@ This is a plugin for [Obsidian](https://obsidian.md/) that creates a free email 
 2. Forward or send emails to that address
 3. The plugin automatically fetches new emails and creates notes in your vault
 
+## Privacy & data handling
+
+> [!WARNING]
+>
+> ⚠️ Emails are routed through a third-party server [mail.tm].
+>
+> **Do not send sensitive information — use at your own risk.**
+
+This plugin uses [mail.tm] as the email provider. Message contents, sender addresses, and attachments are processed on third-party infrastructure before reaching your vault. Known properties of the provider (according to their [FAQ](https://mail.tm/en/faq/)):
+
+- Messages are retained for **up to 7 days** on [mail.tm] servers.
+- [mail.tm] claims it does not store IP addresses, but does not publish its jurisdiction, governing law, or corporate location.
+- No GDPR/CCPA compliance claim is made by the provider.
+
+By using this plugin, you acknowledge that any information you send — including sensitive or private data — is transmitted at your own risk. The plugin author makes no warranties regarding the confidentiality, integrity, or availability of data handled by mail.tm.
+
 ## Installation
 
 The plugin is not available in [the official Community Plugins repository](https://obsidian.md/plugins) yet.
@@ -64,3 +80,5 @@ For more details, refer to the [documentation](https://github.com/mnaoumov/obsid
 ## License
 
 © [Michael Naumov](https://github.com/mnaoumov/)
+
+[mail.tm]: https://mail.tm/
