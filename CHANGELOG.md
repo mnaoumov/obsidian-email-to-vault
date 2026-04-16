@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 1.1.0
+
+- chore: lint
+- chore: avoid unnecessary config override
+- chore: update libs
+- docs: update settings screenshot
+- refactor: toggle register/unregister button
+- refactor: use Obsidian components in redownload modal
+- feat: allow manual entry of mail.tm credentials
+- feat: add mail.tm info description to settings page
+
 ## 1.0.1
 
 - refactor: make mobile-friendly string generators
