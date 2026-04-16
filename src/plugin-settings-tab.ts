@@ -23,6 +23,16 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       .setHeading('Mail.tm')
       .addSettingEx((setting) => {
         setting
+          .setDesc(createFragment((f) => {
+            f.appendText('The plugin is powered by ');
+            f.createEl('a', { href: 'https://mail.tm/', text: 'mail.tm' });
+            f.appendText(' — a temporary email service. Emails are stored for up to 7 days. See ');
+            f.createEl('a', { href: 'https://github.com/mnaoumov/obsidian-email-to-vault#privacy--data-handling', text: 'Privacy & data handling' });
+            f.appendText(' for details.');
+          }));
+      })
+      .addSettingEx((setting) => {
+        setting
           .addButton((button) =>
             button
               .setButtonText('Register new random email address')

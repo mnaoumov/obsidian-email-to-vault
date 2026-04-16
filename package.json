@@ -40,6 +40,7 @@
     "commitizen": "latest",
     "cz-conventional-changelog": "latest",
     "dedent": "latest",
+    "eslint": "latest",
     "husky": "latest",
     "jiti": "latest",
     "jsdom": "latest",
