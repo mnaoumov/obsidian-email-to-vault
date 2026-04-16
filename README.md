@@ -29,7 +29,7 @@ This is a plugin for [Obsidian](https://obsidian.md/) that creates a free email 
 
 > [!WARNING]
 >
-> ⚠️ Emails are routed through a third-party server [mail.tm].
+> Emails are routed through a third-party server [mail.tm].
 >
 > **Do not send sensitive information — use at your own risk.**
 
