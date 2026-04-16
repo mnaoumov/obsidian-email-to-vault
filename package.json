@@ -34,24 +34,24 @@
     "@total-typescript/ts-reset": "latest",
     "@tsconfig/strictest": "latest",
     "@types/node": "25.0.3",
-    "@types/nodemailer": "^8.0.0",
+    "@types/nodemailer": "latest",
     "@vitest/coverage-v8": "latest",
     "better-typescript-lib": "latest",
     "commitizen": "latest",
     "cz-conventional-changelog": "latest",
-    "dedent": "^1.7.2",
+    "dedent": "latest",
     "husky": "latest",
     "jiti": "latest",
-    "jsdom": "^29.0.2",
+    "jsdom": "latest",
     "nano-staged": "latest",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "latest",
     "obsidian": "latest",
     "obsidian-dev-utils": "latest",
     "obsidian-integration-testing": "latest",
-    "obsidian-test-mocks": "^1.0.11",
+    "obsidian-test-mocks": "latest",
     "obsidian-typings": "obsidian-public-latest",
     "vitest": "latest",
-    "zod": "^4.3.6"
+    "zod": "latest"
   },
   "overrides": {
     "@antfu/utils": "9.2.0",
@@ -59,9 +59,5 @@
     "dompurify": "3.0.1",
     "type-fest": "latest",
     "typescript": "latest"
-  },
-  "dependencies": {
-    "generate-password": "latest",
-    "unique-username-generator": "latest"
   }
 }
