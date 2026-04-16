@@ -16,10 +16,12 @@ import type { MailTmManager } from './mail-tm-manager.ts';
 import type { Plugin } from './plugin.ts';
 
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { PluginSettings } from './plugin-settings.ts';
 
 const captured = vi.hoisted(() => ({
   buttons: [] as Record<string, ReturnType<typeof vi.fn>>[],
-  extraButtons: [] as Record<string, ReturnType<typeof vi.fn>>[]
+  extraButtons: [] as Record<string, ReturnType<typeof vi.fn>>[],
+  passwordComponents: [] as Record<string, ReturnType<typeof vi.fn>>[]
 }));
 
 interface MockPluginConstructorParams {
@@ -76,6 +78,8 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
           const c: Record<string, ReturnType<typeof vi.fn>> = {};
           c['setDisabled'] = vi.fn(() => c);
           c['setValue'] = vi.fn(() => c);
+          c['onChange'] = vi.fn(() => c);
+          captured.passwordComponents.push(c);
           passCb(c);
           return s;
         });
@@ -127,6 +131,8 @@ const MockSettingGroupEx = vi.mocked(SettingGroupEx);
 
 interface MockPluginOverrides {
   emailAddress?: string;
+  emailPasswordSecretKey?: string;
+  settingsManagerEditAndSave?: (cb: (s: PluginSettings) => void) => Promise<void>;
 }
 
 function createMockMailTmManager(): MailTmManager {
@@ -140,15 +146,19 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
   return strictProxy<Plugin>({
     app: {
       secretStorage: {
-        getSecret: vi.fn(() => 'test-password')
+        getSecret: vi.fn(() => 'test-password'),
+        setSecret: vi.fn()
       }
+    },
+    manifest: {
+      id: 'email-to-vault'
     },
     settings: {
       emailAddress: overrides?.emailAddress ?? '',
-      emailPasswordSecretKey: 'test-key'
+      emailPasswordSecretKey: overrides?.emailPasswordSecretKey ?? 'test-key'
     },
     settingsManager: {
-      editAndSave: vi.fn()
+      editAndSave: overrides?.settingsManagerEditAndSave ?? vi.fn()
     }
   });
 }
@@ -158,6 +168,7 @@ describe('PluginSettingsTab', () => {
     vi.clearAllMocks();
     captured.buttons.length = 0;
     captured.extraButtons.length = 0;
+    captured.passwordComponents.length = 0;
   });
 
   afterEach(() => {
@@ -271,6 +282,57 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(writeTextFn).toHaveBeenCalledWith('test-password');
+    });
+
+    it('should save password to secret storage on manual entry', async () => {
+      const plugin = createMockPlugin({ emailAddress: 'test@mail.tm' });
+      const tab = new PluginSettingsTab(plugin, createMockMailTmManager());
+      tab.display();
+
+      const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
+      const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
+      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as (value: string) => Promise<void>;
+      await onChange('new-password');
+
+      expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('test-key', 'new-password');
+    });
+
+    it('should create password secret key if missing on manual entry', async () => {
+      const plugin = createMockPlugin({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: ''
+      });
+      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        cb(plugin.settings);
+      });
+      vi.mocked(plugin.settingsManager.editAndSave).mockImplementation(editAndSaveFn);
+      const tab = new PluginSettingsTab(plugin, createMockMailTmManager());
+      tab.display();
+
+      const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
+      const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
+      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as (value: string) => Promise<void>;
+      await onChange('manual-password');
+
+      expect(editAndSaveFn).toHaveBeenCalledOnce();
+      expect(plugin.settings.emailPasswordSecretKey).toBe('email-to-vault-password');
+    });
+
+    it('should not recreate password secret key if already set', async () => {
+      const editAndSaveFn = vi.fn();
+      const plugin = createMockPlugin({
+        emailAddress: 'test@mail.tm',
+        settingsManagerEditAndSave: editAndSaveFn
+      });
+      const tab = new PluginSettingsTab(plugin, createMockMailTmManager());
+      tab.display();
+
+      const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
+      const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
+      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as (value: string) => Promise<void>;
+      await onChange('another-password');
+
+      expect(editAndSaveFn).not.toHaveBeenCalled();
     });
 
     it('should show notice when no password found for copy', async () => {

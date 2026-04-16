@@ -61,9 +61,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
         setting
           .setClass('email-address')
           .setName('Email address')
-          .setDesc('Generated email address.')
+          .setDesc('Email address for the mail.tm mailbox.')
           .addEmail((emailComponent) => {
-            emailComponent.setDisabled(true);
             this.bind(emailComponent, 'emailAddress');
           })
           .addExtraButton((button) => {
@@ -79,11 +78,14 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       .addSettingEx((setting) => {
         setting
           .setName('Email password')
-          .setDesc('Generated email password.')
+          .setDesc('Password for the mail.tm mailbox.')
           .addPassword((passwordComponent) => {
-            passwordComponent.setDisabled(true);
             const password = this.app.secretStorage.getSecret(this.plugin.settings.emailPasswordSecretKey) ?? '';
             passwordComponent.setValue(password);
+            passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
+              await this.ensurePasswordSecretKey();
+              this.app.secretStorage.setSecret(this.plugin.settings.emailPasswordSecretKey, value);
+            }));
           })
           .addExtraButton((button) => {
             button
@@ -167,6 +169,17 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
             this.bind(toggle, 'shouldExtractForwardedEmail');
           });
       });
+  }
+
+  private async ensurePasswordSecretKey(): Promise<void> {
+    if (this.plugin.settings.emailPasswordSecretKey) {
+      return;
+    }
+
+    const secretKey = `${this.plugin.manifest.id}-password`;
+    await this.plugin.settingsManager.editAndSave((settings) => {
+      settings.emailPasswordSecretKey = secretKey;
+    });
   }
 }
 
