@@ -1,3 +1,4 @@
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   describe,
@@ -19,7 +20,10 @@ vi.mock('obsidian', async (importOriginal) => {
 
 function createMockMailTmManager(isValidDomain: boolean): MailTmManager {
   return strictProxy<MailTmManager>({
-    validateEmailDomain: vi.fn(async () => isValidDomain)
+    validateEmailDomain: vi.fn(async () => {
+      await noopAsync();
+      return isValidDomain;
+    })
   });
 }
 

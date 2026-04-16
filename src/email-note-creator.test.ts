@@ -1,3 +1,4 @@
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
@@ -82,7 +83,10 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
   return strictProxy<Plugin>({
     app: {
       fileManager: {
-        getAvailablePathForAttachment: vi.fn(async (filename: string) => `Emails/${filename}`)
+        getAvailablePathForAttachment: vi.fn(async (filename: string) => {
+          await noopAsync();
+          return `Emails/${filename}`;
+        })
       },
       vault: {
         create: vi.fn(),
@@ -108,22 +112,25 @@ describe('EmailNoteCreator', () => {
   describe('saveEmailAsNote', () => {
     it('should save unseen messages as notes', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [{ address: 'cc@example.com', name: 'CC User' }],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'sender@example.com', name: 'Sender' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 100,
-          subject: 'Test Email',
-          text: 'Hello body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: '2026-01-01T00:00:00+00:00'
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [{ address: 'cc@example.com', name: 'CC User' }],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: 'Sender' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 100,
+            subject: 'Test Email',
+            text: 'Hello body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: '2026-01-01T00:00:00+00:00'
+          };
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -139,22 +146,25 @@ describe('EmailNoteCreator', () => {
 
     it('should convert HTML body to markdown', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'sender@example.com', name: '' },
-          hasAttachments: false,
-          html: ['<p>Hello <strong>world</strong></p>'],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Hello world',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<p>Hello <strong>world</strong></p>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Hello world',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}'
@@ -171,22 +181,25 @@ describe('EmailNoteCreator', () => {
 
     it('should fall back to plain text when HTML is empty', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'sender@example.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Plain text body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Plain text body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}'
@@ -203,22 +216,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use template with all variables', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [{ address: 'cc@example.com', name: '' }],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'sender@example.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 100,
-          subject: 'Subject Line',
-          text: 'Body text',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: '2026-01-01T00:00:00+00:00'
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [{ address: 'cc@example.com', name: '' }],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 100,
+            subject: 'Subject Line',
+            text: 'Body text',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: '2026-01-01T00:00:00+00:00'
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}}'
@@ -235,22 +251,25 @@ describe('EmailNoteCreator', () => {
 
     it('should format from address with name when available', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'sender@example.com', name: 'John Doe' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: '',
-          to: [{ address: 'me@mail.tm', name: 'Me' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: 'John Doe' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: '',
+            to: [{ address: 'me@mail.tm', name: 'Me' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{to}}'
@@ -267,22 +286,25 @@ describe('EmailNoteCreator', () => {
 
     it('should not create folder if it already exists', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.vault.getFolderByPath).mockReturnValue({} as never);
@@ -295,22 +317,25 @@ describe('EmailNoteCreator', () => {
 
     it('should sanitize subject in filename', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Re: Test/File<Name>',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Re: Test/File<Name>',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -325,22 +350,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use custom path template', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test Email',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test Email',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({ emailNotePathTemplate: 'Custom/{{subject}}' });
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -355,22 +383,25 @@ describe('EmailNoteCreator', () => {
 
     it('should format date in path template', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-03-15T14:30:45+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test Email',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-03-15T14:30:45+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test Email',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({ emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}' });
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -385,22 +416,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use Untitled in path template when subject is empty', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: '',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: '',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({ emailNotePathTemplate: 'Notes/{{subject}}' });
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -415,23 +449,26 @@ describe('EmailNoteCreator', () => {
 
     it('should not strip forward markers when disabled', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Original Subject',
-          text:
-            '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} {{subject}} {{body}}'
@@ -452,23 +489,26 @@ describe('EmailNoteCreator', () => {
 
     it('should extract original sender from Gmail forward header', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Original Subject',
-          text:
-            '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
@@ -486,23 +526,26 @@ describe('EmailNoteCreator', () => {
 
     it('should strip bold markdown from Gmail forward header values', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Bold Subject',
-          text:
-            '---------- Forwarded message ---------\nFrom: **John Doe** <john@test.com>\nDate: Mon, 1 Jan 2024\nSubject: **Bold Subject**\nTo: dest@test.com\n\nForwarded body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Bold Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: **John Doe** <john@test.com>\nDate: Mon, 1 Jan 2024\nSubject: **Bold Subject**\nTo: dest@test.com\n\nForwarded body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{subject}}',
@@ -520,23 +563,26 @@ describe('EmailNoteCreator', () => {
 
     it('should strip link markdown from Gmail forward header values', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Linked Subject',
-          text:
-            '---------- Forwarded message ---------\nFrom: [Jane](mailto:jane@test.com)\nDate: Mon, 1 Jan 2024\nSubject: Linked Subject\nTo: [dest@test.com](mailto:dest@test.com)\n\nForwarded body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Linked Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: [Jane](mailto:jane@test.com)\nDate: Mon, 1 Jan 2024\nSubject: Linked Subject\nTo: [dest@test.com](mailto:dest@test.com)\n\nForwarded body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{to}} | {{subject}}',
@@ -554,22 +600,25 @@ describe('EmailNoteCreator', () => {
 
     it('should extract original sender from Outlook forward header', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'FW: Outlook Subject',
-          text: 'From: Original Sender <orig@test.com>\nSent: Monday, January 1, 2024\nTo: dest@test.com\nSubject: Outlook Subject\n\nOutlook body content',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'FW: Outlook Subject',
+            text: 'From: Original Sender <orig@test.com>\nSent: Monday, January 1, 2024\nTo: dest@test.com\nSubject: Outlook Subject\n\nOutlook body content',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
@@ -587,22 +636,25 @@ describe('EmailNoteCreator', () => {
 
     it('should strip Fwd: prefix from subject', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Test',
-          text: 'Plain body without forward headers',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Test',
+            text: 'Plain body without forward headers',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{subject}}',
@@ -620,22 +672,25 @@ describe('EmailNoteCreator', () => {
 
     it('should strip FW: prefix from subject', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'FW: Test',
-          text: 'Plain body without forward headers',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'FW: Test',
+            text: 'Plain body without forward headers',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{subject}}',
@@ -653,23 +708,26 @@ describe('EmailNoteCreator', () => {
 
     it('should parse Gmail-style date in path template without warnings', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Original Subject',
-          text:
-            '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
       const plugin = createMockPlugin({
@@ -690,22 +748,25 @@ describe('EmailNoteCreator', () => {
 
     it('should keep message as-is when no forward markers found', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'sender@example.com', name: 'Sender' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Regular Subject',
-          text: 'Regular body without any forward markers',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: 'Sender' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Regular Subject',
+            text: 'Regular body without any forward markers',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
@@ -724,23 +785,29 @@ describe('EmailNoteCreator', () => {
     it('should handle rfc822 attachment with headers only and no body', async () => {
       const emlContent = 'Content-Type: text/plain';
       const mockManager = createMockMailTmManager({
-        downloadAttachment: vi.fn(async () => new TextEncoder().encode(emlContent).buffer),
-        getMessage: vi.fn(async () => ({
-          attachments: [{ contentType: 'message/rfc822', filename: 'forwarded.eml', id: 'att1' }],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: true,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Headers Only',
-          text: 'Forwarded.',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        downloadAttachment: vi.fn(async () => {
+          await noopAsync();
+          return new TextEncoder().encode(emlContent).buffer;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [{ contentType: 'message/rfc822', filename: 'forwarded.eml', id: 'att1' }],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: true,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Headers Only',
+            text: 'Forwarded.',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
@@ -760,23 +827,29 @@ describe('EmailNoteCreator', () => {
       const emlContent =
         'From: original@test.com\r\nTo: dest@test.com\r\nCc: cc@test.com\r\nSubject: Original Subject\r\nDate: Mon, 1 Jan 2024 10:00:00 +0000\r\n\r\nOriginal body content';
       const mockManager = createMockMailTmManager({
-        downloadAttachment: vi.fn(async () => new TextEncoder().encode(emlContent).buffer),
-        getMessage: vi.fn(async () => ({
-          attachments: [{ contentType: 'message/rfc822', filename: 'forwarded.eml', id: 'att1' }],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: true,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Original Subject',
-          text: 'See the forwarded message attached.',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        downloadAttachment: vi.fn(async () => {
+          await noopAsync();
+          return new TextEncoder().encode(emlContent).buffer;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [{ contentType: 'message/rfc822', filename: 'forwarded.eml', id: 'att1' }],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: true,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text: 'See the forwarded message attached.',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{to}} | {{cc}} | {{subject}} | {{body}}',
@@ -795,22 +868,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use Untitled when subject is empty', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: '',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: '',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -826,26 +902,32 @@ describe('EmailNoteCreator', () => {
     it('should download and save attachments', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
       const mockManager = createMockMailTmManager({
-        downloadAttachment: vi.fn(async () => mockAttachmentData),
-        getMessage: vi.fn(async () => ({
-          attachments: [
-            { contentType: 'image/png', filename: 'photo.png', id: 'att1' },
-            { contentType: 'application/pdf', filename: 'doc.pdf', id: 'att2' }
-          ],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: true,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'With Attachments',
-          text: 'Body',
-          to: [],
-          updatedAt: ''
-        }))
+        downloadAttachment: vi.fn(async () => {
+          await noopAsync();
+          return mockAttachmentData;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [
+              { contentType: 'image/png', filename: 'photo.png', id: 'att1' },
+              { contentType: 'application/pdf', filename: 'doc.pdf', id: 'att2' }
+            ],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: true,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'With Attachments',
+            text: 'Body',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = new EmailNoteCreator(plugin, mockManager);
@@ -860,23 +942,29 @@ describe('EmailNoteCreator', () => {
     it('should add attachment links to note content', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
       const mockManager = createMockMailTmManager({
-        downloadAttachment: vi.fn(async () => mockAttachmentData),
-        getMessage: vi.fn(async () => ({
-          attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'att1' }],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: true,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Body',
-          to: [],
-          updatedAt: ''
-        }))
+        downloadAttachment: vi.fn(async () => {
+          await noopAsync();
+          return mockAttachmentData;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'att1' }],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: true,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Body',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}\n{{attachments}}'
@@ -893,22 +981,25 @@ describe('EmailNoteCreator', () => {
 
     it('should skip attachments when none present', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Body',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Body',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}{{attachments}}'
@@ -926,8 +1017,9 @@ describe('EmailNoteCreator', () => {
 
     it('should handle undefined attachments from API', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () =>
-          ({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
             cc: [],
             createdAt: '2026-01-01T00:00:00+00:00',
             downloadUrl: '',
@@ -941,8 +1033,8 @@ describe('EmailNoteCreator', () => {
             text: 'Body',
             to: [],
             updatedAt: ''
-          }) as never
-        )
+          } as never;
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}{{attachments}}'
@@ -960,8 +1052,9 @@ describe('EmailNoteCreator', () => {
 
     it('should handle undefined attachments when extracting forwarded email', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () =>
-          ({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
             cc: [],
             createdAt: '2026-01-01T00:00:00+00:00',
             downloadUrl: '',
@@ -976,8 +1069,8 @@ describe('EmailNoteCreator', () => {
               '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
             to: [{ address: 'me@mail.tm', name: '' }],
             updatedAt: ''
-          }) as never
-        )
+          } as never;
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
@@ -995,22 +1088,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use original date when Gmail forward header has no Date line', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Original Subject',
-          text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{date}}',
@@ -1028,23 +1124,26 @@ describe('EmailNoteCreator', () => {
 
     it('should handle Gmail forward date with narrow no-break space before AM/PM', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-04-14T23:27:48+00:00',
-          downloadUrl: '',
-          from: { address: 'forwarder@example.com', name: 'Forwarder' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd: Original Subject',
-          text:
-            '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
-          to: [{ address: 'me@mail.tm', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-04-14T23:27:48+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
       const plugin = createMockPlugin({
@@ -1071,23 +1170,26 @@ describe('EmailNoteCreator', () => {
 
     it('should handle Gmail forward with empty original subject', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-04-14T21:55:44+00:00',
-          downloadUrl: '',
-          from: { address: 'mnaoumov@gmail.com', name: 'Michael Naumov' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Fwd:',
-          text:
-            'Regards,\nMichael Naumov\n\n\n---------- Forwarded message ---------\nFrom: Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject:\nTo: Michael Naumov <mnaoumov@gmail.com>\n\n\nнапечатай пж 4 на 10см',
-          to: [{ address: 'email-to-vault-ohqlfltv1i@deltajohnsons.com', name: '' }],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-04-14T21:55:44+00:00',
+            downloadUrl: '',
+            from: { address: 'mnaoumov@gmail.com', name: 'Michael Naumov' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd:',
+            text:
+              'Regards,\nMichael Naumov\n\n\n---------- Forwarded message ---------\nFrom: Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject:\nTo: Michael Naumov <mnaoumov@gmail.com>\n\n\nнапечатай пж 4 на 10см',
+            to: [{ address: 'email-to-vault-ohqlfltv1i@deltajohnsons.com', name: '' }],
+            updatedAt: ''
+          };
+        })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
       const plugin = createMockPlugin({
@@ -1111,23 +1213,29 @@ describe('EmailNoteCreator', () => {
     it('should replace inline attachment references with vault links', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
       const mockManager = createMockMailTmManager({
-        downloadAttachment: vi.fn(async () => mockAttachmentData),
-        getMessage: vi.fn(async () => ({
-          attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'ATTACH000001' }],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: true,
-          html: ['<div><img src="attachment:ATTACH000001" alt="photo.png"><p>Text</p></div>'],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: '[image: photo.png]\nText',
-          to: [],
-          updatedAt: ''
-        }))
+        downloadAttachment: vi.fn(async () => {
+          await noopAsync();
+          return mockAttachmentData;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'ATTACH000001' }],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: true,
+            html: ['<div><img src="attachment:ATTACH000001" alt="photo.png"><p>Text</p></div>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: '[image: photo.png]\nText',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}'
@@ -1148,22 +1256,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use alt text when inline attachment ID is not in saved attachments', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: ['<div><img src="attachment:UNKNOWN" alt="mystery.png"></div>'],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: ['<div><img src="attachment:UNKNOWN" alt="mystery.png"></div>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}'
@@ -1181,23 +1292,29 @@ describe('EmailNoteCreator', () => {
     it('should handle attachment path without folder', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
       const mockManager = createMockMailTmManager({
-        downloadAttachment: vi.fn(async () => mockAttachmentData),
-        getMessage: vi.fn(async () => ({
-          attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'att1' }],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: true,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Body',
-          to: [],
-          updatedAt: ''
-        }))
+        downloadAttachment: vi.fn(async () => {
+          await noopAsync();
+          return mockAttachmentData;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [{ contentType: 'image/png', filename: 'photo.png', id: 'att1' }],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: true,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Body',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{attachments}}'
@@ -1215,22 +1332,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use fallback name when inline attachment has empty alt', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: ['<div><img src="attachment:UNKNOWN" alt=""></div>'],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: '',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: ['<div><img src="attachment:UNKNOWN" alt=""></div>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: '',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({
         emailNoteTemplate: '{{body}}'
@@ -1247,22 +1367,25 @@ describe('EmailNoteCreator', () => {
 
     it('should not create folder when path has no directory', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Body',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Body',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({ emailNotePathTemplate: '{{subject}}' });
       vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Test.md');
@@ -1276,22 +1399,25 @@ describe('EmailNoteCreator', () => {
 
     it('should use available path from vault when note file already exists', async () => {
       const mockManager = createMockMailTmManager({
-        getMessage: vi.fn(async () => ({
-          attachments: [],
-          cc: [],
-          createdAt: '2026-01-01T00:00:00+00:00',
-          downloadUrl: '',
-          from: { address: 'a@b.com', name: '' },
-          hasAttachments: false,
-          html: [],
-          id: 'msg1',
-          seen: false,
-          size: 0,
-          subject: 'Test',
-          text: 'Body',
-          to: [],
-          updatedAt: ''
-        }))
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Body',
+            to: [],
+            updatedAt: ''
+          };
+        })
       });
       const plugin = createMockPlugin({ emailNotePathTemplate: 'Emails/{{subject}}' });
       vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Emails/Test 2.md');

@@ -1,4 +1,5 @@
 import { Notice } from 'obsidian';
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -41,7 +42,10 @@ interface MockPluginOverrides {
 function createMockMailTmManager(overrides?: MockMailTmManagerOverrides): MailTmManager {
   return strictProxy<MailTmManager>({
     deleteMessage: overrides?.deleteMessage ?? vi.fn(),
-    getMessages: overrides?.getMessages ?? vi.fn(async () => []),
+    getMessages: overrides?.getMessages ?? vi.fn(async () => {
+      await noopAsync();
+      return [];
+    }),
     markMessageAsSeen: overrides?.markMessageAsSeen ?? vi.fn()
   });
 }
@@ -83,20 +87,23 @@ describe('EmailChecker', () => {
 
     it('should show notice when no unseen messages', async () => {
       const mockManager = createMockMailTmManager({
-        getMessages: vi.fn(async () => [
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: '1',
-            seen: true,
-            size: 0,
-            subject: 'Old',
-            to: [],
-            updatedAt: ''
-          }
-        ])
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: '1',
+              seen: true,
+              size: 0,
+              subject: 'Old',
+              to: [],
+              updatedAt: ''
+            }
+          ];
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = createMockNoteCreator();
@@ -121,7 +128,10 @@ describe('EmailChecker', () => {
         updatedAt: '2026-01-01T00:00:00+00:00'
       };
       const mockManager = createMockMailTmManager({
-        getMessages: vi.fn(async () => [unseenMessage])
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [unseenMessage];
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = createMockNoteCreator();
@@ -135,20 +145,23 @@ describe('EmailChecker', () => {
 
     it('should delete message after save when shouldDeleteSeenEmails is enabled', async () => {
       const mockManager = createMockMailTmManager({
-        getMessages: vi.fn(async () => [
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: 'msg1',
-            seen: false,
-            size: 0,
-            subject: 'Test',
-            to: [],
-            updatedAt: ''
-          }
-        ])
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg1',
+              seen: false,
+              size: 0,
+              subject: 'Test',
+              to: [],
+              updatedAt: ''
+            }
+          ];
+        })
       });
       const plugin = createMockPlugin({ shouldDeleteSeenEmails: true });
       const noteCreator = createMockNoteCreator();
@@ -161,20 +174,23 @@ describe('EmailChecker', () => {
 
     it('should mark message as seen when shouldDeleteSeenEmails is disabled', async () => {
       const mockManager = createMockMailTmManager({
-        getMessages: vi.fn(async () => [
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: 'msg1',
-            seen: false,
-            size: 0,
-            subject: 'Test',
-            to: [],
-            updatedAt: ''
-          }
-        ])
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg1',
+              seen: false,
+              size: 0,
+              subject: 'Test',
+              to: [],
+              updatedAt: ''
+            }
+          ];
+        })
       });
       const plugin = createMockPlugin({ shouldDeleteSeenEmails: false });
       const noteCreator = createMockNoteCreator();
@@ -190,32 +206,35 @@ describe('EmailChecker', () => {
   describe('redownloadEmails', () => {
     it('should redownload all messages regardless of seen status', async () => {
       const mockManager = createMockMailTmManager({
-        getMessages: vi.fn(async () => [
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: 'msg1',
-            seen: true,
-            size: 0,
-            subject: 'Test',
-            to: [],
-            updatedAt: ''
-          },
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: 'msg2',
-            seen: true,
-            size: 0,
-            subject: 'Test2',
-            to: [],
-            updatedAt: ''
-          }
-        ])
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg1',
+              seen: true,
+              size: 0,
+              subject: 'Test',
+              to: [],
+              updatedAt: ''
+            },
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg2',
+              seen: true,
+              size: 0,
+              subject: 'Test2',
+              to: [],
+              updatedAt: ''
+            }
+          ];
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = createMockNoteCreator();
@@ -229,32 +248,35 @@ describe('EmailChecker', () => {
 
     it('should limit to count when specified', async () => {
       const mockManager = createMockMailTmManager({
-        getMessages: vi.fn(async () => [
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: 'msg1',
-            seen: false,
-            size: 0,
-            subject: 'Test',
-            to: [],
-            updatedAt: ''
-          },
-          {
-            createdAt: '2026-01-01T00:00:00+00:00',
-            downloadUrl: '',
-            from: { address: 'a@b.com', name: '' },
-            hasAttachments: false,
-            id: 'msg2',
-            seen: false,
-            size: 0,
-            subject: 'Test2',
-            to: [],
-            updatedAt: ''
-          }
-        ])
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg1',
+              seen: false,
+              size: 0,
+              subject: 'Test',
+              to: [],
+              updatedAt: ''
+            },
+            {
+              createdAt: '2026-01-01T00:00:00+00:00',
+              downloadUrl: '',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg2',
+              seen: false,
+              size: 0,
+              subject: 'Test2',
+              to: [],
+              updatedAt: ''
+            }
+          ];
+        })
       });
       const plugin = createMockPlugin();
       const noteCreator = createMockNoteCreator();

@@ -1,4 +1,7 @@
-import { noop } from 'obsidian-dev-utils/function';
+import {
+  noop,
+  noopAsync
+} from 'obsidian-dev-utils/function';
 import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -130,7 +133,10 @@ vi.mock('obsidian-dev-utils/async', () => ({
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
-  confirm: vi.fn(async () => true)
+  confirm: vi.fn(async () => {
+    await noopAsync();
+    return true;
+  })
 }));
 
 const MockSettingGroupEx = vi.mocked(SettingGroupEx);
@@ -307,6 +313,7 @@ describe('PluginSettingsTab', () => {
         emailPasswordSecretKey: ''
       });
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
         cb(plugin.settings);
       });
       vi.mocked(plugin.settingsManager.editAndSave).mockImplementation(editAndSaveFn);

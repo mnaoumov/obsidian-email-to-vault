@@ -1,3 +1,4 @@
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { CommandInvocationBase } from 'obsidian-dev-utils/obsidian/commands/command-base';
 import { NonEditorCommandBase } from 'obsidian-dev-utils/obsidian/commands/non-editor-command-base';
 
@@ -9,6 +10,7 @@ class OpenSettingsCommandInvocation extends CommandInvocationBase<Plugin> {
   }
 
   public override async execute(): Promise<void> {
+    await noopAsync();
     this.app.setting.openTabById(this.plugin.manifest.id);
     this.app.setting.open();
   }

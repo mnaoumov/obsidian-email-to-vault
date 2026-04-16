@@ -314,7 +314,7 @@ describe('Mail.tm API', () => {
       if (!result.success) {
         const JSON_INDENT = 2;
         console.error('Schema validation errors:', JSON.stringify(result.error.issues, null, JSON_INDENT));
-        console.debug('API response:', JSON.stringify(messageJson, null, JSON_INDENT));
+        console.error('API response:', JSON.stringify(messageJson, null, JSON_INDENT));
       }
 
       expect(result.success).toBe(true);

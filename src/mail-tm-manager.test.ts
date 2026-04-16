@@ -1,4 +1,5 @@
 import { requestUrl } from 'obsidian';
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -53,6 +54,7 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
     settings,
     settingsManager: {
       editAndSave: overrides?.settingsManagerEditAndSave ?? (async (cb: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
         cb(settings);
       })
     }
@@ -149,6 +151,7 @@ describe('MailTmManager', () => {
     it('should create account and save credentials', async () => {
       const setSecretFn = vi.fn();
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
         cb(new PluginSettings());
       });
       const plugin = createMockPlugin({
@@ -203,6 +206,7 @@ describe('MailTmManager', () => {
     it('should delete account without clearing secret when key is empty', async () => {
       const setSecretFn = vi.fn();
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
         cb(new PluginSettings());
       });
       const plugin = createMockPlugin({
@@ -230,6 +234,7 @@ describe('MailTmManager', () => {
     it('should delete account, clear secret, and reset settings', async () => {
       const setSecretFn = vi.fn();
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
         cb(new PluginSettings());
       });
       const plugin = createMockPlugin({
