@@ -20,6 +20,7 @@ import { PluginSettings } from './plugin-settings.ts';
 
 const captured = vi.hoisted(() => ({
   buttons: [] as Record<string, ReturnType<typeof vi.fn>>[],
+  emailComponents: [] as Record<string, ReturnType<typeof vi.fn>>[],
   extraButtons: [] as Record<string, ReturnType<typeof vi.fn>>[],
   passwordComponents: [] as Record<string, ReturnType<typeof vi.fn>>[]
 }));
@@ -53,8 +54,10 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
         s['addButton'] = vi.fn((buttonCb: (b: Record<string, ReturnType<typeof vi.fn>>) => void) => {
           const b: Record<string, ReturnType<typeof vi.fn>> = {};
           b['setButtonText'] = vi.fn(() => b);
+          b['setCta'] = vi.fn(() => b);
           b['setDisabled'] = vi.fn(() => b);
           b['onClick'] = vi.fn(() => b);
+          b['setWarning'] = vi.fn(() => b);
           captured.buttons.push(b);
           buttonCb(b);
           return s;
@@ -62,6 +65,9 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
         s['addEmail'] = vi.fn((emailCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
           const c: Record<string, ReturnType<typeof vi.fn>> = {};
           c['setDisabled'] = vi.fn(() => c);
+          c['setValue'] = vi.fn(() => c);
+          c['onChange'] = vi.fn(() => c);
+          captured.emailComponents.push(c);
           emailCb(c);
           return s;
         });
@@ -167,6 +173,7 @@ describe('PluginSettingsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     captured.buttons.length = 0;
+    captured.emailComponents.length = 0;
     captured.extraButtons.length = 0;
     captured.passwordComponents.length = 0;
   });
@@ -224,7 +231,7 @@ describe('PluginSettingsTab', () => {
       expect(displaySpy).toHaveBeenCalledOnce();
     });
 
-    it('should unregister old address and register new one when email exists and user confirms', async () => {
+    it('should unregister email when user confirms', async () => {
       vi.mocked(confirm).mockResolvedValue(true);
       const manager = createMockMailTmManager();
       const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'old@mail.tm' }), manager);
@@ -237,10 +244,9 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(manager.unregisterEmailAddress).toHaveBeenCalledOnce();
-      expect(manager.registerRandomEmailAddress).toHaveBeenCalledOnce();
     });
 
-    it('should not register when email exists and user cancels', async () => {
+    it('should not unregister when user cancels', async () => {
       vi.mocked(confirm).mockResolvedValue(false);
       const manager = createMockMailTmManager();
       const tab = new PluginSettingsTab(createMockPlugin({ emailAddress: 'old@mail.tm' }), manager);
@@ -253,7 +259,6 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(manager.unregisterEmailAddress).not.toHaveBeenCalled();
-      expect(manager.registerRandomEmailAddress).not.toHaveBeenCalled();
     });
 
     it('should copy email address to clipboard', async () => {
@@ -284,8 +289,8 @@ describe('PluginSettingsTab', () => {
       expect(writeTextFn).toHaveBeenCalledWith('test-password');
     });
 
-    it('should save password to secret storage on manual entry', async () => {
-      const plugin = createMockPlugin({ emailAddress: 'test@mail.tm' });
+    it('should save password to secret storage on manual entry when unregistered', async () => {
+      const plugin = createMockPlugin();
       const tab = new PluginSettingsTab(plugin, createMockMailTmManager());
       tab.display();
 
@@ -299,7 +304,6 @@ describe('PluginSettingsTab', () => {
 
     it('should create password secret key if missing on manual entry', async () => {
       const plugin = createMockPlugin({
-        emailAddress: 'test@mail.tm',
         emailPasswordSecretKey: ''
       });
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
@@ -321,7 +325,6 @@ describe('PluginSettingsTab', () => {
     it('should not recreate password secret key if already set', async () => {
       const editAndSaveFn = vi.fn();
       const plugin = createMockPlugin({
-        emailAddress: 'test@mail.tm',
         settingsManagerEditAndSave: editAndSaveFn
       });
       const tab = new PluginSettingsTab(plugin, createMockMailTmManager());

@@ -19,6 +19,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
   public override display(): void {
     super.display();
 
+    const isRegistered = !!this.plugin.settings.emailAddress;
+
     new SettingGroupEx(this.containerEl)
       .setHeading('Mail.tm')
       .addSettingEx((setting) => {
@@ -33,29 +35,35 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       })
       .addSettingEx((setting) => {
         setting
-          .addButton((button) =>
-            button
-              .setButtonText('Register new random email address')
-              .onClick(convertAsyncToSync(async () => {
-                if (this.plugin.settings.emailAddress) {
+          .addButton((button) => {
+            if (isRegistered) {
+              button
+                .setButtonText('Unregister email address')
+                .setWarning()
+                .onClick(convertAsyncToSync(async () => {
                   const result = await confirm({
                     app: this.app,
                     cancelButtonText: 'No',
-                    message:
-                      'You already have a registered email address. Do you want to register a new one? The old registered email address will be unregistered and you will not have access to it anymore.',
+                    message: 'Are you sure you want to unregister your email address? You will not have access to it anymore.',
                     okButtonText: 'Yes',
-                    title: 'Register new random email address?'
+                    title: 'Unregister email address?'
                   });
                   if (!result) {
                     return;
                   }
 
                   await this.mailTmManager.unregisterEmailAddress();
-                }
-                await this.mailTmManager.registerRandomEmailAddress();
-                this.display();
-              }))
-          );
+                  this.display();
+                }));
+            } else {
+              button
+                .setButtonText('Register new random email address')
+                .onClick(convertAsyncToSync(async () => {
+                  await this.mailTmManager.registerRandomEmailAddress();
+                  this.display();
+                }));
+            }
+          });
       })
       .addSettingEx((setting) => {
         setting
@@ -63,6 +71,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
           .setName('Email address')
           .setDesc('Email address for the mail.tm mailbox.')
           .addEmail((emailComponent) => {
+            emailComponent.setDisabled(isRegistered);
             this.bind(emailComponent, 'emailAddress');
           })
           .addExtraButton((button) => {
@@ -80,12 +89,15 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
           .setName('Email password')
           .setDesc('Password for the mail.tm mailbox.')
           .addPassword((passwordComponent) => {
+            passwordComponent.setDisabled(isRegistered);
             const password = this.app.secretStorage.getSecret(this.plugin.settings.emailPasswordSecretKey) ?? '';
             passwordComponent.setValue(password);
-            passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
-              await this.ensurePasswordSecretKey();
-              this.app.secretStorage.setSecret(this.plugin.settings.emailPasswordSecretKey, value);
-            }));
+            if (!isRegistered) {
+              passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
+                await this.ensurePasswordSecretKey();
+                this.app.secretStorage.setSecret(this.plugin.settings.emailPasswordSecretKey, value);
+              }));
+            }
           })
           .addExtraButton((button) => {
             button
@@ -109,6 +121,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
             f.appendText('Whether to delete emails from the mailbox after being saved as notes.');
             f.createEl('br');
             f.appendText('⚠️ WARNING: deleted emails cannot be recovered.');
+            f.createEl('br');
+            f.appendText('⚠️ WARNING: even if the setting is disabled, the emails will be deleted after 7 days. See ');
+            f.createEl('a', { href: 'https://github.com/mnaoumov/obsidian-email-to-vault#privacy--data-handling', text: 'Privacy & data handling' });
+            f.appendText(' for details.');
           }))
           .addToggle((toggle) => {
             this.bind(toggle, 'shouldDeleteSeenEmails');
