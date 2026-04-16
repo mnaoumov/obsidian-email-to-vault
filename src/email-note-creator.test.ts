@@ -1,3 +1,4 @@
+import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -16,8 +17,15 @@ import type { Plugin } from './plugin.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
 import { DEFAULT_EMAIL_NOTE_TEMPLATE } from './plugin-settings.ts';
 
+const MOCK_UTC_OFFSET_MINUTES = 300;
+
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
+  const realMoment = extractDefaultExportInterop(original.moment);
+  function wrappedMoment(...args: Parameters<typeof realMoment>): ReturnType<typeof realMoment> {
+    return realMoment(...args).utcOffset(MOCK_UTC_OFFSET_MINUTES);
+  }
+  Object.assign(wrappedMoment, original.moment);
   return {
     ...original,
     htmlToMarkdown: vi.fn((html: string) => {
@@ -26,6 +34,7 @@ vi.mock('obsidian', async (importOriginal) => {
       result = result.replace(/<\/?[^>]+>/g, '');
       return result.trim();
     }),
+    moment: wrappedMoment,
     Notice: vi.fn()
   };
 });
@@ -220,7 +229,7 @@ describe('EmailNoteCreator', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        'sender@example.com me@mail.tm cc@example.com Subject Line 2026-01-01T00:00:00+00:00 Body text'
+        'sender@example.com me@mail.tm cc@example.com Subject Line 2026-01-01T05:00:00+05:00 Body text'
       );
     });
 
@@ -471,7 +480,75 @@ describe('EmailNoteCreator', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        expect.stringMatching(/^Original <orig@test.com> \| Original Subject \| 2024-01-01T00:00:00[+-]\d{2}:\d{2} \| Actual body$/)
+        'Original <orig@test.com> | Original Subject | 2024-01-01T11:00:00+05:00 | Actual body'
+      );
+    });
+
+    it('should strip bold markdown from Gmail forward header values', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'forwarder@example.com', name: 'Forwarder' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd: Bold Subject',
+          text:
+            '---------- Forwarded message ---------\nFrom: **John Doe** <john@test.com>\nDate: Mon, 1 Jan 2024\nSubject: **Bold Subject**\nTo: dest@test.com\n\nForwarded body',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{from}} | {{subject}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Bold Subject' }));
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'John Doe <john@test.com> | Bold Subject'
+      );
+    });
+
+    it('should strip link markdown from Gmail forward header values', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => ({
+          attachments: [],
+          cc: [],
+          createdAt: '2026-01-01T00:00:00+00:00',
+          downloadUrl: '',
+          from: { address: 'forwarder@example.com', name: 'Forwarder' },
+          hasAttachments: false,
+          html: [],
+          id: 'msg1',
+          seen: false,
+          size: 0,
+          subject: 'Fwd: Linked Subject',
+          text:
+            '---------- Forwarded message ---------\nFrom: [Jane](mailto:jane@test.com)\nDate: Mon, 1 Jan 2024\nSubject: Linked Subject\nTo: [dest@test.com](mailto:dest@test.com)\n\nForwarded body',
+          to: [{ address: 'me@mail.tm', name: '' }],
+          updatedAt: ''
+        }))
+      });
+      const plugin = createMockPlugin({
+        emailNoteTemplate: '{{from}} | {{to}} | {{subject}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Linked Subject' }));
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'Jane | dest@test.com | Linked Subject'
       );
     });
 
@@ -945,7 +1022,7 @@ describe('EmailNoteCreator', () => {
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        '2026-01-01T00:00:00+00:00'
+        '2026-01-01T05:00:00+05:00'
       );
     });
 
@@ -983,12 +1060,12 @@ describe('EmailNoteCreator', () => {
       consoleWarnSpy.mockRestore();
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
-        expect.stringMatching(/^Emails\/2026-04-14 \d{2}-16 Original Subject\.md$/),
+        'Emails/2026-04-14 16-16 Original Subject.md',
         expect.stringContaining('Original <orig@test.com>')
       );
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
-        expect.stringMatching(/\| 2026-04-14T05:16:00[+-]\d{2}:\d{2} \|/)
+        expect.stringContaining('| 2026-04-14T16:16:00+05:00 |')
       );
     });
 
@@ -1026,7 +1103,7 @@ describe('EmailNoteCreator', () => {
       consoleWarnSpy.mockRestore();
 
       expect(plugin.app.vault.create).toHaveBeenCalledWith(
-        'Emails/2026-04-14 12-55 Untitled.md',
+        'Emails/2026-04-14 23-55 Untitled.md',
         expect.stringContaining('Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>')
       );
     });

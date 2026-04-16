@@ -25,5 +25,5 @@ export class PluginSettings {
   public emailNoteTemplate = DEFAULT_EMAIL_NOTE_TEMPLATE;
   public emailPasswordSecretKey = '';
   public shouldDeleteSeenEmails = false;
-  public shouldExtractForwardedEmail = false;
+  public shouldExtractForwardedEmail = true;
 }

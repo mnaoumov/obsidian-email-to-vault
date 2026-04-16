@@ -17,7 +17,7 @@ describe('PluginSettings', () => {
     expect(settings.emailCheckIntervalInMinutes).toBe(10);
     expect(settings.emailNotePathTemplate).toBe(DEFAULT_EMAIL_NOTE_PATH_TEMPLATE);
     expect(settings.shouldDeleteSeenEmails).toBe(false);
-    expect(settings.shouldExtractForwardedEmail).toBe(false);
+    expect(settings.shouldExtractForwardedEmail).toBe(true);
     expect(settings.emailNoteTemplate).toBe(DEFAULT_EMAIL_NOTE_TEMPLATE);
     expect(settings.emailPasswordSecretKey).toBe('');
   });

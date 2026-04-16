@@ -119,7 +119,7 @@ export class EmailNoteCreator {
     const data: EmailData = {
       body: fullMessage.text,
       cc: ccFormatted,
-      date: fullMessage.createdAt,
+      date: momentFn(fullMessage.createdAt).format(),
       from: fromFormatted,
       subject: fullMessage.subject,
       to: toFormatted
@@ -265,9 +265,7 @@ function normalizeWhitespace(str: string): string {
 }
 
 function parseDateStr(dateStr: string): ReturnType<typeof momentFn> {
-  const normalized = normalizeWhitespace(dateStr);
-  const knownFormatResult = momentFn(normalized, KNOWN_DATE_FORMATS, true);
-  return knownFormatResult.isValid() ? knownFormatResult : momentFn(dateStr);
+  return momentFn(dateStr);
 }
 
 function replacePathTemplate(template: string, emailData: EmailData): string {

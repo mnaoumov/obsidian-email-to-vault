@@ -54,6 +54,11 @@ vi.mock('obsidian-dev-utils/obsidian/commands/command-base', () => ({
   CommandInvocationBase: class MockCommandInvocationBase {
     protected app: unknown;
     public constructor(protected readonly plugin: unknown) {}
+
+    public async invokeAsync(_checking: boolean): Promise<void> {
+      const self = this as Record<string, unknown>;
+      await (self['execute'] as () => Promise<void>)();
+    }
   }
 }));
 
@@ -109,7 +114,7 @@ describe('RedownloadRecentEmailsCommand', () => {
     const command = new RedownloadRecentEmailsCommand(createMockPlugin(), checker);
     const invocation = command.createCommandInvocation();
 
-    await invocation.execute();
+    await invocation.invokeAsync(false);
 
     expect(invocation).toBeDefined();
   });
