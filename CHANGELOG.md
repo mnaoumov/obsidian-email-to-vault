@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.1.1
+
+- fix: build
+- test: add date format expansion test for content template
+- refactor: unify template filling with fillTemplate
+
 ## 1.1.0
 
 - chore: lint
