@@ -3,10 +3,7 @@ import {
   moment as momentLib
 } from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
-import {
-  replace,
-  replaceAll
-} from 'obsidian-dev-utils/string';
+import { replaceAll } from 'obsidian-dev-utils/string';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type {
@@ -35,9 +32,10 @@ interface DownloadAttachmentsResult {
 }
 
 interface EmailData {
+  attachmentsStr: string;
   body: string;
   cc: string;
-  date: string;
+  dateStr: string;
   from: string;
   subject: string;
   to: string;
@@ -53,30 +51,17 @@ export class EmailNoteCreator {
   public async saveEmailAsNote(message: MailTmMessage): Promise<void> {
     const fullMessage = await this.mailTmManager.getMessage(message.id);
     const emailData = await this.extractEmailData(fullMessage);
-    const basePath = this.buildNotePath(emailData);
+    const basePath = fillTemplate(this.plugin.settings.emailNotePathTemplate, emailData, true);
     const filePath = this.plugin.app.vault.getAvailablePath(basePath, 'md');
 
     const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
-    const body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
+    emailData.body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
+    emailData.attachmentsStr = attachmentLinks;
 
-    const template = this.plugin.settings.emailNoteTemplate;
-    const content = replace(template, {
-      '{{attachments}}': attachmentLinks,
-      '{{body}}': body,
-      '{{cc}}': emailData.cc,
-      '{{date}}': emailData.date,
-      '{{from}}': emailData.from,
-      '{{subject}}': emailData.subject,
-      '{{to}}': emailData.to
-    });
+    const content = fillTemplate(this.plugin.settings.emailNoteTemplate, emailData);
 
     await this.ensureFolderExists(filePath);
     await this.plugin.app.vault.create(filePath, content);
-  }
-
-  private buildNotePath(emailData: EmailData): string {
-    const pathTemplate = this.plugin.settings.emailNotePathTemplate;
-    return replacePathTemplate(pathTemplate, emailData);
   }
 
   private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<DownloadAttachmentsResult> {
@@ -117,9 +102,10 @@ export class EmailNoteCreator {
     const ccFormatted = formatAddresses(fullMessage.cc);
 
     const data: EmailData = {
+      attachmentsStr: '',
       body: fullMessage.text,
       cc: ccFormatted,
-      date: momentFn(fullMessage.createdAt).format(),
+      dateStr: momentFn(fullMessage.createdAt).format(),
       from: fromFormatted,
       subject: fullMessage.subject,
       to: toFormatted
@@ -168,7 +154,7 @@ function extractEmailFromRfc822(emlContent: string): EmailData {
   return {
     body,
     cc: HEADER_CC_PATTERN.exec(headers)?.groups?.['value'] ?? '',
-    date: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
+    dateStr: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
     from: HEADER_FROM_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     subject: HEADER_SUBJECT_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     to: HEADER_TO_PATTERN.exec(headers)?.groups?.['value'] ?? ''
@@ -189,7 +175,7 @@ function extractForwardedEmail(data: EmailData): EmailData {
   if (gmailMatch) {
     const headerBlock = gmailMatch[0];
     applyHeaderOverrides(result, headerBlock);
-    result.date = normalizeDate((HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.date).trim());
+    result.dateStr = normalizeDate((HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.dateStr).trim());
 
     result.body = result.body.slice(gmailMatch.index + headerBlock.length);
     return result;
@@ -247,8 +233,66 @@ const KNOWN_DATE_FORMATS = [
   'ddd, D MMM YYYY'
 ];
 
-function formatDate(dateStr: string, format: string): string {
-  return parseDateStr(dateStr).format(format);
+function extractTokenValue(emailData: EmailData, token: string, format: string, isPathTemplate: boolean): string {
+  let value: string;
+  switch (token) {
+    case 'attachments':
+      if (format) {
+        throw new Error(`Attachments token does not support format: ${format}`);
+      }
+      if (isPathTemplate) {
+        throw new Error('Attachments token is not supported in path template');
+      }
+      value = emailData.attachmentsStr;
+      break;
+    case 'body':
+      if (format) {
+        throw new Error(`Body token does not support format: ${format}`);
+      }
+      if (isPathTemplate) {
+        throw new Error('Body token is not supported in path template');
+      }
+      value = emailData.body;
+      break;
+    case 'cc':
+      if (format) {
+        throw new Error(`CC token does not support format: ${format}`);
+      }
+      value = emailData.cc;
+      break;
+    case 'date':
+      value = momentFn(emailData.dateStr).format(format);
+      break;
+    case 'from':
+      if (format) {
+        throw new Error(`From token does not support format: ${format}`);
+      }
+      value = emailData.from;
+      break;
+    case 'subject':
+      if (format) {
+        throw new Error(`Subject token does not support format: ${format}`);
+      }
+      value = emailData.subject || (isPathTemplate ? 'Untitled' : '');
+      break;
+    case 'to':
+      if (format) {
+        throw new Error(`To token does not support format: ${format}`);
+      }
+      value = emailData.to;
+      break;
+    default:
+      throw new Error(`Unknown token: ${token}`);
+  }
+  return isPathTemplate ? sanitizeFileName(value) : value;
+}
+
+function fillTemplate(template: string, emailData: EmailData, isPathTemplate = false): string {
+  const TOKEN_PATTERN = /\{\{(?<Token>\w+)(?::(?<Format>[^}]+))?\}\}/g;
+
+  return replaceAll(template, TOKEN_PATTERN, ({ capturedGroupArgs: [token = '', format = ''] }) => {
+    return extractTokenValue(emailData, token, format, isPathTemplate);
+  });
 }
 
 function normalizeDate(dateStr: string): string {
@@ -262,25 +306,6 @@ function normalizeDate(dateStr: string): string {
 
 function normalizeWhitespace(str: string): string {
   return replaceAll(str, /\s/g, ' ');
-}
-
-function parseDateStr(dateStr: string): ReturnType<typeof momentFn> {
-  return momentFn(dateStr);
-}
-
-function replacePathTemplate(template: string, emailData: EmailData): string {
-  const DATE_TOKEN_PATTERN = /\{\{date:(?<format>[^}]+)\}\}/g;
-
-  let result = replaceAll(template, DATE_TOKEN_PATTERN, ({ capturedGroupArgs: [format = ''] }) => formatDate(emailData.date, format));
-
-  result = replace(result, {
-    '{{cc}}': sanitizeFileName(emailData.cc),
-    '{{from}}': sanitizeFileName(emailData.from),
-    '{{subject}}': sanitizeFileName(emailData.subject || 'Untitled'),
-    '{{to}}': sanitizeFileName(emailData.to)
-  });
-
-  return result;
 }
 
 function sanitizeFileName(name: string): string {

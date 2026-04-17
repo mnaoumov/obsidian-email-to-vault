@@ -11,7 +11,8 @@ import {
 
 import type {
   MailTmManager,
-  MailTmMessage
+  MailTmMessage,
+  MailTmMessageFull
 } from './mail-tm-manager.ts';
 import type { Plugin } from './plugin.ts';
 
@@ -40,6 +41,10 @@ vi.mock('obsidian', async (importOriginal) => {
   };
 });
 
+interface MockFullMessageOverrides {
+  subject?: string;
+}
+
 interface MockMailTmManagerOverrides {
   downloadAttachment?: MailTmManager['downloadAttachment'];
   getMessage?: MailTmManager['getMessage'];
@@ -55,6 +60,25 @@ interface MockPluginOverrides {
   emailNotePathTemplate?: string;
   emailNoteTemplate?: string;
   shouldExtractForwardedEmail?: boolean;
+}
+
+function createFullMessage(overrides?: MockFullMessageOverrides): MailTmMessageFull {
+  return {
+    attachments: [],
+    cc: [],
+    createdAt: '2026-01-01T00:00:00+00:00',
+    downloadUrl: '',
+    from: { address: 'a@b.com', name: '' },
+    hasAttachments: false,
+    html: [],
+    id: 'msg1',
+    seen: false,
+    size: 0,
+    subject: overrides?.subject ?? 'Test',
+    text: 'body',
+    to: [],
+    updatedAt: ''
+  };
 }
 
 function createMessage(overrides?: MockMessageOverrides): MailTmMessage {
@@ -1430,6 +1454,123 @@ describe('EmailNoteCreator', () => {
         'Emails/Test 2.md',
         expect.any(String)
       );
+    });
+
+    it('should throw when attachments token has format', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{attachments:foo}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Attachments token does not support format: foo');
+    });
+
+    it('should throw when attachments token is used in path template', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNotePathTemplate: '{{attachments}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Attachments token is not supported in path template');
+    });
+
+    it('should throw when body token has format', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{body:foo}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Body token does not support format: foo');
+    });
+
+    it('should throw when body token is used in path template', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNotePathTemplate: '{{body}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Body token is not supported in path template');
+    });
+
+    it('should throw when cc token has format', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{cc:foo}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('CC token does not support format: foo');
+    });
+
+    it('should throw when from token has format', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{from:foo}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('From token does not support format: foo');
+    });
+
+    it('should throw when subject token has format', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{subject:foo}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Subject token does not support format: foo');
+    });
+
+    it('should throw when to token has format', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{to:foo}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('To token does not support format: foo');
+    });
+
+    it('should throw when unknown token is used', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: '{{unknown}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Unknown token: unknown');
     });
   });
 });
