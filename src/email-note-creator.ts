@@ -152,6 +152,7 @@ function extractEmailFromRfc822(emlContent: string): EmailData {
   const body = separatorMatch ? emlContent.slice(separatorMatch.index + separatorMatch[0].length) : '';
 
   return {
+    attachmentsStr: '',
     body,
     cc: HEADER_CC_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     dateStr: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
