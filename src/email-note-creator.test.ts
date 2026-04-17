@@ -1456,6 +1456,24 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should expand date format in content template', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage({ subject: 'Test' });
+        })
+      });
+      const plugin = createMockPlugin({ emailNoteTemplate: 'Date: {{date:YYYY-MM-DD}}' });
+      const creator = new EmailNoteCreator(plugin, mockManager);
+
+      await creator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'Date: 2026-01-01'
+      );
+    });
+
     it('should throw when attachments token has format', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => {
