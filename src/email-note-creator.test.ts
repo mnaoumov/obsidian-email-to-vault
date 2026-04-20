@@ -22,6 +22,15 @@ import { DEFAULT_EMAIL_NOTE_TEMPLATE } from './plugin-settings.ts';
 
 const MOCK_UTC_OFFSET_MINUTES = 300;
 
+const htmlToMarkdownMock = vi.hoisted(() =>
+  vi.fn((html: string) => {
+    let result = html;
+    result = result.replace(/<img\s+src="(?<src>[^"]+)"\s+alt="(?<alt>[^"]*)"[^>]*>/g, '![$<alt>]($<src>)');
+    result = result.replace(/<\/?[^>]+>/g, '');
+    return result.trim();
+  })
+);
+
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   const realMoment = extractDefaultExportInterop(original.moment);
@@ -31,12 +40,7 @@ vi.mock('obsidian', async (importOriginal) => {
   Object.assign(wrappedMoment, original.moment);
   return {
     ...original,
-    htmlToMarkdown: vi.fn((html: string) => {
-      let result = html;
-      result = result.replace(/<img\s+src="(?<src>[^"]+)"\s+alt="(?<alt>[^"]*)"[^>]*>/g, '![$<alt>]($<src>)');
-      result = result.replace(/<\/?[^>]+>/g, '');
-      return result.trim();
-    }),
+    htmlToMarkdown: htmlToMarkdownMock,
     moment: wrappedMoment,
     Notice: vi.fn()
   };
@@ -61,6 +65,8 @@ interface MockPluginSettingsOverrides {
   emailNotePathTemplate?: string;
   emailNoteTemplate?: string;
   shouldExtractForwardedEmail?: boolean;
+  shouldStripHiddenElements?: boolean;
+  shouldStripLayoutTables?: boolean;
 }
 
 function createFullMessage(overrides?: MockFullMessageOverrides): MailTmMessageFull {
@@ -129,7 +135,9 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsOverrid
     settings: {
       emailNotePathTemplate: overrides?.emailNotePathTemplate ?? 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
       emailNoteTemplate: overrides?.emailNoteTemplate ?? DEFAULT_EMAIL_NOTE_TEMPLATE,
-      shouldExtractForwardedEmail: overrides?.shouldExtractForwardedEmail ?? false
+      shouldExtractForwardedEmail: overrides?.shouldExtractForwardedEmail ?? false,
+      shouldStripHiddenElements: overrides?.shouldStripHiddenElements ?? true,
+      shouldStripLayoutTables: overrides?.shouldStripLayoutTables ?? true
     }
   });
 }
@@ -207,6 +215,177 @@ describe('EmailNoteCreator', () => {
         expect.any(String),
         'Hello world'
       );
+    });
+
+    it('should fall back to plain text when htmlToMarkdown throws', async () => {
+      htmlToMarkdownMock.mockImplementationOnce(() => {
+        throw new TypeError('Cannot read properties of undefined (reading \'cells\')');
+      });
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<table role="presentation"><tbody><tr><td>Content</td></tr></tbody></table>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Plain text fallback',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
+      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'ERROR: Could not parse email HTML. Rolling back to text mode\n\nPlain text fallback'
+      );
+    });
+
+    it('should preserve error message after forward extraction', async () => {
+      htmlToMarkdownMock.mockImplementationOnce(() => {
+        throw new TypeError('Cannot read properties of undefined (reading \'cells\')');
+      });
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: ['<table><tbody></tbody></table>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Fwd: Original Subject',
+            text:
+              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
+      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
+        emailNoteTemplate: '{{body}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
+
+      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+        expect.any(String),
+        'ERROR: Could not parse email HTML. Rolling back to text mode\n\nActual body'
+      );
+    });
+
+    it('should strip empty tables with no rows before converting HTML to markdown', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<table></table><p>Content</p>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Content',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
+      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith('<p>Content</p>');
+    });
+
+    it('should unwrap layout tables preserving cell content', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<table role="presentation"><tbody><tr><td><p>Hello</p></td><td><p>World</p></td></tr></tbody></table>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Hello World',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
+      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith('<p>Hello</p><p>World</p>');
+    });
+
+    it('should remove hidden elements from HTML before converting', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<div style="display:none">hidden preheader</div><p>Visible</p><div aria-hidden="true">also hidden</div>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Visible',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
+      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith('<p>Visible</p>');
     });
 
     it('should fall back to plain text when HTML is empty', async () => {

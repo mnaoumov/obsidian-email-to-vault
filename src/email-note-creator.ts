@@ -1,6 +1,7 @@
 import {
   htmlToMarkdown,
-  moment as momentLib
+  moment as momentLib,
+  Notice
 } from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { replaceAll } from 'obsidian-dev-utils/string';
@@ -103,9 +104,14 @@ export class EmailNoteCreator {
     const toFormatted = formatAddresses(fullMessage.to);
     const ccFormatted = formatAddresses(fullMessage.cc);
 
+    const { body, hadHtmlParseError } = extractBody(fullMessage, {
+      shouldStripHiddenElements: this.pluginSettingsComponent.settings.shouldStripHiddenElements,
+      shouldStripLayoutTables: this.pluginSettingsComponent.settings.shouldStripLayoutTables
+    });
+
     const data: EmailData = {
       attachmentsStr: '',
-      body: fullMessage.text,
+      body,
       cc: ccFormatted,
       dateStr: momentFn(fullMessage.createdAt).format(),
       from: fromFormatted,
@@ -113,20 +119,25 @@ export class EmailNoteCreator {
       to: toFormatted
     };
 
-    data.body = extractBody(fullMessage);
+    if (this.pluginSettingsComponent.settings.shouldExtractForwardedEmail) {
+      const rfc822Attachment = (fullMessage.attachments ?? []).find((a) => a.contentType === 'message/rfc822');
+      if (rfc822Attachment) {
+        const attachmentData = await this.mailTmManager.downloadAttachment(fullMessage.id, rfc822Attachment.id);
+        const emlContent = new TextDecoder().decode(attachmentData);
+        return extractEmailFromRfc822(emlContent);
+      }
 
-    if (!this.pluginSettingsComponent.settings.shouldExtractForwardedEmail) {
-      return data;
+      const extracted = extractForwardedEmail(data);
+      if (hadHtmlParseError) {
+        extracted.body = prependHtmlParseError(extracted.body);
+      }
+      return extracted;
     }
 
-    const rfc822Attachment = (fullMessage.attachments ?? []).find((a) => a.contentType === 'message/rfc822');
-    if (rfc822Attachment) {
-      const attachmentData = await this.mailTmManager.downloadAttachment(fullMessage.id, rfc822Attachment.id);
-      const emlContent = new TextDecoder().decode(attachmentData);
-      return extractEmailFromRfc822(emlContent);
+    if (hadHtmlParseError) {
+      data.body = prependHtmlParseError(data.body);
     }
-
-    return extractForwardedEmail(data);
+    return data;
   }
 }
 
@@ -138,13 +149,29 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
 
 const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:(?<attachId>[^)]+)\)/g;
 
-function extractBody(fullMessage: MailTmMessageFull): string {
+interface ExtractBodyResult {
+  body: string;
+  hadHtmlParseError: boolean;
+}
+
+interface SanitizeOptions {
+  shouldStripHiddenElements: boolean;
+  shouldStripLayoutTables: boolean;
+}
+
+function extractBody(fullMessage: MailTmMessageFull, options: SanitizeOptions): ExtractBodyResult {
   const html = fullMessage.html.join('');
   if (html) {
-    return htmlToMarkdown(html);
+    try {
+      return { body: htmlToMarkdown(sanitizeEmailHtml(html, options)), hadHtmlParseError: false };
+    } catch {
+      return { body: fullMessage.text, hadHtmlParseError: true };
+    }
   }
-  return fullMessage.text;
+  return { body: fullMessage.text, hadHtmlParseError: false };
 }
+
+const HTML_PARSE_ERROR_MESSAGE = 'ERROR: Could not parse email HTML. Rolling back to text mode';
 
 function extractEmailFromRfc822(emlContent: string): EmailData {
   const headerBodySeparator = /\r?\n\r?\n/;
@@ -214,6 +241,25 @@ function formatAddresses(addresses: MailTmAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
 }
 
+function prependHtmlParseError(body: string): string {
+  new Notice(HTML_PARSE_ERROR_MESSAGE);
+  return `${HTML_PARSE_ERROR_MESSAGE}\n\n${body}`;
+}
+
+function removeHiddenElements(doc: Document): void {
+  for (const element of doc.querySelectorAll('[aria-hidden="true"], [style]')) {
+    if (element.getAttribute('aria-hidden') === 'true') {
+      element.remove();
+      continue;
+    }
+
+    const style = element.getAttribute('style') ?? '';
+    if (checkHiddenByStyle(style)) {
+      element.remove();
+    }
+  }
+}
+
 function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string, string>): string {
   return replaceAll(body, INLINE_ATTACHMENT_PATTERN, ({ capturedGroupArgs: [alt = '', attachId = ''] }) => {
     const savedFilename = savedAttachments.get(attachId);
@@ -224,9 +270,52 @@ function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string,
   });
 }
 
+function sanitizeEmailHtml(html: string, options: SanitizeOptions): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  if (options.shouldStripHiddenElements) {
+    removeHiddenElements(doc);
+  }
+
+  for (const table of doc.querySelectorAll('table')) {
+    if (table.querySelector('tr')) {
+      if (options.shouldStripLayoutTables) {
+        unwrapElement(table);
+      }
+    } else {
+      table.remove();
+    }
+  }
+
+  if (options.shouldStripLayoutTables) {
+    for (const element of doc.querySelectorAll('tbody, thead, tfoot, tr, td, th')) {
+      unwrapElement(element);
+    }
+  }
+
+  return doc.body.innerHTML;
+}
+
+const HIDDEN_STYLE_PATTERN = /display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0/i;
+
+function checkHiddenByStyle(style: string): boolean {
+  return HIDDEN_STYLE_PATTERN.test(style);
+}
+
 function stripMarkdownFormatting(text: string): string {
   const withoutBold = replaceAll(text, /\*\*(?<content>[^*]+)\*\*/g, ({ capturedGroupArgs: [content] }) => ensureNonNullable(content));
   return replaceAll(withoutBold, /\[(?<label>[^\]]+)\]\([^)]+\)/g, ({ capturedGroupArgs: [label] }) => ensureNonNullable(label));
+}
+
+function unwrapElement(element: Element): void {
+  const parent = element.parentNode;
+  if (!parent) {
+    return;
+  }
+  while (element.firstChild) {
+    parent.insertBefore(element.firstChild, element);
+  }
+  parent.removeChild(element);
 }
 
 const momentFn = extractDefaultExportInterop(momentLib);
