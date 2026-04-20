@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.1.3
+
+- chore: update libs
+
 ## 1.1.2
 
 - refactor: extract Obsidian globals mock into separate setup file
