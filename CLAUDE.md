@@ -39,3 +39,7 @@
 ### Caveats
 
 - Disposable email domains may be blocked by some senders — fine for personal forwarding use case
+
+### Known Limitations
+
+- **All HTML tables are unwrapped**: The plugin strips all `<table>` elements from email HTML before converting to markdown, because Obsidian's turndown cannot handle nested layout tables (produces garbage escaped pipes). If an email contains a legitimate data table (price list, schedule), its tabular structure will be lost. This is a trade-off — email layout tables are far more common than data tables in emails. Future improvement: detect and preserve data tables (e.g., flat tables with `<th>` headers, no nesting, no `role="presentation"`).
