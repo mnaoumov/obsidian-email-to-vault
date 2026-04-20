@@ -66,7 +66,6 @@ interface MockPluginSettingsOverrides {
   emailNoteTemplate?: string;
   shouldExtractForwardedEmail?: boolean;
   shouldStripHiddenElements?: boolean;
-  shouldStripLayoutTables?: boolean;
 }
 
 function createFullMessage(overrides?: MockFullMessageOverrides): MailTmMessageFull {
@@ -136,8 +135,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsOverrid
       emailNotePathTemplate: overrides?.emailNotePathTemplate ?? 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
       emailNoteTemplate: overrides?.emailNoteTemplate ?? DEFAULT_EMAIL_NOTE_TEMPLATE,
       shouldExtractForwardedEmail: overrides?.shouldExtractForwardedEmail ?? false,
-      shouldStripHiddenElements: overrides?.shouldStripHiddenElements ?? true,
-      shouldStripLayoutTables: overrides?.shouldStripLayoutTables ?? true
+      shouldStripHiddenElements: overrides?.shouldStripHiddenElements ?? true
     }
   });
 }

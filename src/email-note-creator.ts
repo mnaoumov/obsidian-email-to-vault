@@ -105,8 +105,7 @@ export class EmailNoteCreator {
     const ccFormatted = formatAddresses(fullMessage.cc);
 
     const { body, hadHtmlParseError } = extractBody(fullMessage, {
-      shouldStripHiddenElements: this.pluginSettingsComponent.settings.shouldStripHiddenElements,
-      shouldStripLayoutTables: this.pluginSettingsComponent.settings.shouldStripLayoutTables
+      shouldStripHiddenElements: this.pluginSettingsComponent.settings.shouldStripHiddenElements
     });
 
     const data: EmailData = {
@@ -156,7 +155,6 @@ interface ExtractBodyResult {
 
 interface SanitizeOptions {
   shouldStripHiddenElements: boolean;
-  shouldStripLayoutTables: boolean;
 }
 
 function extractBody(fullMessage: MailTmMessageFull, options: SanitizeOptions): ExtractBodyResult {
@@ -279,18 +277,14 @@ function sanitizeEmailHtml(html: string, options: SanitizeOptions): string {
 
   for (const table of doc.querySelectorAll('table')) {
     if (table.querySelector('tr')) {
-      if (options.shouldStripLayoutTables) {
-        unwrapElement(table);
-      }
+      unwrapElement(table);
     } else {
       table.remove();
     }
   }
 
-  if (options.shouldStripLayoutTables) {
-    for (const element of doc.querySelectorAll('tbody, thead, tfoot, tr, td, th')) {
-      unwrapElement(element);
-    }
+  for (const element of doc.querySelectorAll('tbody, thead, tfoot, tr, td, th')) {
+    unwrapElement(element);
   }
 
   return doc.body.innerHTML;

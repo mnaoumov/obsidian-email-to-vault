@@ -196,14 +196,6 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
       })
       .addSettingEx((setting) => {
         setting
-          .setName('Strip layout tables')
-          .setDesc('Whether to unwrap HTML layout tables before converting to markdown. Recommended for email HTML which uses tables for layout, not data.')
-          .addToggle((toggle) => {
-            this.bind(toggle, 'shouldStripLayoutTables');
-          });
-      })
-      .addSettingEx((setting) => {
-        setting
           .setName('Strip hidden elements')
           .setDesc('Whether to remove hidden HTML elements (display:none, visibility:hidden, opacity:0, aria-hidden) before converting to markdown.')
           .addToggle((toggle) => {

@@ -27,5 +27,4 @@ export class PluginSettings {
   public shouldDeleteSeenEmails = false;
   public shouldExtractForwardedEmail = true;
   public shouldStripHiddenElements = true;
-  public shouldStripLayoutTables = true;
 }
