@@ -26,4 +26,6 @@ export class PluginSettings {
   public emailPasswordSecretKey = '';
   public shouldDeleteSeenEmails = false;
   public shouldExtractForwardedEmail = true;
+  public shouldStripHiddenElements = true;
+  public shouldStripLayoutTables = true;
 }
