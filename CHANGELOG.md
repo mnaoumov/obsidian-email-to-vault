@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.1.2
+
+- refactor: extract Obsidian globals mock into separate setup file
+- fix: mock activeWindow/activeDocument
+- refactor: new template
+
 ## 1.1.1
 
 - fix: build
