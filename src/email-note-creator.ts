@@ -251,7 +251,9 @@ function removeHiddenElements(doc: Document): void {
       continue;
     }
 
+    /* v8 ignore start -- selector [style] guarantees getAttribute returns non-null; ?? is for type safety only. */
     const style = element.getAttribute('style') ?? '';
+    /* v8 ignore stop */
     if (checkHiddenByStyle(style)) {
       element.remove();
     }
@@ -303,9 +305,11 @@ function stripMarkdownFormatting(text: string): string {
 
 function unwrapElement(element: Element): void {
   const parent = element.parentNode;
+  /* v8 ignore start -- querySelectorAll always returns elements with a parent; this guard is defensive only. */
   if (!parent) {
     return;
   }
+  /* v8 ignore stop */
   while (element.firstChild) {
     parent.insertBefore(element.firstChild, element);
   }

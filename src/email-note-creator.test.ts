@@ -386,6 +386,40 @@ describe('EmailNoteCreator', () => {
       expect(htmlToMarkdownMock).toHaveBeenCalledWith('<p>Visible</p>');
     });
 
+    it('should preserve hidden elements when shouldStripHiddenElements is false', async () => {
+      const mockManager = createMockMailTmManager({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+            downloadUrl: '',
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<div style="display:none">hidden preheader</div><p>Visible</p>'],
+            id: 'msg1',
+            seen: false,
+            size: 0,
+            subject: 'Test',
+            text: 'Visible',
+            to: [{ address: 'me@mail.tm', name: '' }],
+            updatedAt: ''
+          };
+        })
+      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
+        emailNoteTemplate: '{{body}}',
+        shouldStripHiddenElements: false
+      });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith('<div style="display:none">hidden preheader</div><p>Visible</p>');
+    });
+
     it('should fall back to plain text when HTML is empty', async () => {
       const mockManager = createMockMailTmManager({
         getMessage: vi.fn(async () => {
