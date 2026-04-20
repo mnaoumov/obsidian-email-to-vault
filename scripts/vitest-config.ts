@@ -42,7 +42,7 @@ export const config = defineConfig({
           fileParallelism: false,
           include: [INTEGRATION_TEST_FILES],
           name: 'integration-tests',
-          setupFiles: ['./scripts/load-env-file.ts'],
+          setupFiles: ['./scripts/load-env-file.ts', './scripts/setup-obsidian-globals.ts'],
           testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
         }
       }
