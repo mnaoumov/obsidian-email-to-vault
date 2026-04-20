@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.2.0
+
+- test: achieve 100% coverage
+- docs: document known limitation of table stripping
+- refactor: always strip layout tables
+- feat: add settings for table stripping and hidden element removal
+- fix: sanitize email HTML before passing to turndown
+
 ## 1.1.3
 
 - chore: update libs
