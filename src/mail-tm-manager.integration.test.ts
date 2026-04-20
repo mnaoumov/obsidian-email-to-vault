@@ -88,7 +88,7 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
     }
 
     await new Promise((resolve) => {
-      setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
+      activeWindow.setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
     });
   }
 

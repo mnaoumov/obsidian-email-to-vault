@@ -1,21 +1,26 @@
-import { Notice } from 'obsidian';
+import {
+  Component,
+  Notice
+} from 'obsidian';
+import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { MailTmManager } from './mail-tm-manager.ts';
-import type { Plugin } from './plugin.ts';
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
-export class EmailChecker {
+export class EmailChecker extends Component {
   private intervalId: null | number = null;
 
   public constructor(
-    private readonly plugin: Plugin,
+    private readonly pluginSettingsComponent: PluginSettingsComponent,
     private readonly mailTmManager: MailTmManager,
     private readonly noteCreator: EmailNoteCreator
   ) {
+    super();
   }
 
   public async checkEmails(): Promise<void> {
-    const { emailAddress } = this.plugin.settings;
+    const { emailAddress } = this.pluginSettingsComponent.settings;
     if (!emailAddress) {
       return;
     }
@@ -32,7 +37,7 @@ export class EmailChecker {
 
     for (const message of unseenMessages) {
       await this.noteCreator.saveEmailAsNote(message);
-      if (this.plugin.settings.shouldDeleteSeenEmails) {
+      if (this.pluginSettingsComponent.settings.shouldDeleteSeenEmails) {
         await this.mailTmManager.deleteMessage(message.id);
       } else {
         await this.mailTmManager.markMessageAsSeen(message.id);
@@ -40,6 +45,19 @@ export class EmailChecker {
     }
 
     new Notice(`Saved ${String(unseenMessages.length)} new email(s)`);
+  }
+
+  public override onload(): void {
+    super.onload();
+    this.scheduleCheckEmails();
+    registerAsyncEvent(
+      this,
+      this.pluginSettingsComponent.on('saveSettings', (newState, oldState) => {
+        if (newState.effectiveValues.emailCheckIntervalInMinutes !== oldState.effectiveValues.emailCheckIntervalInMinutes) {
+          this.scheduleCheckEmails();
+        }
+      })
+    );
   }
 
   public async redownloadEmails(count?: number): Promise<void> {
@@ -51,9 +69,16 @@ export class EmailChecker {
     new Notice(`Redownloaded ${String(toProcess.length)} email(s)`);
   }
 
-  public scheduleCheckEmails(): void {
+  private getCheckIntervalInMilliseconds(): number {
+    const SECONDS_PER_MINUTE = 60;
+    const MILLISECONDS_PER_SECOND = 1000;
+    const intervalInMinutes = this.pluginSettingsComponent.settings.emailCheckIntervalInMinutes;
+    return intervalInMinutes * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+  }
+
+  private scheduleCheckEmails(): void {
     if (this.intervalId !== null) {
-      clearInterval(this.intervalId);
+      activeWindow.clearInterval(this.intervalId);
       this.intervalId = null;
     }
 
@@ -61,13 +86,6 @@ export class EmailChecker {
     if (checkIntervalInMilliseconds === 0) {
       return;
     }
-    this.intervalId = this.plugin.registerInterval(activeWindow.setInterval(this.checkEmails.bind(this), checkIntervalInMilliseconds));
-  }
-
-  private getCheckIntervalInMilliseconds(): number {
-    const SECONDS_PER_MINUTE = 60;
-    const MILLISECONDS_PER_SECOND = 1000;
-    const intervalInMinutes = this.plugin.settings.emailCheckIntervalInMinutes;
-    return intervalInMinutes * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+    this.intervalId = this.pluginSettingsComponent.registerInterval(activeWindow.setInterval(this.checkEmails.bind(this), checkIntervalInMilliseconds));
   }
 }

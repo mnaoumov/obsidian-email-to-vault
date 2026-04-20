@@ -12,6 +12,7 @@ import type {
   MailTmMessage,
   MailTmMessageFull
 } from './mail-tm-manager.ts';
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { Plugin } from './plugin.ts';
 
 const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW): ?/;
@@ -44,6 +45,7 @@ interface EmailData {
 export class EmailNoteCreator {
   public constructor(
     private readonly plugin: Plugin,
+    private readonly pluginSettingsComponent: PluginSettingsComponent,
     private readonly mailTmManager: MailTmManager
   ) {
   }
@@ -51,14 +53,14 @@ export class EmailNoteCreator {
   public async saveEmailAsNote(message: MailTmMessage): Promise<void> {
     const fullMessage = await this.mailTmManager.getMessage(message.id);
     const emailData = await this.extractEmailData(fullMessage);
-    const basePath = fillTemplate(this.plugin.settings.emailNotePathTemplate, emailData, true);
+    const basePath = fillTemplate(this.pluginSettingsComponent.settings.emailNotePathTemplate, emailData, true);
     const filePath = this.plugin.app.vault.getAvailablePath(basePath, 'md');
 
     const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
     emailData.body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
     emailData.attachmentsStr = attachmentLinks;
 
-    const content = fillTemplate(this.plugin.settings.emailNoteTemplate, emailData);
+    const content = fillTemplate(this.pluginSettingsComponent.settings.emailNoteTemplate, emailData);
 
     await this.ensureFolderExists(filePath);
     await this.plugin.app.vault.create(filePath, content);
@@ -113,7 +115,7 @@ export class EmailNoteCreator {
 
     data.body = extractBody(fullMessage);
 
-    if (!this.plugin.settings.shouldExtractForwardedEmail) {
+    if (!this.pluginSettingsComponent.settings.shouldExtractForwardedEmail) {
       return data;
     }
 

@@ -2,6 +2,7 @@ import type {
   App,
   PluginManifest
 } from 'obsidian';
+import type { RegisterComponentParams } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
 import { noop } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -13,29 +14,27 @@ import {
   vi
 } from 'vitest';
 
-import { CheckEmailsCommand } from './commands/check-emails-command.ts';
-import { OpenSettingsCommand } from './commands/open-settings-command.ts';
-import { RedownloadAllEmailsCommand } from './commands/redownload-all-emails-command.ts';
-import { RedownloadRecentEmailsCommand } from './commands/redownload-recent-emails-command.ts';
+import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
+import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
+import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
 import { EmailChecker } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
+import { MailTmDomainManager } from './mail-tm-domain-manager.ts';
 import { MailTmManager } from './mail-tm-manager.ts';
-import { PluginSettingsManager } from './plugin-settings-manager.ts';
+import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { Plugin } from './plugin.ts';
+import { PrismComponent } from './prism-component.ts';
 
 const mocks = vi.hoisted(() => ({
-  mockCheckEmailsRegister: vi.fn(),
-  mockOpenSettingsRegister: vi.fn(),
-  mockRedownloadAllEmailsRegister: vi.fn(),
-  mockRedownloadRecentEmailsRegister: vi.fn(),
-  mockScheduleCheckEmails: vi.fn()
+  mockRegisterComponent: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-base', () => ({
+vi.mock('obsidian-dev-utils/obsidian/plugin/plugin', () => ({
   PluginBase: class MockPluginBase {
     public app: unknown;
     public manifest: unknown;
+    public registerComponent = mocks.mockRegisterComponent;
     public constructor(app: unknown, manifest: unknown) {
       this.app = app;
       this.manifest = manifest;
@@ -44,19 +43,27 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-base', () => ({
     public addChild(): void {
       noop();
     }
-
-    protected async onloadImpl(): Promise<void> {
-      await Promise.resolve();
-    }
-
-    protected async onSaveSettings(): Promise<void> {
-      await Promise.resolve();
-    }
   }
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', () => ({
+  CommandHandlerComponent: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/plugin/components/plugin-settings-tab-component', () => ({
+  PluginSettingsTabComponent: vi.fn()
 }));
 
 vi.mock('./prism-component.ts', () => ({
   PrismComponent: vi.fn()
+}));
+
+vi.mock('./mail-tm-domain-manager.ts', () => ({
+  MailTmDomainManager: vi.fn()
+}));
+
+vi.mock('./plugin-settings-component.ts', () => ({
+  PluginSettingsComponent: vi.fn()
 }));
 
 vi.mock('./mail-tm-manager.ts', () => ({
@@ -64,208 +71,159 @@ vi.mock('./mail-tm-manager.ts', () => ({
 }));
 
 vi.mock('./email-checker.ts', () => ({
-  EmailChecker: vi.fn(function emailCheckerMock(this: Record<string, unknown>) {
-    this['scheduleCheckEmails'] = mocks.mockScheduleCheckEmails;
-  })
+  EmailChecker: vi.fn()
 }));
 
 vi.mock('./email-note-creator.ts', () => ({
   EmailNoteCreator: vi.fn()
 }));
 
-vi.mock('./commands/open-settings-command.ts', () => ({
-  OpenSettingsCommand: vi.fn(function openSettingsCommandMock(this: Record<string, unknown>) {
-    this['register'] = mocks.mockOpenSettingsRegister;
-  })
+vi.mock('./command-handlers/check-emails-command-handler.ts', () => ({
+  CheckEmailsCommandHandler: vi.fn()
 }));
 
-vi.mock('./commands/check-emails-command.ts', () => ({
-  CheckEmailsCommand: vi.fn(function checkEmailsCommandMock(this: Record<string, unknown>) {
-    this['register'] = mocks.mockCheckEmailsRegister;
-  })
+vi.mock('./command-handlers/redownload-all-emails-command-handler.ts', () => ({
+  RedownloadAllEmailsCommandHandler: vi.fn()
 }));
 
-vi.mock('./commands/redownload-all-emails-command.ts', () => ({
-  RedownloadAllEmailsCommand: vi.fn(function redownloadAllEmailsCommandMock(this: Record<string, unknown>) {
-    this['register'] = mocks.mockRedownloadAllEmailsRegister;
-  })
-}));
-
-vi.mock('./commands/redownload-recent-emails-command.ts', () => ({
-  RedownloadRecentEmailsCommand: vi.fn(function redownloadRecentEmailsCommandMock(this: Record<string, unknown>) {
-    this['register'] = mocks.mockRedownloadRecentEmailsRegister;
-  })
-}));
-
-vi.mock('./plugin-settings-manager.ts', () => ({
-  PluginSettingsManager: vi.fn()
+vi.mock('./command-handlers/redownload-recent-emails-command-handler.ts', () => ({
+  RedownloadRecentEmailsCommandHandler: vi.fn()
 }));
 
 vi.mock('./plugin-settings-tab.ts', () => ({
   PluginSettingsTab: vi.fn()
 }));
 
-const MockCheckEmailsCommand = vi.mocked(CheckEmailsCommand);
+const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailChecker);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
+const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
 const MockMailTmManager = vi.mocked(MailTmManager);
-const MockOpenSettingsCommand = vi.mocked(OpenSettingsCommand);
-const MockPluginSettingsManager = vi.mocked(PluginSettingsManager);
+const MockPluginSettingsComponent = vi.mocked(PluginSettingsComponent);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
-const MockRedownloadAllEmailsCommand = vi.mocked(RedownloadAllEmailsCommand);
-const MockRedownloadRecentEmailsCommand = vi.mocked(RedownloadRecentEmailsCommand);
-
-const BASE_SETTINGS = {
-  emailAddress: '',
-  emailCheckIntervalInMinutes: 10,
-  emailNotePathTemplate: '',
-  emailNoteTemplate: '',
-  emailPasswordSecretKey: '',
-  shouldDeleteSeenEmails: false,
-  shouldExtractForwardedEmail: false
-};
-
-const BASE_VALIDATION_MESSAGES = {
-  emailAddress: '',
-  emailCheckIntervalInMinutes: '',
-  emailNotePathTemplate: '',
-  emailNoteTemplate: '',
-  emailPasswordSecretKey: '',
-  shouldDeleteSeenEmails: '',
-  shouldExtractForwardedEmail: ''
-};
-
-interface SettingsWrapper {
-  safeSettings: typeof BASE_SETTINGS;
-  settings: typeof BASE_SETTINGS;
-  validationMessages: typeof BASE_VALIDATION_MESSAGES;
-}
-
-function createSettingsWrapper(overrides?: Partial<typeof BASE_SETTINGS>): SettingsWrapper {
-  const settings = { ...BASE_SETTINGS, ...overrides };
-  return {
-    safeSettings: settings,
-    settings,
-    validationMessages: BASE_VALIDATION_MESSAGES
-  };
-}
+const MockPrismComponent = vi.mocked(PrismComponent);
+const MockRedownloadAllEmailsCommandHandler = vi.mocked(RedownloadAllEmailsCommandHandler);
+const MockRedownloadRecentEmailsCommandHandler = vi.mocked(RedownloadRecentEmailsCommandHandler);
 
 describe('Plugin', () => {
+  const mockApp = strictProxy<App>({});
+  const mockManifest = strictProxy<PluginManifest>({
+    id: 'email-to-vault',
+    name: 'Email to Vault'
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.mockRegisterComponent.mockImplementation((params: RegisterComponentParams) => params.component);
   });
 
   describe('constructor', () => {
-    it('should create MailTmManager with plugin reference', () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
+    it('should create MailTmDomainManager', () => {
+      new Plugin(mockApp, mockManifest);
 
-      expect(MockMailTmManager).toHaveBeenCalledWith(plugin);
+      expect(MockMailTmDomainManager).toHaveBeenCalledOnce();
     });
 
-    it('should create EmailNoteCreator with plugin and mail manager', () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
+    it('should create PluginSettingsComponent with plugin, manifest id, and domain manager', () => {
+      const plugin = new Plugin(mockApp, mockManifest);
 
-      expect(MockEmailNoteCreator).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0]);
-    });
-
-    it('should create EmailChecker with plugin, mail manager, and note creator', () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      expect(MockEmailChecker).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0], MockEmailNoteCreator.mock.instances[0]);
-    });
-  });
-
-  describe('createSettingsManager', () => {
-    it('should return PluginSettingsManager with correct dependencies', () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      const result = plugin['createSettingsManager']();
-
-      expect(MockPluginSettingsManager).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0]);
-      expect(result).toBe(MockPluginSettingsManager.mock.instances[0]);
-    });
-  });
-
-  describe('createSettingsTab', () => {
-    it('should return PluginSettingsTab with correct dependencies', () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      const result = plugin['createSettingsTab']();
-
-      expect(MockPluginSettingsTab).toHaveBeenCalledWith(plugin, MockMailTmManager.mock.instances[0]);
-      expect(result).toBe(MockPluginSettingsTab.mock.instances[0]);
-    });
-  });
-
-  describe('onloadImpl', () => {
-    it('should register OpenSettingsCommand', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      await plugin['onloadImpl']();
-
-      expect(MockOpenSettingsCommand).toHaveBeenCalledWith(plugin);
-      expect(mocks.mockOpenSettingsRegister).toHaveBeenCalledOnce();
-    });
-
-    it('should register CheckEmailsCommand with email checker', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      await plugin['onloadImpl']();
-
-      expect(MockCheckEmailsCommand).toHaveBeenCalledWith(plugin, MockEmailChecker.mock.instances[0]);
-      expect(mocks.mockCheckEmailsRegister).toHaveBeenCalledOnce();
-    });
-
-    it('should register RedownloadAllEmailsCommand with email checker', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      await plugin['onloadImpl']();
-
-      expect(MockRedownloadAllEmailsCommand).toHaveBeenCalledWith(plugin, MockEmailChecker.mock.instances[0]);
-      expect(mocks.mockRedownloadAllEmailsRegister).toHaveBeenCalledOnce();
-    });
-
-    it('should register RedownloadRecentEmailsCommand with email checker', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      await plugin['onloadImpl']();
-
-      expect(MockRedownloadRecentEmailsCommand).toHaveBeenCalledWith(plugin, MockEmailChecker.mock.instances[0]);
-      expect(mocks.mockRedownloadRecentEmailsRegister).toHaveBeenCalledOnce();
-    });
-
-    it('should schedule email checking', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      await plugin['onloadImpl']();
-
-      expect(mocks.mockScheduleCheckEmails).toHaveBeenCalledOnce();
-    });
-  });
-
-  describe('onSaveSettings', () => {
-    it('should reschedule when email check interval changes', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
-
-      await plugin['onSaveSettings'](
-        createSettingsWrapper({ emailCheckIntervalInMinutes: 5 }),
-        createSettingsWrapper(),
-        undefined
+      expect(MockPluginSettingsComponent).toHaveBeenCalledWith(
+        plugin,
+        'email-to-vault',
+        MockMailTmDomainManager.mock.instances[0]
       );
-
-      expect(mocks.mockScheduleCheckEmails).toHaveBeenCalledOnce();
     });
 
-    it('should not reschedule when interval stays the same', async () => {
-      const plugin = new Plugin(strictProxy<App>({}), strictProxy<PluginManifest>({}));
+    it('should create MailTmManager with app, manifest id, settings component, and domain manager', () => {
+      new Plugin(mockApp, mockManifest);
 
-      await plugin['onSaveSettings'](
-        createSettingsWrapper(),
-        createSettingsWrapper(),
-        undefined
+      expect(MockMailTmManager).toHaveBeenCalledWith(
+        mockApp,
+        'email-to-vault',
+        MockPluginSettingsComponent.mock.instances[0],
+        MockMailTmDomainManager.mock.instances[0]
       );
+    });
 
-      expect(mocks.mockScheduleCheckEmails).not.toHaveBeenCalled();
+    it('should create EmailNoteCreator with plugin, settings component, and mail manager', () => {
+      const plugin = new Plugin(mockApp, mockManifest);
+
+      expect(MockEmailNoteCreator).toHaveBeenCalledWith(
+        plugin,
+        MockPluginSettingsComponent.mock.instances[0],
+        MockMailTmManager.mock.instances[0]
+      );
+    });
+
+    it('should create EmailChecker with settings component, mail manager, and note creator', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockEmailChecker).toHaveBeenCalledWith(
+        MockPluginSettingsComponent.mock.instances[0],
+        MockMailTmManager.mock.instances[0],
+        MockEmailNoteCreator.mock.instances[0]
+      );
+    });
+
+    it('should create PluginSettingsTab with plugin, settings component, mail manager, and manifest id', () => {
+      const plugin = new Plugin(mockApp, mockManifest);
+
+      expect(MockPluginSettingsTab).toHaveBeenCalledWith(
+        plugin,
+        MockPluginSettingsComponent.mock.instances[0],
+        MockMailTmManager.mock.instances[0],
+        'email-to-vault'
+      );
+    });
+
+    it('should create PrismComponent', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockPrismComponent).toHaveBeenCalledOnce();
+    });
+
+    it('should create CheckEmailsCommandHandler with manifest name and email checker', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith(
+        'Email to Vault',
+        MockEmailChecker.mock.instances[0]
+      );
+    });
+
+    it('should create RedownloadAllEmailsCommandHandler with manifest name and email checker', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith(
+        'Email to Vault',
+        MockEmailChecker.mock.instances[0]
+      );
+    });
+
+    it('should create RedownloadRecentEmailsCommandHandler with app, manifest name, and email checker', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith(
+        mockApp,
+        'Email to Vault',
+        MockEmailChecker.mock.instances[0]
+      );
+    });
+
+    it('should register PluginSettingsComponent with shouldPreload', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(mocks.mockRegisterComponent).toHaveBeenCalledWith({
+        component: MockPluginSettingsComponent.mock.instances[0],
+        shouldPreload: true
+      });
+    });
+
+    it('should register all components', () => {
+      new Plugin(mockApp, mockManifest);
+
+      const EXPECTED_REGISTER_COMPONENT_CALLS = 9;
+      expect(mocks.mockRegisterComponent).toHaveBeenCalledTimes(EXPECTED_REGISTER_COMPONENT_CALLS);
     });
   });
 });

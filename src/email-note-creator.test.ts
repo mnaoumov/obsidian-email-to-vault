@@ -14,6 +14,7 @@ import type {
   MailTmMessage,
   MailTmMessageFull
 } from './mail-tm-manager.ts';
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { Plugin } from './plugin.ts';
 
 import { EmailNoteCreator } from './email-note-creator.ts';
@@ -56,7 +57,7 @@ interface MockMessageOverrides {
   subject?: string;
 }
 
-interface MockPluginOverrides {
+interface MockPluginSettingsOverrides {
   emailNotePathTemplate?: string;
   emailNoteTemplate?: string;
   shouldExtractForwardedEmail?: boolean;
@@ -103,7 +104,7 @@ function createMockMailTmManager(overrides?: MockMailTmManagerOverrides): MailTm
   });
 }
 
-function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
+function createMockPlugin(): Plugin {
   return strictProxy<Plugin>({
     app: {
       fileManager: {
@@ -119,7 +120,12 @@ function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
         getAvailablePath: vi.fn((path: string, ext: string) => `${path}.${ext}`),
         getFolderByPath: vi.fn(() => null)
       }
-    },
+    }
+  });
+}
+
+function createMockPluginSettingsComponent(overrides?: MockPluginSettingsOverrides): PluginSettingsComponent {
+  return strictProxy<PluginSettingsComponent>({
     settings: {
       emailNotePathTemplate: overrides?.emailNotePathTemplate ?? 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
       emailNoteTemplate: overrides?.emailNoteTemplate ?? DEFAULT_EMAIL_NOTE_TEMPLATE,
@@ -157,7 +163,8 @@ describe('EmailNoteCreator', () => {
         })
       });
       const plugin = createMockPlugin();
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const settingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Test Email' }));
 
@@ -190,10 +197,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -225,10 +231,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -260,10 +265,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Subject Line' }));
 
@@ -295,10 +299,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} | {{to}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{to}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -331,8 +334,9 @@ describe('EmailNoteCreator', () => {
         })
       });
       const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent();
       vi.mocked(plugin.app.vault.getFolderByPath).mockReturnValue({} as never);
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -362,7 +366,8 @@ describe('EmailNoteCreator', () => {
         })
       });
       const plugin = createMockPlugin();
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const settingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Re: Test/File<Name>' }));
 
@@ -394,8 +399,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: 'Custom/{{subject}}' });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Custom/{{subject}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Test Email' }));
 
@@ -427,8 +433,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}' });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Test Email' }));
 
@@ -460,8 +467,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: 'Notes/{{subject}}' });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Notes/{{subject}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: '' }));
 
@@ -494,10 +502,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} {{subject}} {{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} {{subject}} {{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -534,11 +541,12 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -571,11 +579,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} | {{subject}}',
-        shouldExtractForwardedEmail: true
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Bold Subject' }));
 
@@ -608,11 +614,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{from}} | {{to}} | {{subject}}',
-        shouldExtractForwardedEmail: true
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{to}} | {{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Linked Subject' }));
 
@@ -644,11 +648,12 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'FW: Outlook Subject' }));
 
@@ -680,11 +685,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{subject}}',
-        shouldExtractForwardedEmail: true
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Test' }));
 
@@ -716,11 +719,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{subject}}',
-        shouldExtractForwardedEmail: true
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'FW: Test' }));
 
@@ -754,11 +755,12 @@ describe('EmailNoteCreator', () => {
         })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -792,11 +794,12 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Regular Subject' }));
 
@@ -833,11 +836,12 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Headers Only' }));
 
@@ -875,11 +879,12 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{to}} | {{cc}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -913,7 +918,8 @@ describe('EmailNoteCreator', () => {
         })
       });
       const plugin = createMockPlugin();
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const settingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: '' }));
 
@@ -954,7 +960,8 @@ describe('EmailNoteCreator', () => {
         })
       });
       const plugin = createMockPlugin();
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const settingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'With Attachments' }));
 
@@ -990,10 +997,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}\n{{attachments}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}\n{{attachments}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1025,10 +1031,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}{{attachments}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}{{attachments}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1060,10 +1065,9 @@ describe('EmailNoteCreator', () => {
           } as never;
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}{{attachments}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}{{attachments}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1096,11 +1100,12 @@ describe('EmailNoteCreator', () => {
           } as never;
         })
       });
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -1132,11 +1137,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{date}}',
-        shouldExtractForwardedEmail: true
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{date}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -1170,12 +1173,13 @@ describe('EmailNoteCreator', () => {
         })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
@@ -1216,12 +1220,13 @@ describe('EmailNoteCreator', () => {
         })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      const plugin = createMockPlugin({
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({
         emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage({ id: 'msg1', subject: 'Fwd:' }));
 
@@ -1261,10 +1266,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1300,10 +1304,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1340,11 +1343,10 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{attachments}}'
-      });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{attachments}}' });
       vi.mocked(plugin.app.fileManager.getAvailablePathForAttachment).mockResolvedValue('photo.png');
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1376,10 +1378,9 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({
-        emailNoteTemplate: '{{body}}'
-      });
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1411,9 +1412,10 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: '{{subject}}' });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{subject}}' });
       vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Test.md');
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1443,9 +1445,10 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: 'Emails/{{subject}}' });
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Emails/{{subject}}' });
       vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Emails/Test 2.md');
-      const noteCreator = new EmailNoteCreator(plugin, mockManager);
+      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -1463,8 +1466,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: 'Date: {{date:YYYY-MM-DD}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: 'Date: {{date:YYYY-MM-DD}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await creator.saveEmailAsNote(createMessage());
 
@@ -1481,8 +1485,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{attachments:foo}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{attachments:foo}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Attachments token does not support format: foo');
     });
@@ -1494,8 +1499,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: '{{attachments}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{attachments}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Attachments token is not supported in path template');
     });
@@ -1507,8 +1513,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{body:foo}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body:foo}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Body token does not support format: foo');
     });
@@ -1520,8 +1527,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNotePathTemplate: '{{body}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{body}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Body token is not supported in path template');
     });
@@ -1533,8 +1541,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{cc:foo}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{cc:foo}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('CC token does not support format: foo');
     });
@@ -1546,8 +1555,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{from:foo}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from:foo}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('From token does not support format: foo');
     });
@@ -1559,8 +1569,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{subject:foo}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject:foo}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Subject token does not support format: foo');
     });
@@ -1572,8 +1583,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{to:foo}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{to:foo}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('To token does not support format: foo');
     });
@@ -1585,8 +1597,9 @@ describe('EmailNoteCreator', () => {
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin({ emailNoteTemplate: '{{unknown}}' });
-      const creator = new EmailNoteCreator(plugin, mockManager);
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{unknown}}' });
+      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Unknown token: unknown');
     });

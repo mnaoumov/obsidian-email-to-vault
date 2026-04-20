@@ -1,8 +1,12 @@
 import type { App } from 'obsidian';
 
-import { requestUrl } from 'obsidian';
+import {
+  Component,
+  requestUrl
+} from 'obsidian';
 
-import type { Plugin } from './plugin.ts';
+import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 import {
@@ -52,15 +56,6 @@ interface JwtPayload {
   id: string;
 }
 
-interface MailTmDomain {
-  domain: string;
-  isActive: boolean;
-}
-
-interface MailTmDomainsResponse {
-  'hydra:member': MailTmDomain[];
-}
-
 interface MailTmMessagesResponse {
   'hydra:member': MailTmMessage[];
 }
@@ -69,11 +64,14 @@ interface MailTmTokenResponse {
   token: string;
 }
 
-export class MailTmManager {
-  private readonly app: App;
-
-  public constructor(private readonly plugin: Plugin) {
-    this.app = plugin.app;
+export class MailTmManager extends Component {
+  public constructor(
+    private readonly app: App,
+    private readonly pluginId: string,
+    private readonly pluginSettingsComponent: PluginSettingsComponent,
+    private readonly mailTmDomainManager: MailTmDomainManager
+  ) {
+    super();
   }
 
   public async deleteMessage(messageId: string): Promise<void> {
@@ -128,8 +126,8 @@ export class MailTmManager {
   }
 
   public async registerRandomEmailAddress(): Promise<void> {
-    const domain = await this.getAvailableDomain();
-    const EMAIL_ADDRESS_PREFIX = this.plugin.manifest.id;
+    const domain = await this.mailTmDomainManager.getAvailableDomain();
+    const EMAIL_ADDRESS_PREFIX = this.pluginId;
     const username = generateUsername();
     const address = `${EMAIL_ADDRESS_PREFIX}-${username}@${domain}`;
     const password = generatePassword();
@@ -139,7 +137,7 @@ export class MailTmManager {
     const emailPasswordSecretKey = `${EMAIL_ADDRESS_PREFIX}-password`;
     this.app.secretStorage.setSecret(emailPasswordSecretKey, password);
 
-    await this.plugin.settingsManager.editAndSave((settings) => {
+    await this.pluginSettingsComponent.editAndSave((settings) => {
       settings.emailAddress = address;
       settings.emailPasswordSecretKey = emailPasswordSecretKey;
     });
@@ -154,25 +152,15 @@ export class MailTmManager {
       url: `${MAIL_TM_API_BASE_URL}/accounts/${accountId}`
     });
 
-    const secretKey = this.plugin.settings.emailPasswordSecretKey;
+    const secretKey = this.pluginSettingsComponent.settings.emailPasswordSecretKey;
     if (secretKey) {
       this.app.secretStorage.setSecret(secretKey, '');
     }
 
-    await this.plugin.settingsManager.editAndSave((settings) => {
+    await this.pluginSettingsComponent.editAndSave((settings) => {
       settings.emailAddress = '';
       settings.emailPasswordSecretKey = '';
     });
-  }
-
-  public async validateEmailDomain(address: string): Promise<boolean> {
-    const domainPart = address.split('@')[1];
-    if (!domainPart) {
-      return false;
-    }
-
-    const domains = await this.getAvailableDomains();
-    return domains.some((d) => d.domain === domainPart && d.isActive);
   }
 
   private async createAccount(params: CreateAccountParams): Promise<void> {
@@ -191,30 +179,9 @@ export class MailTmManager {
     }
   }
 
-  private async getAvailableDomain(): Promise<string> {
-    const domains = await this.getAvailableDomains();
-    const activeDomain = domains.find((d) => d.isActive);
-
-    if (!activeDomain) {
-      throw new Error('No active Mail.tm domains available');
-    }
-
-    return activeDomain.domain;
-  }
-
-  private async getAvailableDomains(): Promise<MailTmDomain[]> {
-    const response = await requestUrl({
-      method: 'GET',
-      url: `${MAIL_TM_API_BASE_URL}/domains`
-    });
-
-    const data = response.json as MailTmDomainsResponse;
-    return data['hydra:member'];
-  }
-
   private async getToken(): Promise<string> {
-    const address = this.plugin.settings.emailAddress;
-    const secretKey = this.plugin.settings.emailPasswordSecretKey;
+    const address = this.pluginSettingsComponent.settings.emailAddress;
+    const secretKey = this.pluginSettingsComponent.settings.emailPasswordSecretKey;
     const password = this.app.secretStorage.getSecret(secretKey);
 
     if (!address || !password) {

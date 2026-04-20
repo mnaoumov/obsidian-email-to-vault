@@ -1,3 +1,5 @@
+import type { App } from 'obsidian';
+
 import { requestUrl } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -9,8 +11,9 @@ import {
   vi
 } from 'vitest';
 
+import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
 import type { MailTmMessageFull } from './mail-tm-manager.ts';
-import type { Plugin } from './plugin.ts';
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
 import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettings } from './plugin-settings.ts';
@@ -26,39 +29,55 @@ vi.mock('obsidian', async (importOriginal) => {
 
 const mockRequestUrl = vi.mocked(requestUrl);
 
-interface MockPluginOverrides {
+interface MockParams {
   emailAddress?: string;
   emailPasswordSecretKey?: string;
-  manifestId?: string;
+  getAvailableDomain?: () => Promise<string>;
+  pluginId?: string;
   secretStorageGetSecret?: (key: string) => null | string;
-  secretStorageListSecrets?: () => string[];
   secretStorageSetSecret?: (key: string, value: string) => void;
-  settingsManagerEditAndSave?: (cb: (settings: PluginSettings) => void) => Promise<void>;
+  settingsComponentEditAndSave?: (cb: (settings: PluginSettings) => void) => Promise<void>;
 }
 
-function createMockPlugin(overrides?: MockPluginOverrides): Plugin {
+interface MockResult {
+  app: App;
+  mailTmDomainManager: MailTmDomainManager;
+  pluginSettingsComponent: PluginSettingsComponent;
+}
+
+function createManager(overrides?: MockParams): MailTmManager {
+  const { app, mailTmDomainManager, pluginSettingsComponent } = createMocks(overrides);
+  return new MailTmManager(app, overrides?.pluginId ?? 'email-to-vault', pluginSettingsComponent, mailTmDomainManager);
+}
+
+function createMocks(overrides?: MockParams): MockResult {
   const settings = new PluginSettings();
   settings.emailAddress = overrides?.emailAddress ?? '';
   settings.emailPasswordSecretKey = overrides?.emailPasswordSecretKey ?? '';
-  return strictProxy<Plugin>({
-    app: {
-      secretStorage: {
-        getSecret: overrides?.secretStorageGetSecret ?? ((): null => null),
-        listSecrets: overrides?.secretStorageListSecrets ?? ((): string[] => []),
-        setSecret: overrides?.secretStorageSetSecret ?? vi.fn()
-      }
-    },
-    manifest: {
-      id: overrides?.manifestId ?? 'email-to-vault'
-    },
-    settings,
-    settingsManager: {
-      editAndSave: overrides?.settingsManagerEditAndSave ?? (async (cb: (s: PluginSettings) => void): Promise<void> => {
-        await noopAsync();
-        cb(settings);
-      })
+
+  const app = strictProxy<App>({
+    secretStorage: {
+      getSecret: overrides?.secretStorageGetSecret ?? ((): null => null),
+      setSecret: overrides?.secretStorageSetSecret ?? vi.fn()
     }
   });
+
+  const pluginSettingsComponent = strictProxy<PluginSettingsComponent>({
+    editAndSave: overrides?.settingsComponentEditAndSave ?? (async (cb: (s: PluginSettings) => void): Promise<void> => {
+      await noopAsync();
+      cb(settings);
+    }),
+    settings
+  });
+
+  const mailTmDomainManager = strictProxy<MailTmDomainManager>({
+    getAvailableDomain: overrides?.getAvailableDomain ?? vi.fn(async () => {
+      await noopAsync();
+      return 'mail.tm';
+    })
+  });
+
+  return { app, mailTmDomainManager, pluginSettingsComponent };
 }
 
 describe('MailTmManager', () => {
@@ -68,12 +87,11 @@ describe('MailTmManager', () => {
 
   describe('deleteMessage', () => {
     it('should send DELETE request with auth token', async () => {
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
         secretStorageGetSecret: () => 'password123'
       });
-      const manager = new MailTmManager(plugin);
 
       mockRequestUrl
         .mockResolvedValueOnce({
@@ -93,12 +111,11 @@ describe('MailTmManager', () => {
 
   describe('downloadAttachment', () => {
     it('should fetch attachment with auth token', async () => {
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
         secretStorageGetSecret: () => 'password123'
       });
-      const manager = new MailTmManager(plugin);
 
       const mockArrayBuffer = new ArrayBuffer(8);
       mockRequestUrl
@@ -122,12 +139,11 @@ describe('MailTmManager', () => {
 
   describe('markMessageAsSeen', () => {
     it('should send PATCH request with seen: true', async () => {
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
         secretStorageGetSecret: () => 'password123'
       });
-      const manager = new MailTmManager(plugin);
 
       mockRequestUrl
         .mockResolvedValueOnce({
@@ -147,27 +163,21 @@ describe('MailTmManager', () => {
     });
   });
 
-  describe('getNewEmailAddress', () => {
+  describe('registerRandomEmailAddress', () => {
     it('should create account and save credentials', async () => {
       const setSecretFn = vi.fn();
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
         await noopAsync();
         cb(new PluginSettings());
       });
-      const plugin = createMockPlugin({
-        secretStorageListSecrets: (): string[] => [],
+      const manager = createManager({
         secretStorageSetSecret: setSecretFn,
-        settingsManagerEditAndSave: editAndSaveFn
+        settingsComponentEditAndSave: editAndSaveFn
       });
-      const manager = new MailTmManager(plugin);
 
-      mockRequestUrl
-        .mockResolvedValueOnce({
-          json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-        } as never)
-        .mockResolvedValueOnce({
-          status: 201
-        } as never);
+      mockRequestUrl.mockResolvedValueOnce({
+        status: 201
+      } as never);
 
       await manager.registerRandomEmailAddress();
 
@@ -176,27 +186,22 @@ describe('MailTmManager', () => {
     });
 
     it('should throw when no active domains available', async () => {
-      const plugin = createMockPlugin();
-      const manager = new MailTmManager(plugin);
-
-      mockRequestUrl.mockResolvedValueOnce({
-        json: { 'hydra:member': [{ domain: 'mail.tm', isActive: false }] }
-      } as never);
+      const manager = createManager({
+        getAvailableDomain: vi.fn(async () => {
+          await noopAsync();
+          throw new Error('No active Mail.tm domains available');
+        })
+      });
 
       await expect(manager.registerRandomEmailAddress()).rejects.toThrow('No active Mail.tm domains available');
     });
 
     it('should throw when account creation fails', async () => {
-      const plugin = createMockPlugin();
-      const manager = new MailTmManager(plugin);
+      const manager = createManager();
 
-      mockRequestUrl
-        .mockResolvedValueOnce({
-          json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-        } as never)
-        .mockResolvedValueOnce({
-          status: 400
-        } as never);
+      mockRequestUrl.mockResolvedValueOnce({
+        status: 400
+      } as never);
 
       await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 400');
     });
@@ -209,14 +214,13 @@ describe('MailTmManager', () => {
         await noopAsync();
         cb(new PluginSettings());
       });
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'test@mail.tm',
         emailPasswordSecretKey: '',
         secretStorageGetSecret: () => 'password123',
         secretStorageSetSecret: setSecretFn,
-        settingsManagerEditAndSave: editAndSaveFn
+        settingsComponentEditAndSave: editAndSaveFn
       });
-      const manager = new MailTmManager(plugin);
 
       const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-456' }))}.sig`;
       mockRequestUrl
@@ -237,14 +241,13 @@ describe('MailTmManager', () => {
         await noopAsync();
         cb(new PluginSettings());
       });
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'test@mail.tm',
         emailPasswordSecretKey: 'test-password-key',
         secretStorageGetSecret: () => 'password123',
         secretStorageSetSecret: setSecretFn,
-        settingsManagerEditAndSave: editAndSaveFn
+        settingsComponentEditAndSave: editAndSaveFn
       });
-      const manager = new MailTmManager(plugin);
 
       const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-123' }))}.sig`;
       mockRequestUrl
@@ -283,12 +286,11 @@ describe('MailTmManager', () => {
         updatedAt: '2026-01-01T00:00:00+00:00'
       };
 
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
         secretStorageGetSecret: () => 'password123'
       });
-      const manager = new MailTmManager(plugin);
 
       mockRequestUrl
         .mockResolvedValueOnce({
@@ -306,12 +308,11 @@ describe('MailTmManager', () => {
 
   describe('getMessages', () => {
     it('should fetch message list with auth token', async () => {
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
         secretStorageGetSecret: () => 'password123'
       });
-      const manager = new MailTmManager(plugin);
 
       const messages = [
         {
@@ -342,74 +343,22 @@ describe('MailTmManager', () => {
     });
 
     it('should throw when credentials are missing', async () => {
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: '',
         emailPasswordSecretKey: ''
       });
-      const manager = new MailTmManager(plugin);
 
       await expect(manager.getMessages()).rejects.toThrow('Email address or password not configured');
     });
 
     it('should throw when password secret is null', async () => {
-      const plugin = createMockPlugin({
+      const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'key',
         secretStorageGetSecret: () => null
       });
-      const manager = new MailTmManager(plugin);
 
       await expect(manager.getMessages()).rejects.toThrow('Email address or password not configured');
-    });
-  });
-
-  describe('validateEmailDomain', () => {
-    it('should return true for valid active domain', async () => {
-      const plugin = createMockPlugin();
-      const manager = new MailTmManager(plugin);
-
-      mockRequestUrl.mockResolvedValueOnce({
-        json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-      } as never);
-
-      const result = await manager.validateEmailDomain('user@mail.tm');
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false for inactive domain', async () => {
-      const plugin = createMockPlugin();
-      const manager = new MailTmManager(plugin);
-
-      mockRequestUrl.mockResolvedValueOnce({
-        json: { 'hydra:member': [{ domain: 'mail.tm', isActive: false }] }
-      } as never);
-
-      const result = await manager.validateEmailDomain('user@mail.tm');
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false for unknown domain', async () => {
-      const plugin = createMockPlugin();
-      const manager = new MailTmManager(plugin);
-
-      mockRequestUrl.mockResolvedValueOnce({
-        json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-      } as never);
-
-      const result = await manager.validateEmailDomain('user@other.com');
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false for address without domain', async () => {
-      const plugin = createMockPlugin();
-      const manager = new MailTmManager(plugin);
-
-      const result = await manager.validateEmailDomain('nodomain');
-
-      expect(result).toBe(false);
     });
   });
 });

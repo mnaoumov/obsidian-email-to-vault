@@ -2,24 +2,33 @@ import { Notice } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
 import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
-import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab-base';
+import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
 import type { MailTmManager } from './mail-tm-manager.ts';
-import type { PluginTypes } from './plugin-types.ts';
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
+import type { PluginSettings } from './plugin-settings.ts';
 import type { Plugin } from './plugin.ts';
 
 import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 
-export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
-  public constructor(plugin: Plugin, private readonly mailTmManager: MailTmManager) {
-    super(plugin);
+export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
+  public constructor(
+    plugin: Plugin,
+    pluginSettingsComponent: PluginSettingsComponent,
+    private readonly mailTmManager: MailTmManager,
+    private readonly pluginId: string
+  ) {
+    super({
+      plugin,
+      pluginSettingsComponent
+    });
   }
 
   public override display(): void {
     super.display();
 
-    const isRegistered = !!this.plugin.settings.emailAddress;
+    const isRegistered = !!this.pluginSettingsComponent.settings.emailAddress;
 
     new SettingGroupEx(this.containerEl)
       .setHeading('Mail.tm')
@@ -79,7 +88,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
               .setTooltip('Copy to clipboard')
               .setIcon('clipboard')
               .onClick(convertAsyncToSync(async () => {
-                await navigator.clipboard.writeText(this.plugin.settings.emailAddress);
+                await navigator.clipboard.writeText(this.pluginSettingsComponent.settings.emailAddress);
                 new Notice('Email address copied to clipboard');
               }));
           });
@@ -90,12 +99,12 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
           .setDesc('Password for the mail.tm mailbox.')
           .addPassword((passwordComponent) => {
             passwordComponent.setDisabled(isRegistered);
-            const password = this.app.secretStorage.getSecret(this.plugin.settings.emailPasswordSecretKey) ?? '';
+            const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey) ?? '';
             passwordComponent.setValue(password);
             if (!isRegistered) {
               passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
                 await this.ensurePasswordSecretKey();
-                this.app.secretStorage.setSecret(this.plugin.settings.emailPasswordSecretKey, value);
+                this.app.secretStorage.setSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey, value);
               }));
             }
           })
@@ -104,7 +113,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
               .setTooltip('Copy to clipboard')
               .setIcon('clipboard')
               .onClick(convertAsyncToSync(async () => {
-                const password = this.app.secretStorage.getSecret(this.plugin.settings.emailPasswordSecretKey);
+                const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey);
                 if (!password) {
                   new Notice('No email password found');
                   return;
@@ -188,12 +197,12 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
   }
 
   private async ensurePasswordSecretKey(): Promise<void> {
-    if (this.plugin.settings.emailPasswordSecretKey) {
+    if (this.pluginSettingsComponent.settings.emailPasswordSecretKey) {
       return;
     }
 
-    const secretKey = `${this.plugin.manifest.id}-password`;
-    await this.plugin.settingsManager.editAndSave((settings) => {
+    const secretKey = `${this.pluginId}-password`;
+    await this.pluginSettingsComponent.editAndSave((settings) => {
       settings.emailPasswordSecretKey = secretKey;
     });
   }

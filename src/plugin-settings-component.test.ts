@@ -1,3 +1,5 @@
+import type { PluginSettingsComponentParams } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
+
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
@@ -7,10 +9,9 @@ import {
   vi
 } from 'vitest';
 
-import type { MailTmManager } from './mail-tm-manager.ts';
-import type { Plugin } from './plugin.ts';
+import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
 
-import { PluginSettingsManager } from './plugin-settings-manager.ts';
+import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettings } from './plugin-settings.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
@@ -18,8 +19,8 @@ vi.mock('obsidian', async (importOriginal) => {
   return { ...original };
 });
 
-function createMockMailTmManager(isValidDomain: boolean): MailTmManager {
-  return strictProxy<MailTmManager>({
+function createMailTmDomainManager(isValidDomain: boolean): MailTmDomainManager {
+  return strictProxy<MailTmDomainManager>({
     validateEmailDomain: vi.fn(async () => {
       await noopAsync();
       return isValidDomain;
@@ -27,23 +28,28 @@ function createMockMailTmManager(isValidDomain: boolean): MailTmManager {
   });
 }
 
-function createMockPlugin(): Plugin {
-  return strictProxy<Plugin>({
-    app: {},
-    manifest: { id: 'email-to-vault' }
+function createMockPluginSettingsComponentParams(): PluginSettingsComponentParams {
+  return strictProxy<PluginSettingsComponentParams>({
+    loadData: vi.fn(async () => {
+      await noopAsync();
+      return {};
+    }),
+    saveData: vi.fn(async () => {
+      await noopAsync();
+    })
   });
 }
 
 describe('PluginSettingsManager', () => {
   it('should create default settings', () => {
-    const manager = new PluginSettingsManager(createMockPlugin(), createMockMailTmManager(true));
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
     const settings = manager['createDefaultSettings']();
 
     expect(settings).toBeInstanceOf(PluginSettings);
   });
 
   it('should validate email address through registered validator', async () => {
-    const manager = new PluginSettingsManager(createMockPlugin(), createMockMailTmManager(true));
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
     const settings = new PluginSettings();
     settings.emailAddress = 'email-to-vault-abc@mail.tm';
 
@@ -53,7 +59,7 @@ describe('PluginSettingsManager', () => {
   });
 
   it('should return error for invalid email prefix', async () => {
-    const manager = new PluginSettingsManager(createMockPlugin(), createMockMailTmManager(true));
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
     const settings = new PluginSettings();
     settings.emailAddress = 'wrong@mail.tm';
 
@@ -63,7 +69,7 @@ describe('PluginSettingsManager', () => {
   });
 
   it('should return error for invalid domain', async () => {
-    const manager = new PluginSettingsManager(createMockPlugin(), createMockMailTmManager(false));
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(false));
     const settings = new PluginSettings();
     settings.emailAddress = 'email-to-vault-abc@invalid.com';
 
@@ -73,7 +79,7 @@ describe('PluginSettingsManager', () => {
   });
 
   it('should return no error for empty email address', async () => {
-    const manager = new PluginSettingsManager(createMockPlugin(), createMockMailTmManager(true));
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
     const settings = new PluginSettings();
     settings.emailAddress = '';
 
@@ -83,8 +89,8 @@ describe('PluginSettingsManager', () => {
   });
 
   it('should not validate domain when prefix check fails', async () => {
-    const mockManager = createMockMailTmManager(true);
-    const manager = new PluginSettingsManager(createMockPlugin(), mockManager);
+    const mockManager = createMailTmDomainManager(true);
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), '', mockManager);
     const settings = new PluginSettings();
     settings.emailAddress = 'wrong@mail.tm';
 

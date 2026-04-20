@@ -2,23 +2,11 @@ import type { App } from 'obsidian';
 
 import { Modal } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
-import { CommandInvocationBase } from 'obsidian-dev-utils/obsidian/commands/command-base';
-import { NonEditorCommandBase } from 'obsidian-dev-utils/obsidian/commands/non-editor-command-base';
+import { noopAsync } from 'obsidian-dev-utils/function';
+import { GlobalCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/global-command-handler';
 import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
 
 import type { EmailChecker } from '../email-checker.ts';
-import type { Plugin } from '../plugin.ts';
-
-class RedownloadRecentEmailsCommandInvocation extends CommandInvocationBase<Plugin> {
-  public constructor(plugin: Plugin, private readonly emailChecker: EmailChecker) {
-    super(plugin);
-  }
-
-  public override async execute(): Promise<void> {
-    new RedownloadRecentEmailsModal(this.app, this.emailChecker).open();
-    await Promise.resolve();
-  }
-}
 
 /* v8 ignore start -- Modal UI requires Obsidian runtime. */
 class RedownloadRecentEmailsModal extends Modal {
@@ -65,17 +53,18 @@ class RedownloadRecentEmailsModal extends Modal {
 }
 /* v8 ignore stop */
 
-export class RedownloadRecentEmailsCommand extends NonEditorCommandBase<Plugin> {
-  public constructor(plugin: Plugin, private readonly emailChecker: EmailChecker) {
+export class RedownloadRecentEmailsCommandHandler extends GlobalCommandHandler {
+  public constructor(private readonly app: App, pluginName: string, private readonly emailChecker: EmailChecker) {
     super({
       icon: 'mail-question',
       id: 'redownload-recent-emails',
       name: 'Redownload recent emails',
-      plugin
+      pluginName
     });
   }
 
-  public createCommandInvocation(): CommandInvocationBase {
-    return new RedownloadRecentEmailsCommandInvocation(this.plugin, this.emailChecker);
+  public override async execute(): Promise<void> {
+    await noopAsync();
+    new RedownloadRecentEmailsModal(this.app, this.emailChecker).open();
   }
 }
