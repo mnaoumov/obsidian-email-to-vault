@@ -46,4 +46,4 @@
 
 ## Current Task
 
-Implement Forward Email and IMAP provider classes. The provider selection infrastructure is complete: `EmailProviderManager` delegates to the active provider, a dropdown in settings switches between providers, and validation is provider-aware. Next: implement the actual `ForwardEmailProvider` and `ImapProvider` classes.
+None.

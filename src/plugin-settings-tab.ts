@@ -31,9 +31,15 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
 
     this.displayProviderSelection();
 
-    const providerType = this.pluginSettingsComponent.settings.emailProviderType;
-    if (providerType === EmailProviderType.MailTm) {
-      this.displayMailTmSettings();
+    switch (this.pluginSettingsComponent.settings.emailProviderType) {
+      case EmailProviderType.Imap:
+        this.displayImapSettings();
+        break;
+      case EmailProviderType.MailTm:
+        this.displayMailTmSettings();
+        break;
+      default:
+        break;
     }
 
     new SettingGroupEx(this.containerEl)
@@ -96,6 +102,88 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setDesc('Whether to remove hidden HTML elements (display:none, visibility:hidden, opacity:0, aria-hidden) before converting to markdown.')
           .addToggle((toggle) => {
             this.bind(toggle, 'shouldStripHiddenElements');
+          });
+      });
+  }
+
+  private displayImapSettings(): void {
+    new SettingGroupEx(this.containerEl)
+      .setHeading('IMAP')
+      .addSettingEx((setting) => {
+        setting
+          .setDesc(createFragment((f) => {
+            f.appendText('Connect to any IMAP-compatible email server (Gmail, Outlook, etc.).');
+            f.createEl('br');
+            f.appendText('⚠️ IMAP emails cannot be checked on mobile devices.');
+          }));
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Server host')
+          .setDesc('Hostname of the mail server.')
+          .addText((text) => {
+            this.bind(text, 'imapHost');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Server port')
+          .setDesc('Port number for the mail server.')
+          .addNumber((numberComponent) => {
+            numberComponent.setMin(1);
+            this.bind(numberComponent, 'imapPort');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Use TLS')
+          .setDesc('Use TLS/SSL for the connection.')
+          .addToggle((toggle) => {
+            this.bind(toggle, 'imapTls');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Mailbox')
+          .setDesc('Mailbox folder to check for emails.')
+          .addText((text) => {
+            this.bind(text, 'imapMailbox');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setClass('email-address')
+          .setName('Email address')
+          .setDesc('Email address used as the login username.')
+          .addEmail((emailComponent) => {
+            this.bind(emailComponent, 'emailAddress');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Email password')
+          .setDesc(createFragment((f) => {
+            f.appendText('Password for the mail server.');
+            f.createEl('br');
+            f.appendText('For Gmail with 2FA, use an ');
+            f.createEl('a', { href: 'https://myaccount.google.com/apppasswords', text: 'App password' });
+            f.appendText('.');
+          }))
+          .addPassword((passwordComponent) => {
+            const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey) ?? '';
+            passwordComponent.setValue(password);
+            passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
+              await this.ensurePasswordSecretKey();
+              this.app.secretStorage.setSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey, value);
+            }));
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Delete seen emails')
+          .setDesc('Whether to delete emails from the mailbox after being saved as notes.')
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldDeleteSeenEmails');
           });
       });
   }

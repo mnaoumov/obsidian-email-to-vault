@@ -17,6 +17,7 @@ export const DEFAULT_EMAIL_NOTE_TEMPLATE = dedent`
 `;
 
 const DEFAULT_EMAIL_CHECK_INTERVAL_IN_MINUTES = 10;
+const DEFAULT_IMAP_PORT = 993;
 
 export const DEFAULT_EMAIL_NOTE_PATH_TEMPLATE = 'Emails/{{date:YYYY-MM-DD}} {{subject}}';
 
@@ -27,6 +28,10 @@ export class PluginSettings {
   public emailNoteTemplate = DEFAULT_EMAIL_NOTE_TEMPLATE;
   public emailPasswordSecretKey = '';
   public emailProviderType = EmailProviderType.MailTm;
+  public imapHost = '';
+  public imapMailbox = 'INBOX';
+  public imapPort = DEFAULT_IMAP_PORT;
+  public imapTls = true;
   public shouldDeleteSeenEmails = false;
   public shouldExtractForwardedEmail = true;
   public shouldStripHiddenElements = true;

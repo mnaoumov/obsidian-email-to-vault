@@ -12,6 +12,7 @@ import type { EmailProvider } from './email-provider.ts';
 import type { MailTmDomainManager } from './mail-tm/mail-tm-domain-manager.ts';
 
 import { EmailProviderType } from './email-provider-type.ts';
+import { ImapProvider } from './imap/imap-provider.ts';
 import { MailTmProvider } from './mail-tm/mail-tm-provider.ts';
 
 export class EmailProviderManager extends Component implements EmailProvider {
@@ -73,13 +74,16 @@ export class EmailProviderManager extends Component implements EmailProvider {
     }
 
     switch (type) {
+      case EmailProviderType.Imap:
+        this.activeProvider = this.addChild(
+          new ImapProvider(this.app, this.pluginSettingsComponent)
+        );
+        break;
       case EmailProviderType.MailTm:
         this.activeProvider = this.addChild(
           new MailTmProvider(this.app, this.pluginId, this.pluginSettingsComponent, this.mailTmDomainManager)
         );
         break;
-      case EmailProviderType.Imap:
-        throw new Error(`Provider ${type} is not yet implemented`);
       /* v8 ignore start -- Exhaustive check for future enum values. */
       default:
         throw new Error(`Unknown provider type: ${String(type)}`);

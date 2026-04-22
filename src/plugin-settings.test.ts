@@ -22,6 +22,10 @@ describe('PluginSettings', () => {
     expect(settings.emailNoteTemplate).toBe(DEFAULT_EMAIL_NOTE_TEMPLATE);
     expect(settings.emailPasswordSecretKey).toBe('');
     expect(settings.emailProviderType).toBe(EmailProviderType.MailTm);
+    expect(settings.imapHost).toBe('');
+    expect(settings.imapMailbox).toBe('INBOX');
+    expect(settings.imapPort).toBe(993);
+    expect(settings.imapTls).toBe(true);
   });
 });
 

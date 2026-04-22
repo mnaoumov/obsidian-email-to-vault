@@ -112,4 +112,49 @@ describe('PluginSettingsManager', () => {
     expect(result.emailAddress).toBeUndefined();
     expect(mockManager.validateEmailDomain).not.toHaveBeenCalled();
   });
+
+  it('should return error when IMAP host is empty for IMAP provider', async () => {
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
+    const settings = new PluginSettings();
+    settings.emailProviderType = EmailProviderType.Imap;
+    settings.imapHost = '';
+
+    const result = await manager.validate(settings);
+
+    expect(result.imapHost).toBe('IMAP host is required');
+  });
+
+  it('should not validate IMAP host when provider is not IMAP', async () => {
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
+    const settings = new PluginSettings();
+    settings.emailProviderType = EmailProviderType.MailTm;
+    settings.imapHost = '';
+
+    const result = await manager.validate(settings);
+
+    expect(result.imapHost).toBeUndefined();
+  });
+
+  it('should return error for invalid IMAP port', async () => {
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
+    const settings = new PluginSettings();
+    settings.emailProviderType = EmailProviderType.Imap;
+    settings.imapHost = 'imap.example.com';
+    settings.imapPort = 0;
+
+    const result = await manager.validate(settings);
+
+    expect(result.imapPort).toBe('IMAP port must be between 1 and 65535');
+  });
+
+  it('should not validate IMAP port when provider is not IMAP', async () => {
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', createMailTmDomainManager(true));
+    const settings = new PluginSettings();
+    settings.emailProviderType = EmailProviderType.MailTm;
+    settings.imapPort = 0;
+
+    const result = await manager.validate(settings);
+
+    expect(result.imapPort).toBeUndefined();
+  });
 });

@@ -74,6 +74,13 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
           dropdownCb(d);
           return s;
         });
+        s['addText'] = vi.fn((textCb: (c: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const c: Record<string, ReturnType<typeof vi.fn>> = {};
+          c['setValue'] = vi.fn(() => c);
+          c['onChange'] = vi.fn(() => c);
+          textCb(c);
+          return s;
+        });
         s['addButton'] = vi.fn((buttonCb: (b: Record<string, ReturnType<typeof vi.fn>>) => void) => {
           const b: Record<string, ReturnType<typeof vi.fn>> = {};
           b['setButtonText'] = vi.fn(() => b);
@@ -233,7 +240,7 @@ describe('PluginSettingsTab', () => {
       expect(group3.setHeading).toHaveBeenCalledWith('Main');
     });
 
-    it('should create two setting groups when non-Mail.tm provider is selected', () => {
+    it('should create three setting groups with IMAP heading when IMAP is selected', () => {
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab(
@@ -245,11 +252,13 @@ describe('PluginSettingsTab', () => {
 
       tab.display();
 
-      expect(MockSettingGroupEx).toHaveBeenCalledTimes(2);
+      expect(MockSettingGroupEx).toHaveBeenCalledTimes(3);
       const group1 = ensureNonNullable(MockSettingGroupEx.mock.instances[0]);
       const group2 = ensureNonNullable(MockSettingGroupEx.mock.instances[1]);
+      const group3 = ensureNonNullable(MockSettingGroupEx.mock.instances[2]);
       expect(group1.setHeading).toHaveBeenCalledWith('Provider');
-      expect(group2.setHeading).toHaveBeenCalledWith('Main');
+      expect(group2.setHeading).toHaveBeenCalledWith('IMAP');
+      expect(group3.setHeading).toHaveBeenCalledWith('Main');
     });
 
     it('should skip Mail.tm section when provider is MailTm but getMailTmProvider returns null', () => {
@@ -476,6 +485,22 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(writeTextFn).not.toHaveBeenCalled();
+    });
+
+    it('should save IMAP password to secret storage on entry', async () => {
+      const plugin = createMockPlugin();
+      const settingsComponent = createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap });
+      const manager = createMockEmailProviderManager();
+      vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
+      const tab = new PluginSettingsTab(plugin, settingsComponent, manager, 'email-to-vault');
+      tab.display();
+
+      const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
+      const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
+      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as (value: string) => Promise<void>;
+      await onChange('imap-password');
+
+      expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('test-key', 'imap-password');
     });
   });
 });

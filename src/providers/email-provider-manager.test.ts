@@ -74,6 +74,13 @@ vi.mock('./mail-tm/mail-tm-provider.ts', () => {
   return { MailTmProvider: MockMailTmProvider };
 });
 
+vi.mock('./imap/imap-provider.ts', () => {
+  class MockImapProvider {
+    public readonly isImap = true;
+  }
+  return { ImapProvider: MockImapProvider };
+});
+
 vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => ({
   registerAsyncEvent: vi.fn()
 }));
@@ -150,13 +157,13 @@ describe('EmailProviderManager', () => {
       expect(manager.getMailTmProvider()).not.toBeNull();
     });
 
-    it('should throw for unimplemented Imap provider', () => {
+    it('should activate IMAP provider when settings have Imap type', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.Imap);
       const manager = new EmailProviderManager(createMockApp(), 'email-to-vault', pluginSettingsComponent, createMockMailTmDomainManager());
 
-      expect(() => {
-        manager.onload();
-      }).toThrow('Provider imap is not yet implemented');
+      manager.onload();
+
+      expect(manager.getMailTmProvider()).toBeNull();
     });
 
     it('should register saveSettings event listener', () => {

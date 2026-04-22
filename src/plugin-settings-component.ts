@@ -23,6 +23,21 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
         return this.validateMailTmEmailAddress(value);
       }
     });
+    this.registerValidator('imapHost', (_value, settings): MaybeReturn<string> => {
+      if (settings.emailProviderType === EmailProviderType.Imap && !settings.imapHost) {
+        return 'IMAP host is required';
+      }
+    });
+    this.registerValidator('imapPort', (_value, settings): MaybeReturn<string> => {
+      if (settings.emailProviderType !== EmailProviderType.Imap) {
+        return;
+      }
+      const MIN_PORT = 1;
+      const MAX_PORT = 65535;
+      if (settings.imapPort < MIN_PORT || settings.imapPort > MAX_PORT) {
+        return `IMAP port must be between ${String(MIN_PORT)} and ${String(MAX_PORT)}`;
+      }
+    });
   }
 
   private async validateMailTmEmailAddress(value: string): Promise<MaybeReturn<string>> {
