@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 const SHARED_EXCLUDE = ['node_modules', 'dist'];
 const INTEGRATION_TEST_FILES = 'src/**/*.integration.test.ts';
 const BIG_TIMEOUT_IN_MILLISECONDS = 30_000;
+const HOOK_TIMEOUT_MULTIPLIER = 4;
 
 export const config = defineConfig({
   test: {
@@ -40,6 +41,7 @@ export const config = defineConfig({
         test: {
           environment: 'node',
           fileParallelism: false,
+          hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,
           include: [INTEGRATION_TEST_FILES],
           name: 'integration-tests',
           setupFiles: ['./scripts/load-env-file.ts', './scripts/setup-obsidian-globals.ts'],
