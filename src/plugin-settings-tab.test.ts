@@ -276,17 +276,27 @@ describe('PluginSettingsTab', () => {
       expect(MockSettingGroupEx).toHaveBeenCalledTimes(2);
     });
 
-    it('should re-render display when provider dropdown changes', () => {
+    it('should bind provider dropdown with onChanged that re-renders display', () => {
       const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
-      const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
 
-      const dropdown = ensureNonNullable(captured.dropdowns[0]);
-      const onChangeMock = ensureNonNullable(dropdown['onChange']);
-      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as () => void;
-      onChange();
+      const bindCall = ensureNonNullable(vi.mocked(tab.bind).mock.calls.find((call) => call[1] === 'emailProviderType'));
+      const options = ensureGenericObject<object>(bindCall[2]);
+      const onChanged = ensureNonNullable(options['onChanged']) as () => void;
+      expect(onChanged).toBeTypeOf('function');
+
+      const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
+      onChanged();
 
       expect(displaySpy).toHaveBeenCalledOnce();
+    });
+
+    it('should not set a separate onChange on provider dropdown that overwrites bind', () => {
+      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
+      tab.display();
+
+      const dropdown = ensureNonNullable(captured.dropdowns[0]);
+      expect(dropdown['onChange']).not.toHaveBeenCalled();
     });
 
     it('should pass containerEl to SettingGroupEx', () => {

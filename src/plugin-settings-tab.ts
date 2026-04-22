@@ -318,9 +318,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             dropdown
               .addOption(EmailProviderType.MailTm, 'Mail.tm')
               .addOption(EmailProviderType.Imap, 'IMAP');
-            this.bind(dropdown, 'emailProviderType');
-            dropdown.onChange(() => {
-              this.display();
+            this.bind(dropdown, 'emailProviderType', {
+              onChanged: () => {
+                this.display();
+              }
             });
           });
       });
