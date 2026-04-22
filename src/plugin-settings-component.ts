@@ -6,6 +6,7 @@ import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/plugin/
 import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 import { PluginSettings } from './plugin-settings.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
 
 export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginSettings> {
   public constructor(params: PluginSettingsComponentParams, private readonly pluginId: string, private readonly mailTmDomainManager: MailTmDomainManager) {
@@ -17,12 +18,14 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
   }
 
   protected override registerValidators(): void {
-    this.registerValidator('emailAddress', async (value): Promise<MaybeReturn<string>> => {
-      return this.validateEmailAddress(value);
+    this.registerValidator('emailAddress', async (value, settings): Promise<MaybeReturn<string>> => {
+      if (settings.emailProviderType === EmailProviderType.MailTm) {
+        return this.validateMailTmEmailAddress(value);
+      }
     });
   }
 
-  private async validateEmailAddress(value: string): Promise<MaybeReturn<string>> {
+  private async validateMailTmEmailAddress(value: string): Promise<MaybeReturn<string>> {
     if (!value) {
       return;
     }

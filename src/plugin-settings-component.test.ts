@@ -13,6 +13,7 @@ import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-man
 
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettings } from './plugin-settings.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
@@ -96,6 +97,19 @@ describe('PluginSettingsManager', () => {
 
     await manager.validate(settings);
 
+    expect(mockManager.validateEmailDomain).not.toHaveBeenCalled();
+  });
+
+  it('should skip email validation when provider is not Mail.tm', async () => {
+    const mockManager = createMailTmDomainManager(false);
+    const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', mockManager);
+    const settings = new PluginSettings();
+    settings.emailProviderType = EmailProviderType.ForwardEmail;
+    settings.emailAddress = 'any@example.com';
+
+    const result = await manager.validate(settings);
+
+    expect(result.emailAddress).toBeUndefined();
     expect(mockManager.validateEmailDomain).not.toHaveBeenCalled();
   });
 });

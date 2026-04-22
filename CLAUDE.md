@@ -46,4 +46,4 @@
 
 ## Current Task
 
-Add alternative email providers: Forward Email (forwardemail.net REST API) and generic IMAP. Requires extracting a provider abstraction from the current Mail.tm implementation.
+Implement Forward Email and IMAP provider classes. The provider selection infrastructure is complete: `EmailProviderManager` delegates to the active provider, a dropdown in settings switches between providers, and validation is provider-aware. Next: implement the actual `ForwardEmailProvider` and `ImapProvider` classes.

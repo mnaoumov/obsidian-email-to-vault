@@ -9,6 +9,7 @@ import {
   DEFAULT_EMAIL_NOTE_TEMPLATE,
   PluginSettings
 } from './plugin-settings.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
 
 describe('PluginSettings', () => {
   it('should have correct default values', () => {
@@ -20,6 +21,7 @@ describe('PluginSettings', () => {
     expect(settings.shouldExtractForwardedEmail).toBe(true);
     expect(settings.emailNoteTemplate).toBe(DEFAULT_EMAIL_NOTE_TEMPLATE);
     expect(settings.emailPasswordSecretKey).toBe('');
+    expect(settings.emailProviderType).toBe(EmailProviderType.MailTm);
   });
 });
 

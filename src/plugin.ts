@@ -15,8 +15,8 @@ import { EmailNoteCreator } from './email-note-creator.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PrismComponent } from './prism-component.ts';
+import { EmailProviderManager } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
-import { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
 
 export class Plugin extends PluginBase {
   public constructor(app: App, manifest: PluginManifest) {
@@ -26,11 +26,13 @@ export class Plugin extends PluginBase {
       component: new PluginSettingsComponent(this, this.manifest.id, mailTmDomainManager),
       shouldPreload: true
     });
-    const mailTmManager = this.registerComponent({ component: new MailTmProvider(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager) });
-    const emailNoteCreator = new EmailNoteCreator(this, pluginSettingsComponent, mailTmManager);
-    const emailChecker = this.registerComponent({ component: new EmailChecker(pluginSettingsComponent, mailTmManager, emailNoteCreator) });
+    const emailProviderManager = this.registerComponent({
+      component: new EmailProviderManager(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager)
+    });
+    const emailNoteCreator = new EmailNoteCreator(this, pluginSettingsComponent, emailProviderManager);
+    const emailChecker = this.registerComponent({ component: new EmailChecker(pluginSettingsComponent, emailProviderManager, emailNoteCreator) });
     this.registerComponent({
-      component: new PluginSettingsTabComponent(this, new PluginSettingsTab(this, pluginSettingsComponent, mailTmManager, this.manifest.id)),
+      component: new PluginSettingsTabComponent(this, new PluginSettingsTab(this, pluginSettingsComponent, emailProviderManager, this.manifest.id)),
       shouldPreload: true
     });
     this.registerComponent({ component: new PrismComponent() });

@@ -23,8 +23,8 @@ import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { Plugin } from './plugin.ts';
 import { PrismComponent } from './prism-component.ts';
+import { EmailProviderManager } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
-import { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
 
 const mocks = vi.hoisted(() => ({
   mockRegisterComponent: vi.fn()
@@ -66,8 +66,8 @@ vi.mock('./plugin-settings-component.ts', () => ({
   PluginSettingsComponent: vi.fn()
 }));
 
-vi.mock('./providers/mail-tm/mail-tm-provider.ts', () => ({
-  MailTmProvider: vi.fn()
+vi.mock('./providers/email-provider-manager.ts', () => ({
+  EmailProviderManager: vi.fn()
 }));
 
 vi.mock('./email-checker.ts', () => ({
@@ -98,7 +98,7 @@ const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailChecker);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
 const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
-const MockMailTmProvider = vi.mocked(MailTmProvider);
+const MockEmailProviderManager = vi.mocked(EmailProviderManager);
 const MockPluginSettingsComponent = vi.mocked(PluginSettingsComponent);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
 const MockPrismComponent = vi.mocked(PrismComponent);
@@ -134,10 +134,10 @@ describe('Plugin', () => {
       );
     });
 
-    it('should create MailTmProvider with app, manifest id, settings component, and domain manager', () => {
+    it('should create EmailProviderManager with app, manifest id, settings component, and domain manager', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockMailTmProvider).toHaveBeenCalledWith(
+      expect(MockEmailProviderManager).toHaveBeenCalledWith(
         mockApp,
         'email-to-vault',
         MockPluginSettingsComponent.mock.instances[0],
@@ -145,33 +145,33 @@ describe('Plugin', () => {
       );
     });
 
-    it('should create EmailNoteCreator with plugin, settings component, and mail manager', () => {
+    it('should create EmailNoteCreator with plugin, settings component, and provider manager', () => {
       const plugin = new Plugin(mockApp, mockManifest);
 
       expect(MockEmailNoteCreator).toHaveBeenCalledWith(
         plugin,
         MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmProvider.mock.instances[0]
+        MockEmailProviderManager.mock.instances[0]
       );
     });
 
-    it('should create EmailChecker with settings component, mail manager, and note creator', () => {
+    it('should create EmailChecker with settings component, provider manager, and note creator', () => {
       new Plugin(mockApp, mockManifest);
 
       expect(MockEmailChecker).toHaveBeenCalledWith(
         MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmProvider.mock.instances[0],
+        MockEmailProviderManager.mock.instances[0],
         MockEmailNoteCreator.mock.instances[0]
       );
     });
 
-    it('should create PluginSettingsTab with plugin, settings component, mail manager, and manifest id', () => {
+    it('should create PluginSettingsTab with plugin, settings component, provider manager, and manifest id', () => {
       const plugin = new Plugin(mockApp, mockManifest);
 
       expect(MockPluginSettingsTab).toHaveBeenCalledWith(
         plugin,
         MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmProvider.mock.instances[0],
+        MockEmailProviderManager.mock.instances[0],
         'email-to-vault'
       );
     });

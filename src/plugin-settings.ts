@@ -1,5 +1,7 @@
 import dedent from 'dedent';
 
+import { EmailProviderType } from './providers/email-provider-type.ts';
+
 export const DEFAULT_EMAIL_NOTE_TEMPLATE = dedent`
   ---
   from: "{{from}}"
@@ -24,6 +26,7 @@ export class PluginSettings {
   public emailNotePathTemplate = DEFAULT_EMAIL_NOTE_PATH_TEMPLATE;
   public emailNoteTemplate = DEFAULT_EMAIL_NOTE_TEMPLATE;
   public emailPasswordSecretKey = '';
+  public emailProviderType = EmailProviderType.MailTm;
   public shouldDeleteSeenEmails = false;
   public shouldExtractForwardedEmail = true;
   public shouldStripHiddenElements = true;

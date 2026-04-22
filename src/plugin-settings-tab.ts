@@ -8,15 +8,16 @@ import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { Plugin } from './plugin.ts';
-import type { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
+import type { EmailProviderManager } from './providers/email-provider-manager.ts';
 
 import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   public constructor(
     plugin: Plugin,
     pluginSettingsComponent: PluginSettingsComponent,
-    private readonly mailTmManager: MailTmProvider,
+    private readonly emailProviderManager: EmailProviderManager,
     private readonly pluginId: string
   ) {
     super({
@@ -27,6 +28,83 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
 
   public override display(): void {
     super.display();
+
+    this.displayProviderSelection();
+
+    const providerType = this.pluginSettingsComponent.settings.emailProviderType;
+    if (providerType === EmailProviderType.MailTm) {
+      this.displayMailTmSettings();
+    }
+
+    new SettingGroupEx(this.containerEl)
+      .setHeading('Main')
+      .addSettingEx((setting) => {
+        setting
+          .setName('Email check interval')
+          .setDesc(createFragment((f) => {
+            f.appendText('The interval at which emails will be checked in minutes.');
+            f.createEl('br');
+            f.appendText('Set to 0 to disable automatic email checking.');
+          }))
+          .addNumber((numberComponent) => {
+            numberComponent.setMin(0);
+            this.bind(numberComponent, 'emailCheckIntervalInMinutes');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Email note path template')
+          .setDesc(createFragment((f) => {
+            f.appendText('Path template for saved email notes.');
+            f.createEl('br');
+            appendVariables(f);
+          }))
+          .addCodeHighlighter((codeHighlighter) => {
+            codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
+            this.bind(codeHighlighter, 'emailNotePathTemplate');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setClass('email-note-template')
+          .setName('Email note template')
+          .setDesc(createFragment((f) => {
+            f.appendText('The template to use for email note content.');
+            f.createEl('br');
+            appendVariables(f);
+          }))
+          .addCodeHighlighter((codeHighlighter) => {
+            codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
+            this.bind(codeHighlighter, 'emailNoteTemplate');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Extract forwarded email')
+          .setDesc(createFragment((f) => {
+            f.appendText('Whether to extract the original sender, recipients, and subject from forwarded emails.');
+            f.createEl('br');
+            f.appendText('When enabled, treats forwarded emails as direct messages.');
+          }))
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldExtractForwardedEmail');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Strip hidden elements')
+          .setDesc('Whether to remove hidden HTML elements (display:none, visibility:hidden, opacity:0, aria-hidden) before converting to markdown.')
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldStripHiddenElements');
+          });
+      });
+  }
+
+  private displayMailTmSettings(): void {
+    const mailTmProvider = this.emailProviderManager.getMailTmProvider();
+    if (!mailTmProvider) {
+      return;
+    }
 
     const isRegistered = !!this.pluginSettingsComponent.settings.emailAddress;
 
@@ -61,14 +139,14 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                     return;
                   }
 
-                  await this.mailTmManager.unregisterEmailAddress();
+                  await mailTmProvider.unregisterEmailAddress();
                   this.display();
                 }));
             } else {
               button
                 .setButtonText('Register new random email address')
                 .onClick(convertAsyncToSync(async () => {
-                  await this.mailTmManager.registerRandomEmailAddress();
+                  await mailTmProvider.registerRandomEmailAddress();
                   this.display();
                 }));
             }
@@ -139,67 +217,24 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             this.bind(toggle, 'shouldDeleteSeenEmails');
           });
       });
+  }
 
+  private displayProviderSelection(): void {
     new SettingGroupEx(this.containerEl)
-      .setHeading('Main')
+      .setHeading('Provider')
       .addSettingEx((setting) => {
         setting
-          .setName('Email check interval')
-          .setDesc(createFragment((f) => {
-            f.appendText('The interval at which emails will be checked in minutes.');
-            f.createEl('br');
-            f.appendText('Set to 0 to disable automatic email checking.');
-          }))
-          .addNumber((numberComponent) => {
-            numberComponent.setMin(0);
-            this.bind(numberComponent, 'emailCheckIntervalInMinutes');
-          });
-      })
-      .addSettingEx((setting) => {
-        setting
-          .setName('Email note path template')
-          .setDesc(createFragment((f) => {
-            f.appendText('Path template for saved email notes.');
-            f.createEl('br');
-            appendVariables(f);
-          }))
-          .addCodeHighlighter((codeHighlighter) => {
-            codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
-            this.bind(codeHighlighter, 'emailNotePathTemplate');
-          });
-      })
-      .addSettingEx((setting) => {
-        setting
-          .setClass('email-note-template')
-          .setName('Email note template')
-          .setDesc(createFragment((f) => {
-            f.appendText('The template to use for email note content.');
-            f.createEl('br');
-            appendVariables(f);
-          }))
-          .addCodeHighlighter((codeHighlighter) => {
-            codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
-            this.bind(codeHighlighter, 'emailNoteTemplate');
-          });
-      })
-      .addSettingEx((setting) => {
-        setting
-          .setName('Extract forwarded email')
-          .setDesc(createFragment((f) => {
-            f.appendText('Whether to extract the original sender, recipients, and subject from forwarded emails.');
-            f.createEl('br');
-            f.appendText('When enabled, treats forwarded emails as direct messages.');
-          }))
-          .addToggle((toggle) => {
-            this.bind(toggle, 'shouldExtractForwardedEmail');
-          });
-      })
-      .addSettingEx((setting) => {
-        setting
-          .setName('Strip hidden elements')
-          .setDesc('Whether to remove hidden HTML elements (display:none, visibility:hidden, opacity:0, aria-hidden) before converting to markdown.')
-          .addToggle((toggle) => {
-            this.bind(toggle, 'shouldStripHiddenElements');
+          .setName('Email provider')
+          .setDesc('Select which email provider to use.')
+          .addDropdown((dropdown) => {
+            dropdown
+              .addOption(EmailProviderType.MailTm, 'Mail.tm')
+              .addOption(EmailProviderType.ForwardEmail, 'Forward email')
+              .addOption(EmailProviderType.Imap, 'IMAP');
+            this.bind(dropdown, 'emailProviderType');
+            dropdown.onChange(() => {
+              this.display();
+            });
           });
       });
   }

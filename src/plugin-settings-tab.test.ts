@@ -21,12 +21,15 @@ import {
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { Plugin } from './plugin.ts';
+import type { EmailProviderManager } from './providers/email-provider-manager.ts';
 import type { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
 
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
 
 const captured = vi.hoisted(() => ({
   buttons: [] as Record<string, ReturnType<typeof vi.fn>>[],
+  dropdowns: [] as Record<string, ReturnType<typeof vi.fn>>[],
   emailComponents: [] as Record<string, ReturnType<typeof vi.fn>>[],
   extraButtons: [] as Record<string, ReturnType<typeof vi.fn>>[],
   passwordComponents: [] as Record<string, ReturnType<typeof vi.fn>>[]
@@ -61,6 +64,16 @@ vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
     this['addSettingEx'] = vi.fn(
       function addSettingExMock(this: Record<string, ReturnType<typeof vi.fn>>, cb: (s: Record<string, ReturnType<typeof vi.fn>>) => void) {
         const s: Record<string, ReturnType<typeof vi.fn>> = {};
+        s['addDropdown'] = vi.fn((dropdownCb: (d: Record<string, ReturnType<typeof vi.fn>>) => void) => {
+          const d: Record<string, ReturnType<typeof vi.fn>> = {};
+          d['addOption'] = vi.fn(() => d);
+          d['addOptions'] = vi.fn(() => d);
+          d['setValue'] = vi.fn(() => d);
+          d['onChange'] = vi.fn(() => d);
+          captured.dropdowns.push(d);
+          dropdownCb(d);
+          return s;
+        });
         s['addButton'] = vi.fn((buttonCb: (b: Record<string, ReturnType<typeof vi.fn>>) => void) => {
           const b: Record<string, ReturnType<typeof vi.fn>> = {};
           b['setButtonText'] = vi.fn(() => b);
@@ -152,6 +165,14 @@ interface MockPluginSettingsComponentOverrides {
   editAndSave?: (cb: (s: PluginSettings) => void) => Promise<void>;
   emailAddress?: string;
   emailPasswordSecretKey?: string;
+  emailProviderType?: EmailProviderType;
+}
+
+function createMockEmailProviderManager(mailTmProvider?: MailTmProvider): EmailProviderManager {
+  const provider = mailTmProvider ?? createMockMailTmProvider();
+  return strictProxy<EmailProviderManager>({
+    getMailTmProvider: vi.fn(() => provider)
+  });
 }
 
 function createMockMailTmProvider(): MailTmProvider {
@@ -177,7 +198,8 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
     editAndSave: overrides?.editAndSave ?? vi.fn(),
     settings: {
       emailAddress: overrides?.emailAddress ?? '',
-      emailPasswordSecretKey: overrides?.emailPasswordSecretKey ?? 'test-key'
+      emailPasswordSecretKey: overrides?.emailPasswordSecretKey ?? 'test-key',
+      emailProviderType: overrides?.emailProviderType ?? EmailProviderType.MailTm
     }
   });
 }
@@ -186,6 +208,7 @@ describe('PluginSettingsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     captured.buttons.length = 0;
+    captured.dropdowns.length = 0;
     captured.emailComponents.length = 0;
     captured.extraButtons.length = 0;
     captured.passwordComponents.length = 0;
@@ -196,30 +219,96 @@ describe('PluginSettingsTab', () => {
   });
 
   describe('display', () => {
-    it('should create two setting groups with correct headings', () => {
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockMailTmProvider(), 'email-to-vault');
+    it('should create three setting groups with correct headings when Mail.tm is selected', () => {
+      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
+
+      tab.display();
+
+      expect(MockSettingGroupEx).toHaveBeenCalledTimes(3);
+      const group1 = ensureNonNullable(MockSettingGroupEx.mock.instances[0]);
+      const group2 = ensureNonNullable(MockSettingGroupEx.mock.instances[1]);
+      const group3 = ensureNonNullable(MockSettingGroupEx.mock.instances[2]);
+      expect(group1.setHeading).toHaveBeenCalledWith('Provider');
+      expect(group2.setHeading).toHaveBeenCalledWith('Mail.tm');
+      expect(group3.setHeading).toHaveBeenCalledWith('Main');
+    });
+
+    it('should create two setting groups when non-Mail.tm provider is selected', () => {
+      const manager = createMockEmailProviderManager();
+      vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
+      const tab = new PluginSettingsTab(
+        createMockPlugin(),
+        createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.ForwardEmail }),
+        manager,
+        'email-to-vault'
+      );
 
       tab.display();
 
       expect(MockSettingGroupEx).toHaveBeenCalledTimes(2);
       const group1 = ensureNonNullable(MockSettingGroupEx.mock.instances[0]);
       const group2 = ensureNonNullable(MockSettingGroupEx.mock.instances[1]);
-      expect(group1.setHeading).toHaveBeenCalledWith('Mail.tm');
+      expect(group1.setHeading).toHaveBeenCalledWith('Provider');
       expect(group2.setHeading).toHaveBeenCalledWith('Main');
     });
 
+    it('should skip Mail.tm section when provider is MailTm but getMailTmProvider returns null', () => {
+      const manager = createMockEmailProviderManager();
+      vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
+      const tab = new PluginSettingsTab(
+        createMockPlugin(),
+        createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.MailTm }),
+        manager,
+        'email-to-vault'
+      );
+
+      tab.display();
+
+      expect(MockSettingGroupEx).toHaveBeenCalledTimes(2);
+    });
+
+    it('should re-render display when provider dropdown changes', () => {
+      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
+      tab.display();
+      const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
+
+      const dropdown = ensureNonNullable(captured.dropdowns[0]);
+      const onChangeMock = ensureNonNullable(dropdown['onChange']);
+      const onChange = ensureNonNullable(onChangeMock.mock.calls[0])[0] as () => void;
+      onChange();
+
+      expect(displaySpy).toHaveBeenCalledOnce();
+    });
+
     it('should pass containerEl to SettingGroupEx', () => {
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
 
       tab.display();
 
       expect(MockSettingGroupEx).toHaveBeenNthCalledWith(1, tab.containerEl);
       expect(MockSettingGroupEx).toHaveBeenNthCalledWith(2, tab.containerEl);
+      expect(MockSettingGroupEx).toHaveBeenNthCalledWith(3, tab.containerEl);
+    });
+
+    it('should render provider dropdown with all options', () => {
+      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
+
+      tab.display();
+
+      const dropdown = ensureNonNullable(captured.dropdowns[0]);
+      expect(dropdown['addOption']).toHaveBeenCalledWith('mail-tm', 'Mail.tm');
+      expect(dropdown['addOption']).toHaveBeenCalledWith('forward-email', 'Forward email');
+      expect(dropdown['addOption']).toHaveBeenCalledWith('imap', 'IMAP');
     });
 
     it('should call registerRandomEmailAddress on button click when no address exists', async () => {
-      const manager = createMockMailTmProvider();
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), manager, 'email-to-vault');
+      const mailTmProvider = createMockMailTmProvider();
+      const tab = new PluginSettingsTab(
+        createMockPlugin(),
+        createMockPluginSettingsComponent(),
+        createMockEmailProviderManager(mailTmProvider),
+        'email-to-vault'
+      );
       tab.display();
       vi.spyOn(tab, 'display').mockImplementation(noop);
 
@@ -228,11 +317,11 @@ describe('PluginSettingsTab', () => {
       const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
       await onClick();
 
-      expect(manager.registerRandomEmailAddress).toHaveBeenCalledOnce();
+      expect(mailTmProvider.registerRandomEmailAddress).toHaveBeenCalledOnce();
     });
 
     it('should refresh display after registering new email address', async () => {
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent(), createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
       const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
 
@@ -246,8 +335,13 @@ describe('PluginSettingsTab', () => {
 
     it('should unregister email when user confirms', async () => {
       vi.mocked(confirm).mockResolvedValue(true);
-      const manager = createMockMailTmProvider();
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent({ emailAddress: 'old@mail.tm' }), manager, 'email-to-vault');
+      const mailTmProvider = createMockMailTmProvider();
+      const tab = new PluginSettingsTab(
+        createMockPlugin(),
+        createMockPluginSettingsComponent({ emailAddress: 'old@mail.tm' }),
+        createMockEmailProviderManager(mailTmProvider),
+        'email-to-vault'
+      );
       tab.display();
       vi.spyOn(tab, 'display').mockImplementation(noop);
 
@@ -256,13 +350,18 @@ describe('PluginSettingsTab', () => {
       const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
       await onClick();
 
-      expect(manager.unregisterEmailAddress).toHaveBeenCalledOnce();
+      expect(mailTmProvider.unregisterEmailAddress).toHaveBeenCalledOnce();
     });
 
     it('should not unregister when user cancels', async () => {
       vi.mocked(confirm).mockResolvedValue(false);
-      const manager = createMockMailTmProvider();
-      const tab = new PluginSettingsTab(createMockPlugin(), createMockPluginSettingsComponent({ emailAddress: 'old@mail.tm' }), manager, 'email-to-vault');
+      const mailTmProvider = createMockMailTmProvider();
+      const tab = new PluginSettingsTab(
+        createMockPlugin(),
+        createMockPluginSettingsComponent({ emailAddress: 'old@mail.tm' }),
+        createMockEmailProviderManager(mailTmProvider),
+        'email-to-vault'
+      );
       tab.display();
       vi.spyOn(tab, 'display').mockImplementation(noop);
 
@@ -271,14 +370,14 @@ describe('PluginSettingsTab', () => {
       const onClick = ensureNonNullable(onClickMock.mock.calls[0])[0] as () => Promise<void>;
       await onClick();
 
-      expect(manager.unregisterEmailAddress).not.toHaveBeenCalled();
+      expect(mailTmProvider.unregisterEmailAddress).not.toHaveBeenCalled();
     });
 
     it('should copy email address to clipboard', async () => {
       const writeTextFn = vi.fn(async () => Promise.resolve());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const settingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
-      const tab = new PluginSettingsTab(createMockPlugin(), settingsComponent, createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(createMockPlugin(), settingsComponent, createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
 
       const emailCopyButton = ensureNonNullable(captured.extraButtons[0]);
@@ -293,7 +392,7 @@ describe('PluginSettingsTab', () => {
       const writeTextFn = vi.fn(async () => Promise.resolve());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const settingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
-      const tab = new PluginSettingsTab(createMockPlugin(), settingsComponent, createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(createMockPlugin(), settingsComponent, createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
 
       const passwordCopyButton = ensureNonNullable(captured.extraButtons[1]);
@@ -307,7 +406,7 @@ describe('PluginSettingsTab', () => {
     it('should save password to secret storage on manual entry when unregistered', async () => {
       const plugin = createMockPlugin();
       const settingsComponent = createMockPluginSettingsComponent();
-      const tab = new PluginSettingsTab(plugin, settingsComponent, createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(plugin, settingsComponent, createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
@@ -322,7 +421,8 @@ describe('PluginSettingsTab', () => {
       const plugin = createMockPlugin();
       const settings = {
         emailAddress: '',
-        emailPasswordSecretKey: ''
+        emailPasswordSecretKey: '',
+        emailProviderType: EmailProviderType.MailTm
       } as PluginSettings;
       const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
         await noopAsync();
@@ -334,7 +434,7 @@ describe('PluginSettingsTab', () => {
       });
       // Update settings reference to match the component's settings
       ensureGenericObject<object>(settingsComponent)['settings'] = settings;
-      const tab = new PluginSettingsTab(plugin, settingsComponent, createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(plugin, settingsComponent, createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
@@ -351,7 +451,7 @@ describe('PluginSettingsTab', () => {
       const settingsComponent = createMockPluginSettingsComponent({
         editAndSave: editAndSaveFn
       });
-      const tab = new PluginSettingsTab(createMockPlugin(), settingsComponent, createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(createMockPlugin(), settingsComponent, createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
@@ -368,7 +468,7 @@ describe('PluginSettingsTab', () => {
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
       const settingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
-      const tab = new PluginSettingsTab(plugin, settingsComponent, createMockMailTmProvider(), 'email-to-vault');
+      const tab = new PluginSettingsTab(plugin, settingsComponent, createMockEmailProviderManager(), 'email-to-vault');
       tab.display();
 
       const passwordCopyButton = ensureNonNullable(captured.extraButtons[1]);
