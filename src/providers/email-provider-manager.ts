@@ -78,7 +78,6 @@ export class EmailProviderManager extends Component implements EmailProvider {
           new MailTmProvider(this.app, this.pluginId, this.pluginSettingsComponent, this.mailTmDomainManager)
         );
         break;
-      case EmailProviderType.ForwardEmail:
       case EmailProviderType.Imap:
         throw new Error(`Provider ${type} is not yet implemented`);
       /* v8 ignore start -- Exhaustive check for future enum values. */

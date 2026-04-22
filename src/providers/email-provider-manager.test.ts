@@ -150,15 +150,6 @@ describe('EmailProviderManager', () => {
       expect(manager.getMailTmProvider()).not.toBeNull();
     });
 
-    it('should throw for unimplemented ForwardEmail provider', () => {
-      const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.ForwardEmail);
-      const manager = new EmailProviderManager(createMockApp(), 'email-to-vault', pluginSettingsComponent, createMockMailTmDomainManager());
-
-      expect(() => {
-        manager.onload();
-      }).toThrow('Provider forward-email is not yet implemented');
-    });
-
     it('should throw for unimplemented Imap provider', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.Imap);
       const manager = new EmailProviderManager(createMockApp(), 'email-to-vault', pluginSettingsComponent, createMockMailTmDomainManager());
@@ -189,7 +180,7 @@ describe('EmailProviderManager', () => {
 
       triggerSaveSettings(
         createSettingsState(EmailProviderType.MailTm),
-        createSettingsState(EmailProviderType.ForwardEmail)
+        createSettingsState(EmailProviderType.Imap)
       );
 
       expect(manager.getMailTmProvider()).not.toBe(firstProvider);

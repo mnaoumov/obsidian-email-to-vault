@@ -229,7 +229,6 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .addDropdown((dropdown) => {
             dropdown
               .addOption(EmailProviderType.MailTm, 'Mail.tm')
-              .addOption(EmailProviderType.ForwardEmail, 'Forward email')
               .addOption(EmailProviderType.Imap, 'IMAP');
             this.bind(dropdown, 'emailProviderType');
             dropdown.onChange(() => {

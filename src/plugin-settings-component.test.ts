@@ -104,7 +104,7 @@ describe('PluginSettingsManager', () => {
     const mockManager = createMailTmDomainManager(false);
     const manager = new PluginSettingsComponent(createMockPluginSettingsComponentParams(), 'email-to-vault', mockManager);
     const settings = new PluginSettings();
-    settings.emailProviderType = EmailProviderType.ForwardEmail;
+    settings.emailProviderType = EmailProviderType.Imap;
     settings.emailAddress = 'any@example.com';
 
     const result = await manager.validate(settings);

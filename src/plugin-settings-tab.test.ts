@@ -238,7 +238,7 @@ describe('PluginSettingsTab', () => {
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab(
         createMockPlugin(),
-        createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.ForwardEmail }),
+        createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap }),
         manager,
         'email-to-vault'
       );
@@ -297,7 +297,6 @@ describe('PluginSettingsTab', () => {
 
       const dropdown = ensureNonNullable(captured.dropdowns[0]);
       expect(dropdown['addOption']).toHaveBeenCalledWith('mail-tm', 'Mail.tm');
-      expect(dropdown['addOption']).toHaveBeenCalledWith('forward-email', 'Forward email');
       expect(dropdown['addOption']).toHaveBeenCalledWith('imap', 'IMAP');
     });
 
