@@ -5,29 +5,43 @@ import {
   requestUrl
 } from 'obsidian';
 
+import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
+import type {
+  EmailMessageFull,
+  EmailMessageSummary
+} from '../email-provider-types.ts';
+import type { EmailProvider } from '../email-provider.ts';
 import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
-import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
-import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 import {
   generatePassword,
   generateUsername
-} from './string-generators.ts';
+} from '../../string-generators.ts';
+import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
 const HTTP_STATUS_CREATED = 201;
 
-export interface MailTmAddress {
+interface CreateAccountParams {
+  address: string;
+  password: string;
+}
+
+interface JwtPayload {
+  id: string;
+}
+
+interface MailTmAddress {
   address: string;
   name: string;
 }
 
-export interface MailTmAttachment {
+interface MailTmAttachment {
   contentType: string;
   filename: string;
   id: string;
 }
 
-export interface MailTmMessage {
+interface MailTmMessage {
   createdAt: string;
   downloadUrl: string;
   from: MailTmAddress;
@@ -40,20 +54,11 @@ export interface MailTmMessage {
   updatedAt: string;
 }
 
-export interface MailTmMessageFull extends MailTmMessage {
+interface MailTmMessageFull extends MailTmMessage {
   attachments?: MailTmAttachment[];
   cc: MailTmAddress[];
   html: string[];
   text: string;
-}
-
-interface CreateAccountParams {
-  address: string;
-  password: string;
-}
-
-interface JwtPayload {
-  id: string;
 }
 
 interface MailTmMessagesResponse {
@@ -64,7 +69,7 @@ interface MailTmTokenResponse {
   token: string;
 }
 
-export class MailTmManager extends Component {
+export class MailTmProvider extends Component implements EmailProvider {
   public constructor(
     private readonly app: App,
     private readonly pluginId: string,
@@ -93,17 +98,18 @@ export class MailTmManager extends Component {
     return response.arrayBuffer;
   }
 
-  public async getMessage(messageId: string): Promise<MailTmMessageFull> {
+  public async getMessage(messageId: string): Promise<EmailMessageFull> {
     const token = await this.getToken();
     const response = await requestUrl({
       headers: { Authorization: `Bearer ${token}` },
       method: 'GET',
       url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}`
     });
-    return response.json as MailTmMessageFull;
+    const raw = response.json as MailTmMessageFull;
+    return mapMailTmMessageFull(raw);
   }
 
-  public async getMessages(): Promise<MailTmMessage[]> {
+  public async getMessages(): Promise<EmailMessageSummary[]> {
     const token = await this.getToken();
     const response = await requestUrl({
       headers: { Authorization: `Bearer ${token}` },
@@ -111,7 +117,7 @@ export class MailTmManager extends Component {
       url: `${MAIL_TM_API_BASE_URL}/messages`
     });
     const data = response.json as MailTmMessagesResponse;
-    return data['hydra:member'];
+    return data['hydra:member'].map(mapMailTmMessage);
   }
 
   public async markMessageAsSeen(messageId: string): Promise<void> {
@@ -204,4 +210,32 @@ function extractAccountIdFromToken(token: string): string {
   const [, encodedPayload = ''] = token.split('.');
   const payload = JSON.parse(atob(encodedPayload)) as JwtPayload;
   return payload.id;
+}
+
+function mapMailTmMessage(msg: MailTmMessage): EmailMessageSummary {
+  return {
+    createdAt: msg.createdAt,
+    from: msg.from,
+    hasAttachments: msg.hasAttachments,
+    id: msg.id,
+    seen: msg.seen,
+    subject: msg.subject,
+    to: msg.to
+  };
+}
+
+function mapMailTmMessageFull(msg: MailTmMessageFull): EmailMessageFull {
+  return {
+    attachments: msg.attachments ?? [],
+    cc: msg.cc,
+    createdAt: msg.createdAt,
+    from: msg.from,
+    hasAttachments: msg.hasAttachments,
+    html: msg.html,
+    id: msg.id,
+    seen: msg.seen,
+    subject: msg.subject,
+    text: msg.text,
+    to: msg.to
+  };
 }

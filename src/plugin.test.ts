@@ -19,12 +19,12 @@ import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
 import { EmailChecker } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
-import { MailTmDomainManager } from './mail-tm-domain-manager.ts';
-import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { Plugin } from './plugin.ts';
 import { PrismComponent } from './prism-component.ts';
+import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
+import { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
 
 const mocks = vi.hoisted(() => ({
   mockRegisterComponent: vi.fn()
@@ -58,7 +58,7 @@ vi.mock('./prism-component.ts', () => ({
   PrismComponent: vi.fn()
 }));
 
-vi.mock('./mail-tm-domain-manager.ts', () => ({
+vi.mock('./providers/mail-tm/mail-tm-domain-manager.ts', () => ({
   MailTmDomainManager: vi.fn()
 }));
 
@@ -66,8 +66,8 @@ vi.mock('./plugin-settings-component.ts', () => ({
   PluginSettingsComponent: vi.fn()
 }));
 
-vi.mock('./mail-tm-manager.ts', () => ({
-  MailTmManager: vi.fn()
+vi.mock('./providers/mail-tm/mail-tm-provider.ts', () => ({
+  MailTmProvider: vi.fn()
 }));
 
 vi.mock('./email-checker.ts', () => ({
@@ -98,7 +98,7 @@ const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailChecker);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
 const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
-const MockMailTmManager = vi.mocked(MailTmManager);
+const MockMailTmProvider = vi.mocked(MailTmProvider);
 const MockPluginSettingsComponent = vi.mocked(PluginSettingsComponent);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
 const MockPrismComponent = vi.mocked(PrismComponent);
@@ -134,10 +134,10 @@ describe('Plugin', () => {
       );
     });
 
-    it('should create MailTmManager with app, manifest id, settings component, and domain manager', () => {
+    it('should create MailTmProvider with app, manifest id, settings component, and domain manager', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockMailTmManager).toHaveBeenCalledWith(
+      expect(MockMailTmProvider).toHaveBeenCalledWith(
         mockApp,
         'email-to-vault',
         MockPluginSettingsComponent.mock.instances[0],
@@ -151,7 +151,7 @@ describe('Plugin', () => {
       expect(MockEmailNoteCreator).toHaveBeenCalledWith(
         plugin,
         MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmManager.mock.instances[0]
+        MockMailTmProvider.mock.instances[0]
       );
     });
 
@@ -160,7 +160,7 @@ describe('Plugin', () => {
 
       expect(MockEmailChecker).toHaveBeenCalledWith(
         MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmManager.mock.instances[0],
+        MockMailTmProvider.mock.instances[0],
         MockEmailNoteCreator.mock.instances[0]
       );
     });
@@ -171,7 +171,7 @@ describe('Plugin', () => {
       expect(MockPluginSettingsTab).toHaveBeenCalledWith(
         plugin,
         MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmManager.mock.instances[0],
+        MockMailTmProvider.mock.instances[0],
         'email-to-vault'
       );
     });

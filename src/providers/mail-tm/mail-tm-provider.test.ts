@@ -11,12 +11,12 @@ import {
   vi
 } from 'vitest';
 
+import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
+import type { EmailMessageFull } from '../email-provider-types.ts';
 import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
-import type { MailTmMessageFull } from './mail-tm-manager.ts';
-import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
-import { MailTmManager } from './mail-tm-manager.ts';
-import { PluginSettings } from './plugin-settings.ts';
+import { PluginSettings } from '../../plugin-settings.ts';
+import { MailTmProvider } from './mail-tm-provider.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
@@ -45,9 +45,9 @@ interface MockResult {
   pluginSettingsComponent: PluginSettingsComponent;
 }
 
-function createManager(overrides?: MockParams): MailTmManager {
+function createManager(overrides?: MockParams): MailTmProvider {
   const { app, mailTmDomainManager, pluginSettingsComponent } = createMocks(overrides);
-  return new MailTmManager(app, overrides?.pluginId ?? 'email-to-vault', pluginSettingsComponent, mailTmDomainManager);
+  return new MailTmProvider(app, overrides?.pluginId ?? 'email-to-vault', pluginSettingsComponent, mailTmDomainManager);
 }
 
 function createMocks(overrides?: MockParams): MockResult {
@@ -80,7 +80,7 @@ function createMocks(overrides?: MockParams): MockResult {
   return { app, mailTmDomainManager, pluginSettingsComponent };
 }
 
-describe('MailTmManager', () => {
+describe('MailTmProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -268,8 +268,8 @@ describe('MailTmManager', () => {
   });
 
   describe('getMessage', () => {
-    it('should fetch a single message with auth token', async () => {
-      const mockMessage: MailTmMessageFull = {
+    it('should fetch a single message with auth token and map to canonical types', async () => {
+      const apiResponse = {
         attachments: [],
         cc: [],
         createdAt: '2026-01-01T00:00:00+00:00',
@@ -286,6 +286,20 @@ describe('MailTmManager', () => {
         updatedAt: '2026-01-01T00:00:00+00:00'
       };
 
+      const expected: EmailMessageFull = {
+        attachments: [],
+        cc: [],
+        createdAt: '2026-01-01T00:00:00+00:00',
+        from: { address: 'sender@example.com', name: 'Sender' },
+        hasAttachments: false,
+        html: ['<p>Hello</p>'],
+        id: 'abc123',
+        seen: false,
+        subject: 'Test Subject',
+        text: 'Hello',
+        to: [{ address: 'me@mail.tm', name: '' }]
+      };
+
       const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
@@ -297,24 +311,60 @@ describe('MailTmManager', () => {
           json: { token: 'jwt-token' }
         } as never)
         .mockResolvedValueOnce({
-          json: mockMessage
+          json: apiResponse
         } as never);
 
       const result = await manager.getMessage('abc123');
 
-      expect(result).toEqual(mockMessage);
+      expect(result).toEqual(expected);
     });
-  });
 
-  describe('getMessages', () => {
-    it('should fetch message list with auth token', async () => {
+    it('should default attachments to empty array when undefined in API response', async () => {
+      const apiResponse = {
+        cc: [],
+        createdAt: '2026-01-01T00:00:00+00:00',
+        downloadUrl: '',
+        from: { address: 'a@b.com', name: '' },
+        hasAttachments: false,
+        html: [],
+        id: 'msg1',
+        seen: false,
+        size: 0,
+        subject: 'Test',
+        text: 'body',
+        to: [],
+        updatedAt: ''
+      };
+
       const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'secret-key',
         secretStorageGetSecret: () => 'password123'
       });
 
-      const messages = [
+      mockRequestUrl
+        .mockResolvedValueOnce({
+          json: { token: 'jwt-token' }
+        } as never)
+        .mockResolvedValueOnce({
+          json: apiResponse
+        } as never);
+
+      const result = await manager.getMessage('msg1');
+
+      expect(result.attachments).toEqual([]);
+    });
+  });
+
+  describe('getMessages', () => {
+    it('should fetch message list with auth token and map to canonical types', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+
+      const apiMessages = [
         {
           createdAt: '2026-01-01T00:00:00+00:00',
           downloadUrl: '',
@@ -329,17 +379,29 @@ describe('MailTmManager', () => {
         }
       ];
 
+      const expected = [
+        {
+          createdAt: '2026-01-01T00:00:00+00:00',
+          from: { address: 'a@b.com', name: '' },
+          hasAttachments: false,
+          id: '1',
+          seen: false,
+          subject: 'Test',
+          to: []
+        }
+      ];
+
       mockRequestUrl
         .mockResolvedValueOnce({
           json: { token: 'jwt-token' }
         } as never)
         .mockResolvedValueOnce({
-          json: { 'hydra:member': messages }
+          json: { 'hydra:member': apiMessages }
         } as never);
 
       const result = await manager.getMessages();
 
-      expect(result).toEqual(messages);
+      expect(result).toEqual(expected);
     });
 
     it('should throw when credentials are missing', async () => {

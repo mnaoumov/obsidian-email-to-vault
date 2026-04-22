@@ -3,7 +3,7 @@ import type { MaybeReturn } from 'obsidian-dev-utils/type';
 
 import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
 
-import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
+import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 import { PluginSettings } from './plugin-settings.ts';
 

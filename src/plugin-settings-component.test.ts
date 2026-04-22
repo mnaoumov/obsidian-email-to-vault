@@ -9,7 +9,7 @@ import {
   vi
 } from 'vitest';
 
-import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
+import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettings } from './plugin-settings.ts';

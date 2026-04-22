@@ -15,9 +15,9 @@ import {
 } from 'vitest';
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
-import type { MailTmManager } from './mail-tm-manager.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
+import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailChecker } from './email-checker.ts';
 
@@ -45,10 +45,10 @@ interface CreateMockPluginSettingsComponentResult {
   triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => void;
 }
 
-interface MockMailTmManagerOverrides {
-  deleteMessage?: MailTmManager['deleteMessage'];
-  getMessages?: MailTmManager['getMessages'];
-  markMessageAsSeen?: MailTmManager['markMessageAsSeen'];
+interface MockEmailProviderOverrides {
+  deleteMessage?: EmailProvider['deleteMessage'];
+  getMessages?: EmailProvider['getMessages'];
+  markMessageAsSeen?: EmailProvider['markMessageAsSeen'];
 }
 
 interface MockPluginSettingsComponentOverrides {
@@ -63,8 +63,8 @@ type SaveSettingsCallback = (
   context: unknown
 ) => Promisable<void>;
 
-function createMockMailTmManager(overrides?: MockMailTmManagerOverrides): MailTmManager {
-  return strictProxy<MailTmManager>({
+function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailProvider {
+  return strictProxy<EmailProvider>({
     deleteMessage: overrides?.deleteMessage ?? vi.fn(),
     getMessages: overrides?.getMessages ?? vi.fn(async () => {
       await noopAsync();
@@ -129,7 +129,7 @@ describe('EmailChecker', () => {
 
   describe('checkEmails', () => {
     it('should return early when no email address configured', async () => {
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component } = createMockPluginSettingsComponent({ emailAddress: '' });
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);
@@ -140,21 +140,20 @@ describe('EmailChecker', () => {
     });
 
     it('should show notice when no unseen messages', async () => {
-      const mockManager = createMockMailTmManager({
+      const mockManager = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: '1',
               seen: true,
-              size: 0,
+
               subject: 'Old',
-              to: [],
-              updatedAt: ''
+              to: []
             }
           ];
         })
@@ -171,17 +170,14 @@ describe('EmailChecker', () => {
     it('should delegate to noteCreator.saveEmailAsNote for unseen messages', async () => {
       const unseenMessage = {
         createdAt: '2026-01-01T00:00:00+00:00',
-        downloadUrl: '',
         from: { address: 'sender@example.com', name: 'Sender' },
         hasAttachments: false,
         id: 'msg1',
         seen: false,
-        size: 100,
         subject: 'Test Email',
-        to: [{ address: 'me@mail.tm', name: '' }],
-        updatedAt: '2026-01-01T00:00:00+00:00'
+        to: [{ address: 'me@mail.tm', name: '' }]
       };
-      const mockManager = createMockMailTmManager({
+      const mockManager = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [unseenMessage];
@@ -198,21 +194,20 @@ describe('EmailChecker', () => {
     });
 
     it('should delete message after save when shouldDeleteSeenEmails is enabled', async () => {
-      const mockManager = createMockMailTmManager({
+      const mockManager = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: 'msg1',
               seen: false,
-              size: 0,
+
               subject: 'Test',
-              to: [],
-              updatedAt: ''
+              to: []
             }
           ];
         })
@@ -227,21 +222,20 @@ describe('EmailChecker', () => {
     });
 
     it('should mark message as seen when shouldDeleteSeenEmails is disabled', async () => {
-      const mockManager = createMockMailTmManager({
+      const mockManager = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: 'msg1',
               seen: false,
-              size: 0,
+
               subject: 'Test',
-              to: [],
-              updatedAt: ''
+              to: []
             }
           ];
         })
@@ -259,33 +253,31 @@ describe('EmailChecker', () => {
 
   describe('redownloadEmails', () => {
     it('should redownload all messages regardless of seen status', async () => {
-      const mockManager = createMockMailTmManager({
+      const mockManager = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: 'msg1',
               seen: true,
-              size: 0,
+
               subject: 'Test',
-              to: [],
-              updatedAt: ''
+              to: []
             },
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: 'msg2',
               seen: true,
-              size: 0,
+
               subject: 'Test2',
-              to: [],
-              updatedAt: ''
+              to: []
             }
           ];
         })
@@ -301,33 +293,31 @@ describe('EmailChecker', () => {
     });
 
     it('should limit to count when specified', async () => {
-      const mockManager = createMockMailTmManager({
+      const mockManager = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: 'msg1',
               seen: false,
-              size: 0,
+
               subject: 'Test',
-              to: [],
-              updatedAt: ''
+              to: []
             },
             {
               createdAt: '2026-01-01T00:00:00+00:00',
-              downloadUrl: '',
+
               from: { address: 'a@b.com', name: '' },
               hasAttachments: false,
               id: 'msg2',
               seen: false,
-              size: 0,
+
               subject: 'Test2',
-              to: [],
-              updatedAt: ''
+              to: []
             }
           ];
         })
@@ -345,7 +335,7 @@ describe('EmailChecker', () => {
 
   describe('onload', () => {
     it('should not schedule when interval is 0', () => {
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 0 });
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);
@@ -362,7 +352,7 @@ describe('EmailChecker', () => {
         setInterval: mockSetInterval
       });
 
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);
@@ -374,7 +364,7 @@ describe('EmailChecker', () => {
     });
 
     it('should register saveSettings event listener', () => {
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);
@@ -392,7 +382,7 @@ describe('EmailChecker', () => {
         setInterval: mockSetInterval
       });
 
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);
@@ -415,7 +405,7 @@ describe('EmailChecker', () => {
         setInterval: mockSetInterval
       });
 
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);
@@ -436,7 +426,7 @@ describe('EmailChecker', () => {
         setInterval: vi.fn(() => 1)
       });
 
-      const mockManager = createMockMailTmManager();
+      const mockManager = createMockEmailProvider();
       const { component, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
       const checker = new EmailChecker(component, mockManager, noteCreator);

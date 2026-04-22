@@ -5,10 +5,10 @@ import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
-import type { MailTmManager } from './mail-tm-manager.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { Plugin } from './plugin.ts';
+import type { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
 
 import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 
@@ -16,7 +16,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   public constructor(
     plugin: Plugin,
     pluginSettingsComponent: PluginSettingsComponent,
-    private readonly mailTmManager: MailTmManager,
+    private readonly mailTmManager: MailTmProvider,
     private readonly pluginId: string
   ) {
     super({

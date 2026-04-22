@@ -12,11 +12,11 @@ import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
 import { EmailChecker } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
-import { MailTmDomainManager } from './mail-tm-domain-manager.ts';
-import { MailTmManager } from './mail-tm-manager.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PrismComponent } from './prism-component.ts';
+import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
+import { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
 
 export class Plugin extends PluginBase {
   public constructor(app: App, manifest: PluginManifest) {
@@ -26,7 +26,7 @@ export class Plugin extends PluginBase {
       component: new PluginSettingsComponent(this, this.manifest.id, mailTmDomainManager),
       shouldPreload: true
     });
-    const mailTmManager = this.registerComponent({ component: new MailTmManager(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager) });
+    const mailTmManager = this.registerComponent({ component: new MailTmProvider(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager) });
     const emailNoteCreator = new EmailNoteCreator(this, pluginSettingsComponent, mailTmManager);
     const emailChecker = this.registerComponent({ component: new EmailChecker(pluginSettingsComponent, mailTmManager, emailNoteCreator) });
     this.registerComponent({

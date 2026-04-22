@@ -7,14 +7,14 @@ import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { replaceAll } from 'obsidian-dev-utils/string';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
-import type {
-  MailTmAddress,
-  MailTmManager,
-  MailTmMessage,
-  MailTmMessageFull
-} from './mail-tm-manager.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { Plugin } from './plugin.ts';
+import type {
+  EmailAddress,
+  EmailMessageFull,
+  EmailMessageSummary
+} from './providers/email-provider-types.ts';
+import type { EmailProvider } from './providers/email-provider.ts';
 
 const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW): ?/;
 
@@ -47,12 +47,12 @@ export class EmailNoteCreator {
   public constructor(
     private readonly plugin: Plugin,
     private readonly pluginSettingsComponent: PluginSettingsComponent,
-    private readonly mailTmManager: MailTmManager
+    private readonly emailProvider: EmailProvider
   ) {
   }
 
-  public async saveEmailAsNote(message: MailTmMessage): Promise<void> {
-    const fullMessage = await this.mailTmManager.getMessage(message.id);
+  public async saveEmailAsNote(message: EmailMessageSummary): Promise<void> {
+    const fullMessage = await this.emailProvider.getMessage(message.id);
     const emailData = await this.extractEmailData(fullMessage);
     const basePath = fillTemplate(this.pluginSettingsComponent.settings.emailNotePathTemplate, emailData, true);
     const filePath = this.plugin.app.vault.getAvailablePath(basePath, 'md');
@@ -67,8 +67,8 @@ export class EmailNoteCreator {
     await this.plugin.app.vault.create(filePath, content);
   }
 
-  private async downloadAttachments(fullMessage: MailTmMessageFull, notePath: string): Promise<DownloadAttachmentsResult> {
-    const attachments = fullMessage.attachments ?? [];
+  private async downloadAttachments(fullMessage: EmailMessageFull, notePath: string): Promise<DownloadAttachmentsResult> {
+    const attachments = fullMessage.attachments;
     if (attachments.length === 0) {
       return { attachmentLinks: '', savedAttachments: new Map() };
     }
@@ -76,7 +76,7 @@ export class EmailNoteCreator {
     const links: string[] = [];
     const savedAttachments = new Map<string, string>();
     for (const attachment of attachments) {
-      const data = await this.mailTmManager.downloadAttachment(fullMessage.id, attachment.id);
+      const data = await this.emailProvider.downloadAttachment(fullMessage.id, attachment.id);
       const attachmentPath = await this.plugin.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
       await this.plugin.app.vault.createBinary(attachmentPath, data);
       const filename = extractFilename(attachmentPath);
@@ -99,7 +99,7 @@ export class EmailNoteCreator {
     }
   }
 
-  private async extractEmailData(fullMessage: MailTmMessageFull): Promise<EmailData> {
+  private async extractEmailData(fullMessage: EmailMessageFull): Promise<EmailData> {
     const fromFormatted = formatAddress(fullMessage.from);
     const toFormatted = formatAddresses(fullMessage.to);
     const ccFormatted = formatAddresses(fullMessage.cc);
@@ -119,9 +119,9 @@ export class EmailNoteCreator {
     };
 
     if (this.pluginSettingsComponent.settings.shouldExtractForwardedEmail) {
-      const rfc822Attachment = (fullMessage.attachments ?? []).find((a) => a.contentType === 'message/rfc822');
+      const rfc822Attachment = fullMessage.attachments.find((a) => a.contentType === 'message/rfc822');
       if (rfc822Attachment) {
-        const attachmentData = await this.mailTmManager.downloadAttachment(fullMessage.id, rfc822Attachment.id);
+        const attachmentData = await this.emailProvider.downloadAttachment(fullMessage.id, rfc822Attachment.id);
         const emlContent = new TextDecoder().decode(attachmentData);
         return extractEmailFromRfc822(emlContent);
       }
@@ -157,7 +157,7 @@ interface SanitizeOptions {
   shouldStripHiddenElements: boolean;
 }
 
-function extractBody(fullMessage: MailTmMessageFull, options: SanitizeOptions): ExtractBodyResult {
+function extractBody(fullMessage: EmailMessageFull, options: SanitizeOptions): ExtractBodyResult {
   const html = fullMessage.html.join('');
   if (html) {
     try {
@@ -229,13 +229,13 @@ function extractHeaderValue(text: string, pattern: RegExp, fallback: string): st
   return stripMarkdownFormatting(raw.trim());
 }
 
-function formatAddress(address: MailTmAddress): string {
+function formatAddress(address: EmailAddress): string {
   return address.name
     ? `${address.name} <${address.address}>`
     : address.address;
 }
 
-function formatAddresses(addresses: MailTmAddress[]): string {
+function formatAddresses(addresses: EmailAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
 }
 

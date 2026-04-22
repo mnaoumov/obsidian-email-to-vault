@@ -10,6 +10,10 @@ import {
   it
 } from 'vitest';
 
+import {
+  generatePassword,
+  generateUsername
+} from '../../string-generators.ts';
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 import {
   mailTmAccountResponseSchema,
@@ -18,10 +22,6 @@ import {
   mailTmMessagesResponseSchema,
   mailTmTokenResponseSchema
 } from './mail-tm-schemas.ts';
-import {
-  generatePassword,
-  generateUsername
-} from './string-generators.ts';
 
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;

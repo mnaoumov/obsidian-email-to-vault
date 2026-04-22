@@ -5,15 +5,15 @@ import {
 import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
-import type { MailTmManager } from './mail-tm-manager.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
+import type { EmailProvider } from './providers/email-provider.ts';
 
 export class EmailChecker extends Component {
   private intervalId: null | number = null;
 
   public constructor(
     private readonly pluginSettingsComponent: PluginSettingsComponent,
-    private readonly mailTmManager: MailTmManager,
+    private readonly emailProvider: EmailProvider,
     private readonly noteCreator: EmailNoteCreator
   ) {
     super();
@@ -27,7 +27,7 @@ export class EmailChecker extends Component {
 
     new Notice('Checking emails...');
 
-    const messages = await this.mailTmManager.getMessages();
+    const messages = await this.emailProvider.getMessages();
     const unseenMessages = messages.filter((m) => !m.seen);
 
     if (unseenMessages.length === 0) {
@@ -38,9 +38,9 @@ export class EmailChecker extends Component {
     for (const message of unseenMessages) {
       await this.noteCreator.saveEmailAsNote(message);
       if (this.pluginSettingsComponent.settings.shouldDeleteSeenEmails) {
-        await this.mailTmManager.deleteMessage(message.id);
+        await this.emailProvider.deleteMessage(message.id);
       } else {
-        await this.mailTmManager.markMessageAsSeen(message.id);
+        await this.emailProvider.markMessageAsSeen(message.id);
       }
     }
 
@@ -61,7 +61,7 @@ export class EmailChecker extends Component {
   }
 
   public async redownloadEmails(count?: number): Promise<void> {
-    const messages = await this.mailTmManager.getMessages();
+    const messages = await this.emailProvider.getMessages();
     const toProcess = count ? messages.slice(0, count) : messages;
     for (const message of toProcess) {
       await this.noteCreator.saveEmailAsNote(message);
