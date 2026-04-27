@@ -1,6 +1,7 @@
 import type {
   FetchMessageObject,
   MailboxLockObject,
+  MessageAddressObject,
   MessageStructureObject
 } from 'imapflow';
 import type { App } from 'obsidian';
