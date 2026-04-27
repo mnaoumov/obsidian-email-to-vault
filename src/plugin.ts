@@ -21,25 +21,15 @@ import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.
 export class Plugin extends PluginBase {
   public constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
-    const mailTmDomainManager = this.registerComponent({ component: new MailTmDomainManager() });
-    const pluginSettingsComponent = this.registerComponent({
-      component: new PluginSettingsComponent(this, this.manifest.id, mailTmDomainManager),
-      shouldPreload: true
-    });
-    const emailProviderManager = this.registerComponent({
-      component: new EmailProviderManager(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager)
-    });
+    const mailTmDomainManager = this.addChild(new MailTmDomainManager());
+    const pluginSettingsComponent = this.addChild(new PluginSettingsComponent(this, this.manifest.id, mailTmDomainManager));
+    const emailProviderManager = this.addChild(new EmailProviderManager(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager));
     const emailNoteCreator = new EmailNoteCreator(this, pluginSettingsComponent, emailProviderManager);
-    const emailChecker = this.registerComponent({ component: new EmailChecker(pluginSettingsComponent, emailProviderManager, emailNoteCreator) });
-    this.registerComponent({
-      component: new PluginSettingsTabComponent(this, new PluginSettingsTab(this, pluginSettingsComponent, emailProviderManager, this.manifest.id)),
-      shouldPreload: true
-    });
-    this.registerComponent({ component: new PrismComponent() });
-    this.registerComponent({ component: new CommandHandlerComponent(this, new CheckEmailsCommandHandler(this.manifest.name, emailChecker)) });
-    this.registerComponent({ component: new CommandHandlerComponent(this, new RedownloadAllEmailsCommandHandler(this.manifest.name, emailChecker)) });
-    this.registerComponent({
-      component: new CommandHandlerComponent(this, new RedownloadRecentEmailsCommandHandler(this.app, this.manifest.name, emailChecker))
-    });
+    const emailChecker = this.addChild(new EmailChecker(pluginSettingsComponent, emailProviderManager, emailNoteCreator));
+    this.addChild(new PluginSettingsTabComponent(this, new PluginSettingsTab(this, pluginSettingsComponent, emailProviderManager, this.manifest.id)));
+    this.addChild(new PrismComponent());
+    this.addChild(new CommandHandlerComponent(this, new CheckEmailsCommandHandler(this.manifest.name, emailChecker)));
+    this.addChild(new CommandHandlerComponent(this, new RedownloadAllEmailsCommandHandler(this.manifest.name, emailChecker)));
+    this.addChild(new CommandHandlerComponent(this, new RedownloadRecentEmailsCommandHandler(this.app, this.manifest.name, emailChecker)));
   }
 }

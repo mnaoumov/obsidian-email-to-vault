@@ -2,9 +2,7 @@ import type {
   App,
   PluginManifest
 } from 'obsidian';
-import type { RegisterComponentParams } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
-import { noop } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -27,21 +25,17 @@ import { EmailProviderManager } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 const mocks = vi.hoisted(() => ({
-  mockRegisterComponent: vi.fn()
+  mockAddChild: vi.fn(<T>(child: T): T => child)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/plugin/plugin', () => ({
   PluginBase: class MockPluginBase {
+    public addChild = mocks.mockAddChild;
     public app: unknown;
     public manifest: unknown;
-    public registerComponent = mocks.mockRegisterComponent;
     public constructor(app: unknown, manifest: unknown) {
       this.app = app;
       this.manifest = manifest;
-    }
-
-    public addChild(): void {
-      noop();
     }
   }
 }));
@@ -114,7 +108,6 @@ describe('Plugin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.mockRegisterComponent.mockImplementation((params: RegisterComponentParams) => params.component);
   });
 
   describe('constructor', () => {
@@ -210,20 +203,35 @@ describe('Plugin', () => {
       );
     });
 
-    it('should register PluginSettingsComponent with shouldPreload', () => {
+    it('should add MailTmDomainManager as child', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(mocks.mockRegisterComponent).toHaveBeenCalledWith({
-        component: MockPluginSettingsComponent.mock.instances[0],
-        shouldPreload: true
-      });
+      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockMailTmDomainManager.mock.instances[0]);
     });
 
-    it('should register all components', () => {
+    it('should add PluginSettingsComponent as child', () => {
       new Plugin(mockApp, mockManifest);
 
-      const EXPECTED_REGISTER_COMPONENT_CALLS = 9;
-      expect(mocks.mockRegisterComponent).toHaveBeenCalledTimes(EXPECTED_REGISTER_COMPONENT_CALLS);
+      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockPluginSettingsComponent.mock.instances[0]);
+    });
+
+    it('should add EmailProviderManager as child', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockEmailProviderManager.mock.instances[0]);
+    });
+
+    it('should add EmailChecker as child', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockEmailChecker.mock.instances[0]);
+    });
+
+    it('should add all children', () => {
+      new Plugin(mockApp, mockManifest);
+
+      const EXPECTED_ADD_CHILD_CALLS = 9;
+      expect(mocks.mockAddChild).toHaveBeenCalledTimes(EXPECTED_ADD_CHILD_CALLS);
     });
   });
 });

@@ -1,12 +1,5 @@
-import type {
-  FetchMessageObject,
-  ImapFlowOptions,
-  MessageAddressObject,
-  MessageStructureObject
-} from 'imapflow';
 import type { App } from 'obsidian';
 
-import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import {
   Component,
@@ -22,6 +15,15 @@ import type {
   EmailMessageSummary
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
+import type {
+  FetchMessageObject,
+  ImapFlowOptions,
+  ImapFlowWrapper,
+  MessageAddressObject,
+  MessageStructureObject
+} from './imapflow-wrapper.ts';
+
+import { buildImapFlowWrapper } from './imapflow-wrapper-factory.ts';
 
 const IMAP_NOT_AVAILABLE_ON_MOBILE = 'IMAP is not available on mobile devices';
 
@@ -134,7 +136,7 @@ export class ImapProvider extends Component implements EmailProvider {
     return true;
   }
 
-  private async withConnection<T>(callback: (client: ImapFlow) => Promise<T>): Promise<T> {
+  private async withConnection<T>(callback: (client: ImapFlowWrapper) => Promise<T>): Promise<T> {
     const settings = this.pluginSettingsComponent.settings;
     const password = this.app.secretStorage.getSecret(settings.emailPasswordSecretKey);
 
@@ -152,7 +154,7 @@ export class ImapProvider extends Component implements EmailProvider {
       port: settings.imapPort,
       secure: settings.imapTls
     };
-    const client = new ImapFlow(options);
+    const client = await buildImapFlowWrapper(options);
 
     await client.connect();
     try {

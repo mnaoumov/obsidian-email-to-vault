@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 const SHARED_EXCLUDE = ['node_modules', 'dist'];
 const INTEGRATION_TEST_FILES = 'src/**/*.integration.test.ts';
+const ANDROID_INTEGRATION_TEST_FILES = 'src/**/*.android.integration.test.ts';
 const BIG_TIMEOUT_IN_MILLISECONDS = 30_000;
 const HOOK_TIMEOUT_MULTIPLIER = 4;
 
@@ -40,11 +41,32 @@ export const config = defineConfig({
       {
         test: {
           environment: 'node',
+          exclude: [ANDROID_INTEGRATION_TEST_FILES],
           fileParallelism: false,
+          globalSetup: ['obsidian-integration-testing/vitest-global-setup'],
           hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,
           include: [INTEGRATION_TEST_FILES],
-          name: 'integration-tests',
+          name: 'integration-tests:desktop',
           setupFiles: ['./scripts/load-env-file.ts', './scripts/setup-obsidian-globals.ts'],
+          testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
+        }
+      },
+      {
+        test: {
+          environment: 'node',
+          environmentOptions: {
+            obsidianTransport: {
+              appiumUrl: 'http://localhost:4723',
+              avdName: 'obsidian_test',
+              deviceId: 'emulator-5554',
+              type: 'obsidian-android-appium'
+            }
+          },
+          fileParallelism: false,
+          globalSetup: ['obsidian-integration-testing/vitest-global-setup'],
+          hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,
+          include: [ANDROID_INTEGRATION_TEST_FILES],
+          name: 'integration-tests:android',
           testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
         }
       }

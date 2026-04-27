@@ -2,6 +2,7 @@ import {
   Component,
   Notice
 } from 'obsidian';
+import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
@@ -78,7 +79,7 @@ export class EmailChecker extends Component {
 
   private scheduleCheckEmails(): void {
     if (this.intervalId !== null) {
-      activeWindow.clearInterval(this.intervalId);
+      window.clearInterval(this.intervalId);
       this.intervalId = null;
     }
 
@@ -86,6 +87,8 @@ export class EmailChecker extends Component {
     if (checkIntervalInMilliseconds === 0) {
       return;
     }
-    this.intervalId = this.pluginSettingsComponent.registerInterval(activeWindow.setInterval(this.checkEmails.bind(this), checkIntervalInMilliseconds));
+    this.intervalId = this.pluginSettingsComponent.registerInterval(
+      window.setInterval(convertAsyncToSync(this.checkEmails.bind(this)), checkIntervalInMilliseconds)
+    );
   }
 }

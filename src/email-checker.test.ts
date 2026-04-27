@@ -35,7 +35,7 @@ vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => (
 
 const mockNotice = vi.mocked(Notice);
 
-vi.stubGlobal('activeWindow', {
+vi.stubGlobal('window', {
   clearInterval: vi.fn(),
   setInterval: vi.fn(() => 0)
 });
@@ -87,7 +87,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
     on: vi.fn((_name: string, callback: (...args: unknown[]) => unknown) => {
       saveSettingsCallback = castTo<SaveSettingsCallback>(callback);
       return strictProxy<AsyncEventRef>({
-        asyncEvents: {} as AsyncEventRef['asyncEvents'],
+        asyncEvents: {},
         callback: vi.fn()
       });
     }) as PluginSettingsComponent['on'],
@@ -124,7 +124,7 @@ function createSettingsState(intervalInMinutes: number): ReadonlyPluginSettingsS
 describe('EmailChecker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(activeWindow.setInterval).mockReturnValue(0);
+    vi.mocked(window.setInterval).mockReturnValue(0);
   });
 
   describe('checkEmails', () => {
@@ -347,7 +347,7 @@ describe('EmailChecker', () => {
 
     it('should schedule with correct interval', () => {
       const mockSetInterval = vi.fn(() => 42);
-      vi.stubGlobal('activeWindow', {
+      vi.stubGlobal('window', {
         clearInterval: vi.fn(),
         setInterval: mockSetInterval
       });
@@ -377,7 +377,7 @@ describe('EmailChecker', () => {
     it('should reschedule when emailCheckIntervalInMinutes changes', () => {
       const mockClearInterval = vi.fn();
       const mockSetInterval = vi.fn(() => 1);
-      vi.stubGlobal('activeWindow', {
+      vi.stubGlobal('window', {
         clearInterval: mockClearInterval,
         setInterval: mockSetInterval
       });
@@ -400,7 +400,7 @@ describe('EmailChecker', () => {
 
     it('should not reschedule when emailCheckIntervalInMinutes does not change', () => {
       const mockSetInterval = vi.fn(() => 1);
-      vi.stubGlobal('activeWindow', {
+      vi.stubGlobal('window', {
         clearInterval: vi.fn(),
         setInterval: mockSetInterval
       });
@@ -421,7 +421,7 @@ describe('EmailChecker', () => {
 
     it('should clear previous interval before scheduling new one', () => {
       const mockClearInterval = vi.fn();
-      vi.stubGlobal('activeWindow', {
+      vi.stubGlobal('window', {
         clearInterval: mockClearInterval,
         setInterval: vi.fn(() => 1)
       });

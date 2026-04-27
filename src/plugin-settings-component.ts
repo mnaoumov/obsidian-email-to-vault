@@ -1,4 +1,4 @@
-import type { PluginSettingsComponentParams } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
+import type { PluginSettingsComponentConstructorParams } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
 import type { MaybeReturn } from 'obsidian-dev-utils/type';
 
 import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
@@ -9,7 +9,11 @@ import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
 export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginSettings> {
-  public constructor(params: PluginSettingsComponentParams, private readonly pluginId: string, private readonly mailTmDomainManager: MailTmDomainManager) {
+  public constructor(
+    params: PluginSettingsComponentConstructorParams,
+    private readonly pluginId: string,
+    private readonly mailTmDomainManager: MailTmDomainManager
+  ) {
     super(params);
   }
 

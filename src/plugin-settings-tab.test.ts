@@ -44,7 +44,8 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab', () => ({
   PluginSettingsTabBase: class MockPluginSettingsTabBase {
     public app: unknown;
     public bind = vi.fn();
-    public containerEl = activeDocument.createElement('div');
+
+    public containerEl = activeDocument.createDiv();
     public plugin: Plugin;
     public pluginSettingsComponent: PluginSettingsComponent;
     public constructor(params: MockPluginSettingsTabBaseParams) {
@@ -495,6 +496,20 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(writeTextFn).not.toHaveBeenCalled();
+    });
+
+    it('should show empty password when secret storage returns null for IMAP', () => {
+      const plugin = createMockPlugin();
+      vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
+      const settingsComponent = createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap });
+      const manager = createMockEmailProviderManager();
+      vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
+      const tab = new PluginSettingsTab(plugin, settingsComponent, manager, 'email-to-vault');
+      tab.display();
+
+      const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
+      const setValueMock = ensureNonNullable(passwordComponent['setValue']);
+      expect(setValueMock).toHaveBeenCalledWith('');
     });
 
     it('should save IMAP password to secret storage on entry', async () => {

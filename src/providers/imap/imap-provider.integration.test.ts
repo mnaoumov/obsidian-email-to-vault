@@ -76,7 +76,7 @@ async function pollForMessage(subject: string): Promise<number> {
         }
 
         await new Promise((resolve) => {
-          activeWindow.setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
+          window.setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
         });
       }
     } finally {

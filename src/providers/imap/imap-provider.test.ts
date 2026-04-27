@@ -1,8 +1,3 @@
-import type {
-  FetchMessageObject,
-  MailboxLockObject,
-  MessageStructureObject
-} from 'imapflow';
 import type { App } from 'obsidian';
 
 import {
@@ -21,7 +16,11 @@ import {
 } from 'vitest';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
-import type { PluginSettings } from '../../plugin-settings.ts';
+import type {
+  FetchMessageObject,
+  MailboxLockObject,
+  MessageStructureObject
+} from './imapflow-wrapper.ts';
 
 import { ImapProvider } from './imap-provider.ts';
 
@@ -174,7 +173,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
       imapMailbox: overrides?.imapMailbox ?? 'INBOX',
       imapPort: overrides?.imapPort ?? 993,
       imapTls: overrides?.imapTls ?? true
-    } as PluginSettings
+    }
   });
 }
 
@@ -316,6 +315,38 @@ describe('ImapProvider', () => {
       expect(result[0]?.hasAttachments).toBe(false);
     });
 
+    it('should handle messages with missing envelope fields', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage();
+      delete msg.envelope;
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]).toEqual({
+        createdAt: '',
+        from: { address: '', name: '' },
+        hasAttachments: false,
+        id: '42',
+        seen: false,
+        subject: '',
+        to: []
+      });
+    });
+
+    it('should handle messages with missing flags', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage();
+      delete msg.flags;
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.seen).toBe(false);
+    });
+
     it('should return empty array on mobile', async () => {
       Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
 
@@ -406,6 +437,47 @@ describe('ImapProvider', () => {
       expect(result.attachments).toEqual([]);
     });
 
+    it('should use parameters name when dispositionParameters filename is missing', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage({
+        bodyStructure: {
+          childNodes: [{
+            disposition: 'attachment',
+            parameters: { name: 'from-params.txt' },
+            part: '2',
+            type: 'text/plain'
+          }],
+          type: 'multipart/mixed'
+        },
+        source: Buffer.from('raw')
+      });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.attachments[0]?.filename).toBe('from-params.txt');
+    });
+
+    it('should use default attachment filename when no filename available', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage({
+        bodyStructure: {
+          childNodes: [{
+            disposition: 'attachment',
+            part: '2',
+            type: 'application/octet-stream'
+          }],
+          type: 'multipart/mixed'
+        },
+        source: Buffer.from('raw')
+      });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.attachments[0]?.filename).toBe('attachment');
+    });
+
     it('should return empty message on mobile', async () => {
       Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
 
@@ -427,6 +499,55 @@ describe('ImapProvider', () => {
 
       expect(result.html).toEqual([]);
       expect(result.text).toBe('Plain text');
+    });
+
+    it('should handle undefined parsed text', async () => {
+      mocks.mockSimpleParser.mockResolvedValue({ html: '<p>Hello</p>' });
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.text).toBe('');
+    });
+
+    it('should handle missing source with empty buffer', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage();
+      delete msg.source;
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+
+      const result = await provider.getMessage('42');
+
+      expect(mocks.mockSimpleParser).toHaveBeenCalledWith(Buffer.alloc(0));
+      expect(result.id).toBe('42');
+    });
+
+    it('should handle missing envelope fields', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
+      delete msg.envelope;
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.createdAt).toBe('');
+      expect(result.from).toEqual({ address: '', name: '' });
+      expect(result.subject).toBe('');
+      expect(result.cc).toEqual([]);
+      expect(result.to).toEqual([]);
+    });
+
+    it('should handle missing seen flag', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
+      delete msg.flags;
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.seen).toBe(false);
     });
   });
 

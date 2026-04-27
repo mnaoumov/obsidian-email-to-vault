@@ -38,8 +38,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
       case EmailProviderType.MailTm:
         this.displayMailTmSettings();
         break;
+      /* v8 ignore start -- exhaustive switch guard for future enum values. */
       default:
         break;
+        /* v8 ignore stop */
     }
 
     new SettingGroupEx(this.containerEl)
