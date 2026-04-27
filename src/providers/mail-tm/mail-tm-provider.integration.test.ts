@@ -88,7 +88,8 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
     }
 
     await new Promise((resolve) => {
-      window.setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
+      // eslint-disable-next-line obsidianmd/prefer-window-timers -- Integration test uses Node.js setTimeout.
+      setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
     });
   }
 
