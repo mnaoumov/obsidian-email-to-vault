@@ -161,12 +161,12 @@ describe('Plugin', () => {
     it('should create PluginSettingsTab with plugin, settings component, provider manager, and manifest id', () => {
       const plugin = new Plugin(mockApp, mockManifest);
 
-      expect(MockPluginSettingsTab).toHaveBeenCalledWith(
+      expect(MockPluginSettingsTab).toHaveBeenCalledWith({
+        emailProviderManager: MockEmailProviderManager.mock.instances[0],
         plugin,
-        MockPluginSettingsComponent.mock.instances[0],
-        MockEmailProviderManager.mock.instances[0],
-        'email-to-vault'
-      );
+        pluginId: 'email-to-vault',
+        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+      });
     });
 
     it('should create PrismComponent', () => {
