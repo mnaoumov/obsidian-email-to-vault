@@ -11,6 +11,7 @@ export const configs: Linter.Config[] = defineEslintConfigs({
           'obsidianmd/ui/sentence-case': [
             'error',
             {
+              acronyms: ['HTML', 'IMAP', 'TLS', 'SSL'],
               brands: ['mail.tm']
             }
           ]

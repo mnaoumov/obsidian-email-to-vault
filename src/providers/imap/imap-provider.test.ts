@@ -1,11 +1,7 @@
 import type { App } from 'obsidian';
 
-import {
-  Notice,
-  Platform
-} from 'obsidian';
+import { Platform } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
-import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -17,612 +13,202 @@ import {
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
-  FetchMessageObject,
-  MailboxLockObject,
-  MessageStructureObject
-} from './imapflow-wrapper.ts';
+  EmailMessageFull,
+  EmailMessageSummary
+} from '../email-provider-types.ts';
+import type { EmailProvider } from '../email-provider.ts';
 
 import { ImapProvider } from './imap-provider.ts';
+
+const mocks = vi.hoisted(() => ({
+  mockDesktopProvider: {
+    deleteMessage: vi.fn(async () => noopAsync()),
+    downloadAttachment: vi.fn(async () => {
+      await noopAsync();
+      return new ArrayBuffer(0);
+    }),
+    getMessage: vi.fn(async (): Promise<EmailMessageFull> => {
+      await noopAsync();
+      return {
+        attachments: [],
+        cc: [],
+        createdAt: '',
+        from: { address: '', name: '' },
+        hasAttachments: false,
+        html: [],
+        id: '1',
+        seen: false,
+        subject: 'Desktop Message',
+        text: '',
+        to: []
+      };
+    }),
+    getMessages: vi.fn(async (): Promise<EmailMessageSummary[]> => {
+      await noopAsync();
+      return [];
+    }),
+    markMessageAsSeen: vi.fn(async () => noopAsync())
+  } satisfies EmailProvider,
+  mockMobileProvider: {
+    deleteMessage: vi.fn(async () => noopAsync()),
+    downloadAttachment: vi.fn(async () => {
+      await noopAsync();
+      return new ArrayBuffer(0);
+    }),
+    getMessage: vi.fn(async (): Promise<EmailMessageFull> => {
+      await noopAsync();
+      return {
+        attachments: [],
+        cc: [],
+        createdAt: '',
+        from: { address: '', name: '' },
+        hasAttachments: false,
+        html: [],
+        id: '1',
+        seen: false,
+        subject: 'Mobile Message',
+        text: '',
+        to: []
+      };
+    }),
+    getMessages: vi.fn(async (): Promise<EmailMessageSummary[]> => {
+      await noopAsync();
+      return [];
+    }),
+    markMessageAsSeen: vi.fn(async () => noopAsync())
+  } satisfies EmailProvider
+}));
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   return {
     ...original,
-    Component: class MockComponent {
-      public onload(): void {
-        // Noop
-      }
-    },
-    Notice: vi.fn(),
     Platform: { isDesktop: true }
   };
 });
 
-const mocks = vi.hoisted(() => ({
-  mockClientDefaults: {
-    connect: vi.fn(async () => noopAsync()),
-    download: vi.fn(async () => {
+vi.mock('obsidian-dev-utils/obsidian/components/async-component', () => ({
+  AsyncComponentBase: class MockAsyncComponentBase {
+    public async onload(): Promise<void> {
       await noopAsync();
-      return {
-        content: {
-          [Symbol.asyncIterator](): AsyncIterableIterator<Buffer> {
-            let isDone = false;
-            return {
-              async next(): Promise<IteratorResult<Buffer>> {
-                await noopAsync();
-                if (!isDone) {
-                  isDone = true;
-                  return { done: false, value: Buffer.from('attachment-data') };
-                }
-                return { done: true, value: undefined };
-              },
-              [Symbol.asyncIterator](): AsyncIterableIterator<Buffer> {
-                return this;
-              }
-            };
-          }
-        },
-        meta: { contentType: 'application/octet-stream', expectedSize: 0 }
-      };
-    }),
-    fetch: vi.fn((): AsyncIterableIterator<FetchMessageObject> => {
-      return {
-        async next(): Promise<IteratorResult<FetchMessageObject>> {
-          await noopAsync();
-          return { done: true, value: undefined };
-        },
-        [Symbol.asyncIterator](): AsyncIterableIterator<FetchMessageObject> {
-          return this;
-        }
-      };
-    }),
-    fetchOne: vi.fn(async (): Promise<false | FetchMessageObject> => {
-      await noopAsync();
-      return false;
-    }),
-    getMailboxLock: vi.fn(async () => {
-      await noopAsync();
-      return { path: 'INBOX', release: vi.fn() } satisfies MailboxLockObject;
-    }),
-    logout: vi.fn(async () => noopAsync()),
-    messageDelete: vi.fn(async () => {
-      await noopAsync();
-      return true;
-    }),
-    messageFlagsAdd: vi.fn(async () => {
-      await noopAsync();
-      return true;
-    })
-  },
-  mockLatestClient: null as null | Record<string, ReturnType<typeof vi.fn>>,
-  mockSimpleParser: vi.fn()
-}));
-
-vi.mock('imapflow', () => {
-  class MockImapFlow {
-    public connect: ReturnType<typeof vi.fn>;
-    public download: ReturnType<typeof vi.fn>;
-    public fetch: ReturnType<typeof vi.fn>;
-    public fetchOne: ReturnType<typeof vi.fn>;
-    public getMailboxLock: ReturnType<typeof vi.fn>;
-    public logout: ReturnType<typeof vi.fn>;
-    public messageDelete: ReturnType<typeof vi.fn>;
-    public messageFlagsAdd: ReturnType<typeof vi.fn>;
-
-    public constructor() {
-      this.connect = mocks.mockClientDefaults.connect;
-      this.download = mocks.mockClientDefaults.download;
-      this.fetch = mocks.mockClientDefaults.fetch;
-      this.fetchOne = mocks.mockClientDefaults.fetchOne;
-      this.getMailboxLock = mocks.mockClientDefaults.getMailboxLock;
-      this.logout = mocks.mockClientDefaults.logout;
-      this.messageDelete = mocks.mockClientDefaults.messageDelete;
-      this.messageFlagsAdd = mocks.mockClientDefaults.messageFlagsAdd;
-      mocks.mockLatestClient = castTo<Record<string, ReturnType<typeof vi.fn>>>(this);
     }
   }
-  return { ImapFlow: MockImapFlow };
+}));
+
+vi.mock('./imap-provider-desktop.ts', () => {
+  return {
+    ImapProviderDesktop: class MockImapProviderDesktop {
+      public deleteMessage = mocks.mockDesktopProvider.deleteMessage;
+      public downloadAttachment = mocks.mockDesktopProvider.downloadAttachment;
+      public getMessage = mocks.mockDesktopProvider.getMessage;
+      public getMessages = mocks.mockDesktopProvider.getMessages;
+      public markMessageAsSeen = mocks.mockDesktopProvider.markMessageAsSeen;
+    }
+  };
 });
 
-vi.mock('mailparser', () => ({
-  simpleParser: mocks.mockSimpleParser
-}));
-
-interface MockPluginSettingsComponentOverrides {
-  emailAddress?: string;
-  emailPasswordSecretKey?: string;
-  imapHost?: string;
-  imapMailbox?: string;
-  imapPort?: number;
-  imapTls?: boolean;
-}
-
-function createAsyncIterable<T>(items: T[]): AsyncIterableIterator<T> {
-  let index = 0;
+vi.mock('./imap-provider-mobile.ts', () => {
   return {
-    async next(): Promise<IteratorResult<T>> {
-      await noopAsync();
-      if (index < items.length) {
-        const item = items[index];
-        index++;
-        return { done: false, value: item as T };
-      }
-      return { done: true, value: undefined };
-    },
-    [Symbol.asyncIterator](): AsyncIterableIterator<T> {
-      return this;
+    ImapProviderMobile: class MockImapProviderMobile {
+      public deleteMessage = mocks.mockMobileProvider.deleteMessage;
+      public downloadAttachment = mocks.mockMobileProvider.downloadAttachment;
+      public getMessage = mocks.mockMobileProvider.getMessage;
+      public getMessages = mocks.mockMobileProvider.getMessages;
+      public markMessageAsSeen = mocks.mockMobileProvider.markMessageAsSeen;
     }
   };
+});
+
+function createMockApp(): App {
+  return strictProxy<App>({});
 }
 
-function createMockApp(password: null | string = 'test-password'): App {
-  return strictProxy<App>({
-    secretStorage: {
-      getSecret: vi.fn(() => password),
-      setSecret: vi.fn()
-    }
-  });
-}
-
-function createMockPluginSettingsComponent(overrides?: MockPluginSettingsComponentOverrides): PluginSettingsComponent {
-  return strictProxy<PluginSettingsComponent>({
-    settings: {
-      emailAddress: overrides?.emailAddress ?? 'user@example.com',
-      emailPasswordSecretKey: overrides?.emailPasswordSecretKey ?? 'test-key',
-      imapHost: overrides?.imapHost ?? 'imap.example.com',
-      imapMailbox: overrides?.imapMailbox ?? 'INBOX',
-      imapPort: overrides?.imapPort ?? 993,
-      imapTls: overrides?.imapTls ?? true
-    }
-  });
-}
-
-function createSampleFetchMessage(overrides?: Partial<FetchMessageObject>): FetchMessageObject {
-  return {
-    bodyStructure: {
-      childNodes: [
-        { part: '1', type: 'text/plain' },
-        { part: '2', type: 'text/html' }
-      ],
-      type: 'multipart/mixed'
-    },
-    envelope: {
-      cc: [{ address: 'cc@example.com', name: 'CC' }],
-      date: new Date('2026-01-15T10:00:00Z'),
-      from: [{ address: 'sender@example.com', name: 'Sender' }],
-      subject: 'Test Email',
-      to: [{ address: 'recipient@example.com', name: 'Recipient' }]
-    },
-    flags: new Set<string>(),
-    seq: 1,
-    uid: 42,
-    ...overrides
-  };
-}
-
-function createSampleFetchMessageWithAttachment(): FetchMessageObject {
-  const bodyStructure: MessageStructureObject = {
-    childNodes: [
-      { part: '1', type: 'text/plain' },
-      {
-        disposition: 'attachment',
-        dispositionParameters: { filename: 'test.pdf' },
-        part: '2',
-        type: 'application/pdf'
-      }
-    ],
-    type: 'multipart/mixed'
-  };
-  return createSampleFetchMessage({ bodyStructure });
-}
-
-function createSampleFetchMessageWithoutBodyStructure(source?: Buffer): FetchMessageObject {
-  const msg = createSampleFetchMessage();
-  delete msg.bodyStructure;
-  if (source) {
-    msg.source = source;
-  }
-  return msg;
+function createMockPluginSettingsComponent(): PluginSettingsComponent {
+  return strictProxy<PluginSettingsComponent>({});
 }
 
 describe('ImapProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.mockLatestClient = null;
-    mocks.mockSimpleParser.mockResolvedValue({
-      html: '<p>Hello</p>',
-      text: 'Hello'
-    });
-    mocks.mockClientDefaults.getMailboxLock.mockResolvedValue(
-      {
-        path: 'INBOX',
-        release: vi.fn()
-      } satisfies MailboxLockObject
-    );
-    mocks.mockClientDefaults.fetch.mockReturnValue({
-      async next(): Promise<IteratorResult<FetchMessageObject>> {
-        await noopAsync();
-        return { done: true, value: undefined };
-      },
-      [Symbol.asyncIterator](): AsyncIterableIterator<FetchMessageObject> {
-        return this;
-      }
-    });
-    mocks.mockClientDefaults.fetchOne.mockResolvedValue(false);
-
     Object.defineProperty(Platform, 'isDesktop', { value: true, writable: true });
   });
 
-  describe('getMessages', () => {
-    it('should return empty array when no messages', async () => {
+  describe('onload', () => {
+    it('should create desktop provider when on desktop', async () => {
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
 
+      await provider.onload();
       const result = await provider.getMessages();
 
       expect(result).toEqual([]);
+      expect(mocks.mockDesktopProvider.getMessages).toHaveBeenCalledOnce();
     });
 
-    it('should return mapped message summaries', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage();
-
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
-
-      const result = await provider.getMessages();
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        createdAt: '2026-01-15T10:00:00.000Z',
-        from: { address: 'sender@example.com', name: 'Sender' },
-        hasAttachments: false,
-        id: '42',
-        seen: false,
-        subject: 'Test Email',
-        to: [{ address: 'recipient@example.com', name: 'Recipient' }]
-      });
-    });
-
-    it('should detect attachments in body structure', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithAttachment();
-
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
-
-      const result = await provider.getMessages();
-
-      expect(result[0]?.hasAttachments).toBe(true);
-    });
-
-    it('should detect seen flag', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ flags: new Set(['\\Seen']) });
-
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
-
-      const result = await provider.getMessages();
-
-      expect(result[0]?.seen).toBe(true);
-    });
-
-    it('should handle messages without bodyStructure', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithoutBodyStructure();
-
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
-
-      const result = await provider.getMessages();
-
-      expect(result[0]?.hasAttachments).toBe(false);
-    });
-
-    it('should handle messages with missing envelope fields', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage();
-      delete msg.envelope;
-
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
-
-      const result = await provider.getMessages();
-
-      expect(result[0]).toEqual({
-        createdAt: '',
-        from: { address: '', name: '' },
-        hasAttachments: false,
-        id: '42',
-        seen: false,
-        subject: '',
-        to: []
-      });
-    });
-
-    it('should handle messages with missing flags', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage();
-      delete msg.flags;
-
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
-
-      const result = await provider.getMessages();
-
-      expect(result[0]?.seen).toBe(false);
-    });
-
-    it('should return empty array on mobile', async () => {
+    it('should create mobile provider when on mobile', async () => {
       Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
 
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
 
+      await provider.onload();
       const result = await provider.getMessages();
 
       expect(result).toEqual([]);
-      expect(Notice).toHaveBeenCalledWith('IMAP is not available on mobile devices');
-    });
-
-    it('should release lock even on error', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const releaseFn = vi.fn();
-      mocks.mockClientDefaults.getMailboxLock.mockResolvedValue({ path: 'INBOX', release: releaseFn });
-      mocks.mockClientDefaults.fetch.mockImplementation(() => {
-        throw new Error('Fetch failed');
-      });
-
-      await expect(provider.getMessages()).rejects.toThrow('Fetch failed');
-
-      expect(releaseFn).toHaveBeenCalledOnce();
-    });
-
-    it('should logout even on error', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      mocks.mockClientDefaults.getMailboxLock.mockRejectedValue(new Error('Lock failed'));
-
-      await expect(provider.getMessages()).rejects.toThrow('Lock failed');
-
-      expect(mocks.mockLatestClient?.['logout']).toHaveBeenCalledOnce();
+      expect(mocks.mockMobileProvider.getMessages).toHaveBeenCalledOnce();
     });
   });
 
-  describe('getMessage', () => {
-    it('should fetch and parse a full message', async () => {
+  describe('delegation', () => {
+    it('should delegate getMessages to platform provider', async () => {
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw email') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      await provider.onload();
 
-      const result = await provider.getMessage('42');
+      await provider.getMessages();
 
-      expect(result).toEqual({
-        attachments: [],
-        cc: [{ address: 'cc@example.com', name: 'CC' }],
-        createdAt: '2026-01-15T10:00:00.000Z',
-        from: { address: 'sender@example.com', name: 'Sender' },
-        hasAttachments: false,
-        html: ['<p>Hello</p>'],
-        id: '42',
-        seen: false,
-        subject: 'Test Email',
-        text: 'Hello',
-        to: [{ address: 'recipient@example.com', name: 'Recipient' }]
-      });
+      expect(mocks.mockDesktopProvider.getMessages).toHaveBeenCalledOnce();
     });
 
-    it('should throw when message not found', async () => {
+    it('should delegate getMessage to platform provider', async () => {
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(false);
+      await provider.onload();
 
-      await expect(provider.getMessage('999')).rejects.toThrow('Message 999 not found');
+      await provider.getMessage('42');
+
+      expect(mocks.mockDesktopProvider.getMessage).toHaveBeenCalledWith('42');
     });
 
-    it('should collect attachments from body structure', async () => {
+    it('should delegate downloadAttachment to platform provider', async () => {
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithAttachment();
-      msg.source = Buffer.from('raw');
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      await provider.onload();
 
-      const result = await provider.getMessage('42');
+      await provider.downloadAttachment('42', '2');
 
-      expect(result.attachments).toEqual([{
-        contentType: 'application/pdf',
-        filename: 'test.pdf',
-        id: '2'
-      }]);
-      expect(result.hasAttachments).toBe(true);
+      expect(mocks.mockDesktopProvider.downloadAttachment).toHaveBeenCalledWith('42', '2');
     });
 
-    it('should handle message without bodyStructure', async () => {
+    it('should delegate markMessageAsSeen to platform provider', async () => {
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithoutBodyStructure(Buffer.from('raw'));
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.attachments).toEqual([]);
-    });
-
-    it('should use parameters name when dispositionParameters filename is missing', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({
-        bodyStructure: {
-          childNodes: [{
-            disposition: 'attachment',
-            parameters: { name: 'from-params.txt' },
-            part: '2',
-            type: 'text/plain'
-          }],
-          type: 'multipart/mixed'
-        },
-        source: Buffer.from('raw')
-      });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.attachments[0]?.filename).toBe('from-params.txt');
-    });
-
-    it('should use default attachment filename when no filename available', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({
-        bodyStructure: {
-          childNodes: [{
-            disposition: 'attachment',
-            part: '2',
-            type: 'application/octet-stream'
-          }],
-          type: 'multipart/mixed'
-        },
-        source: Buffer.from('raw')
-      });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.attachments[0]?.filename).toBe('attachment');
-    });
-
-    it('should return empty message on mobile', async () => {
-      Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
-
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-
-      const result = await provider.getMessage('42');
-
-      expect(result.id).toBe('42');
-      expect(result.text).toBe('');
-    });
-
-    it('should handle empty html in parsed result', async () => {
-      mocks.mockSimpleParser.mockResolvedValue({ html: false, text: 'Plain text' });
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.html).toEqual([]);
-      expect(result.text).toBe('Plain text');
-    });
-
-    it('should handle undefined parsed text', async () => {
-      mocks.mockSimpleParser.mockResolvedValue({ html: '<p>Hello</p>' });
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.text).toBe('');
-    });
-
-    it('should handle missing source with empty buffer', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage();
-      delete msg.source;
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(mocks.mockSimpleParser).toHaveBeenCalledWith(Buffer.alloc(0));
-      expect(result.id).toBe('42');
-    });
-
-    it('should handle missing envelope fields', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
-      delete msg.envelope;
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.createdAt).toBe('');
-      expect(result.from).toEqual({ address: '', name: '' });
-      expect(result.subject).toBe('');
-      expect(result.cc).toEqual([]);
-      expect(result.to).toEqual([]);
-    });
-
-    it('should handle missing seen flag', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
-      delete msg.flags;
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
-
-      const result = await provider.getMessage('42');
-
-      expect(result.seen).toBe(false);
-    });
-  });
-
-  describe('downloadAttachment', () => {
-    it('should download attachment content', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-
-      const result = await provider.downloadAttachment('42', '2');
-
-      expect(mocks.mockLatestClient?.['download']).toHaveBeenCalledWith('42', '2', { uid: true });
-      expect(new Uint8Array(result)).toEqual(new Uint8Array(Buffer.from('attachment-data')));
-    });
-
-    it('should return empty ArrayBuffer on mobile', async () => {
-      Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
-
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-
-      const result = await provider.downloadAttachment('42', '2');
-
-      expect(result.byteLength).toBe(0);
-    });
-  });
-
-  describe('markMessageAsSeen', () => {
-    it('should add \\Seen flag', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      await provider.onload();
 
       await provider.markMessageAsSeen('42');
 
-      expect(mocks.mockLatestClient?.['messageFlagsAdd']).toHaveBeenCalledWith('42', ['\\Seen'], { uid: true });
+      expect(mocks.mockDesktopProvider.markMessageAsSeen).toHaveBeenCalledWith('42');
     });
 
-    it('should noop on mobile', async () => {
-      Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
-
+    it('should delegate deleteMessage to platform provider', async () => {
       const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-
-      await provider.markMessageAsSeen('42');
-
-      expect(mocks.mockClientDefaults.connect).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('deleteMessage', () => {
-    it('should delete message by UID', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
+      await provider.onload();
 
       await provider.deleteMessage('42');
 
-      expect(mocks.mockLatestClient?.['messageDelete']).toHaveBeenCalledWith('42', { uid: true });
-    });
-
-    it('should noop on mobile', async () => {
-      Object.defineProperty(Platform, 'isDesktop', { value: false, writable: true });
-
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
-
-      await provider.deleteMessage('42');
-
-      expect(mocks.mockClientDefaults.connect).not.toHaveBeenCalled();
+      expect(mocks.mockDesktopProvider.deleteMessage).toHaveBeenCalledWith('42');
     });
   });
 
-  describe('withConnection', () => {
-    it('should throw when credentials are missing', async () => {
-      const provider = new ImapProvider(createMockApp(null), createMockPluginSettingsComponent());
+  describe('before onload', () => {
+    it('should throw when accessing platform provider before onload', async () => {
+      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent());
 
-      await expect(provider.getMessages()).rejects.toThrow('Email address or password not configured');
-    });
-
-    it('should throw when email address is empty', async () => {
-      const provider = new ImapProvider(createMockApp(), createMockPluginSettingsComponent({ emailAddress: '' }));
-
-      await expect(provider.getMessages()).rejects.toThrow('Email address or password not configured');
+      await expect(provider.getMessages()).rejects.toThrow();
     });
   });
 });

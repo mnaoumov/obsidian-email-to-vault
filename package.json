@@ -61,6 +61,7 @@
     "@antfu/utils": "9.2.0",
     "boolean": "npm:dry-uninstall",
     "dompurify": "3.0.1",
+    "urlpattern-polyfill": "npm:dry-uninstall",
     "type-fest": "latest",
     "typescript": "latest"
   }

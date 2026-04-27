@@ -187,20 +187,20 @@ describe('Plugin', () => {
     it('should create RedownloadAllEmailsCommandHandler with manifest name and email checker', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith(
-        'Email to Vault',
-        MockEmailChecker.mock.instances[0]
-      );
+      expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith({
+        emailChecker: MockEmailChecker.mock.instances[0],
+        pluginName: 'Email to Vault'
+      });
     });
 
     it('should create RedownloadRecentEmailsCommandHandler with app, manifest name, and email checker', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith(
-        mockApp,
-        'Email to Vault',
-        MockEmailChecker.mock.instances[0]
-      );
+      expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith({
+        app: mockApp,
+        emailChecker: MockEmailChecker.mock.instances[0],
+        pluginName: 'Email to Vault'
+      });
     });
 
     it('should add MailTmDomainManager as child', () => {

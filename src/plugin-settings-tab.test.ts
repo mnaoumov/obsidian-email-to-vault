@@ -579,7 +579,7 @@ describe('PluginSettingsTab', () => {
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({
         emailProviderManager: manager,
-        plugin: createMockPlugin(),
+        plugin,
         pluginId: 'email-to-vault',
         pluginSettingsComponent: settingsComponent
       });
