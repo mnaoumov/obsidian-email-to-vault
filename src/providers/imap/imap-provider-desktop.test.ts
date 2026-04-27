@@ -319,6 +319,23 @@ describe('ImapProvider', () => {
       });
     });
 
+    it('should fallback to empty strings when address fields are undefined', async () => {
+      const provider = new ImapProviderDesktop(createMockApp(), createMockPluginSettingsComponent());
+      const msg = createSampleFetchMessage({
+        envelope: {
+          from: [castTo<MessageAddressObject>({})],
+          to: [castTo<MessageAddressObject>({})]
+        }
+      });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.from).toEqual({ address: '', name: '' });
+      expect(result[0]?.to).toEqual([{ address: '', name: '' }]);
+    });
+
     it('should handle messages without bodyStructure', async () => {
       const provider = new ImapProviderDesktop(createMockApp(), createMockPluginSettingsComponent());
       const msg = createSampleFetchMessageWithoutBodyStructure();
