@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
 const SHARED_EXCLUDE = ['node_modules', 'dist'];
-const INTEGRATION_TEST_FILES = 'src/**/*.integration.test.ts';
 const ANDROID_INTEGRATION_TEST_FILES = 'src/**/*.android.integration.test.ts';
 const BIG_TIMEOUT_IN_MILLISECONDS = 30_000;
 const HOOK_TIMEOUT_MULTIPLIER = 4;
@@ -32,7 +31,7 @@ export const config = defineConfig({
         },
         test: {
           environment: 'jsdom',
-          exclude: [...SHARED_EXCLUDE, INTEGRATION_TEST_FILES],
+          exclude: [...SHARED_EXCLUDE, 'src/**/*.integration.test.ts'],
           include: ['src/**/*.test.ts'],
           name: 'unit-tests',
           setupFiles: ['obsidian-test-mocks/setup']
@@ -41,11 +40,21 @@ export const config = defineConfig({
       {
         test: {
           environment: 'node',
-          exclude: [ANDROID_INTEGRATION_TEST_FILES],
+          fileParallelism: false,
+          hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,
+          include: ['src/**/*.no-app.integration.test.ts'],
+          name: 'integration-tests:desktop:no-app',
+          setupFiles: ['./scripts/load-env-file.ts', './scripts/setup-obsidian-globals.ts'],
+          testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
+        }
+      },
+      {
+        test: {
+          environment: 'node',
           fileParallelism: false,
           globalSetup: ['obsidian-integration-testing/vitest-global-setup'],
           hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,
-          include: [INTEGRATION_TEST_FILES],
+          include: ['src/**/*.desktop.integration.test.ts'],
           name: 'integration-tests:desktop',
           setupFiles: ['./scripts/load-env-file.ts', './scripts/setup-obsidian-globals.ts'],
           testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
@@ -65,7 +74,7 @@ export const config = defineConfig({
           fileParallelism: false,
           globalSetup: ['obsidian-integration-testing/vitest-global-setup'],
           hookTimeout: BIG_TIMEOUT_IN_MILLISECONDS * HOOK_TIMEOUT_MULTIPLIER,
-          include: [ANDROID_INTEGRATION_TEST_FILES],
+          include: ['src/**/*.android.integration.test.ts'],
           name: 'integration-tests:android',
           testTimeout: BIG_TIMEOUT_IN_MILLISECONDS
         }
