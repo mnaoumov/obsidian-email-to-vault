@@ -26,10 +26,42 @@ export class Plugin extends PluginBase {
     const emailProviderManager = this.addChild(new EmailProviderManager(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager));
     const emailNoteCreator = new EmailNoteCreator(this, pluginSettingsComponent, emailProviderManager);
     const emailChecker = this.addChild(new EmailChecker(pluginSettingsComponent, emailProviderManager, emailNoteCreator));
-    this.addChild(new PluginSettingsTabComponent(this, new PluginSettingsTab(this, pluginSettingsComponent, emailProviderManager, this.manifest.id)));
+    this.addChild(
+      new PluginSettingsTabComponent({
+        plugin: this,
+        pluginSettingsTab: new PluginSettingsTab({
+          emailProviderManager,
+          plugin: this,
+          pluginId: this.manifest.id,
+          pluginSettingsComponent
+        })
+      })
+    );
     this.addChild(new PrismComponent());
-    this.addChild(new CommandHandlerComponent(this, new CheckEmailsCommandHandler(this.manifest.name, emailChecker)));
-    this.addChild(new CommandHandlerComponent(this, new RedownloadAllEmailsCommandHandler(this.manifest.name, emailChecker)));
-    this.addChild(new CommandHandlerComponent(this, new RedownloadRecentEmailsCommandHandler(this.app, this.manifest.name, emailChecker)));
+    this.addChild(
+      new CommandHandlerComponent({
+        commandHandler: new CheckEmailsCommandHandler(this.manifest.name, emailChecker),
+        plugin: this
+      })
+    );
+    this.addChild(
+      new CommandHandlerComponent({
+        commandHandler: new RedownloadAllEmailsCommandHandler({
+          emailChecker,
+          pluginName: this.manifest.name
+        }),
+        plugin: this
+      })
+    );
+    this.addChild(
+      new CommandHandlerComponent({
+        commandHandler: new RedownloadRecentEmailsCommandHandler({
+          app: this.app,
+          emailChecker,
+          pluginName: this.manifest.name
+        }),
+        plugin: this
+      })
+    );
   }
 }

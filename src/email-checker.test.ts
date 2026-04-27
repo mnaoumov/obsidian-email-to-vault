@@ -124,7 +124,7 @@ function createSettingsState(intervalInMinutes: number): ReadonlyPluginSettingsS
 describe('EmailChecker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(window.setInterval).mockReturnValue(0);
+    vi.mocked(window.setInterval).mockReturnValue(castTo<ReturnType<typeof window.setInterval>>(0));
   });
 
   describe('checkEmails', () => {

@@ -1,3 +1,5 @@
+import type { PluginSettingsTabBaseConstructorParams } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
+
 import { Notice } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
@@ -5,25 +7,25 @@ import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
-import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
-import type { Plugin } from './plugin.ts';
 import type { EmailProviderManager } from './providers/email-provider-manager.ts';
 
 import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
+interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
+  emailProviderManager: EmailProviderManager;
+  pluginId: string;
+}
+
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
-  public constructor(
-    plugin: Plugin,
-    pluginSettingsComponent: PluginSettingsComponent,
-    private readonly emailProviderManager: EmailProviderManager,
-    private readonly pluginId: string
-  ) {
-    super({
-      plugin,
-      pluginSettingsComponent
-    });
+  private readonly emailProviderManager: EmailProviderManager;
+  private readonly pluginId: string;
+
+  public constructor(params: PluginSettingsTabConstructorParams) {
+    super(params);
+    this.emailProviderManager = params.emailProviderManager;
+    this.pluginId = params.pluginId;
   }
 
   public override display(): void {

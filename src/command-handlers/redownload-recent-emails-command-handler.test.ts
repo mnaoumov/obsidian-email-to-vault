@@ -100,7 +100,11 @@ function createMockEmailChecker(): EmailChecker {
 
 describe('RedownloadRecentEmailsCommandHandler', () => {
   it('should have correct command properties', () => {
-    const command = new RedownloadRecentEmailsCommandHandler(createMockApp(), 'Email to Vault', createMockEmailChecker());
+    const command = new RedownloadRecentEmailsCommandHandler({
+      app: createMockApp(),
+      emailChecker: createMockEmailChecker(),
+      pluginName: 'Email to Vault'
+    });
 
     expect(command.id).toBe('redownload-recent-emails');
     expect(command.name).toBe('Redownload recent emails');
@@ -109,7 +113,11 @@ describe('RedownloadRecentEmailsCommandHandler', () => {
 
   it('should open modal on execute', async () => {
     const checker = createMockEmailChecker();
-    const command = new RedownloadRecentEmailsCommandHandler(createMockApp(), 'Email to Vault', checker);
+    const command = new RedownloadRecentEmailsCommandHandler({
+      app: createMockApp(),
+      emailChecker: checker,
+      pluginName: 'Email to Vault'
+    });
 
     await command.execute();
 

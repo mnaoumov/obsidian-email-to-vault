@@ -8,6 +8,13 @@ import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
 
 import type { EmailChecker } from '../email-checker.ts';
 
+interface RedownloadRecentEmailsCommandHandlerConstructorParams {
+  app: App;
+  emailChecker: EmailChecker;
+  pluginName: string;
+}
+/* v8 ignore stop */
+
 /* v8 ignore start -- Modal UI requires Obsidian runtime. */
 class RedownloadRecentEmailsModal extends Modal {
   public constructor(app: App, private readonly emailChecker: EmailChecker) {
@@ -51,16 +58,20 @@ class RedownloadRecentEmailsModal extends Modal {
       });
   }
 }
-/* v8 ignore stop */
 
 export class RedownloadRecentEmailsCommandHandler extends GlobalCommandHandler {
-  public constructor(private readonly app: App, pluginName: string, private readonly emailChecker: EmailChecker) {
+  private readonly app: App;
+  private readonly emailChecker: EmailChecker;
+
+  public constructor(params: RedownloadRecentEmailsCommandHandlerConstructorParams) {
     super({
       icon: 'mail-question',
       id: 'redownload-recent-emails',
       name: 'Redownload recent emails',
-      pluginName
+      pluginName: params.pluginName
     });
+    this.app = params.app;
+    this.emailChecker = params.emailChecker;
   }
 
   public override async execute(): Promise<void> {
