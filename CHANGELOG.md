@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.0
+
+- feat: add generic IMAP provider (Desktop only)
+
 ## 1.2.0
 
 - test: achieve 100% coverage
