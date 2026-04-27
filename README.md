@@ -5,7 +5,7 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-email-to-vault/total)](https://github.com/mnaoumov/obsidian-email-to-vault/releases)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-email-to-vault)
 
-This is a plugin for [Obsidian](https://obsidian.md/) that creates a free email mailbox with one click, so you can forward emails to your vault as notes. No backend or paid service required. Inspired by [`Save emails into Evernote`](<https://help.evernote.com/hc/en-us/articles/209005347-Save-emails-into-Evernote>) feature.
+This is a plugin for [Obsidian](https://obsidian.md/) that syncs emails into your vault as notes. Create a free disposable mailbox with one click, or connect your own IMAP server (Gmail, Outlook, etc.). No backend or paid service required. Inspired by [`Save emails into Evernote`](<https://help.evernote.com/hc/en-us/articles/209005347-Save-emails-into-Evernote>) feature.
 
 ![settings](<./images/settings.png>)
 
@@ -13,19 +13,36 @@ This is a plugin for [Obsidian](https://obsidian.md/) that creates a free email 
 
 ## Features
 
-- **One-click mailbox creation** — get a dedicated email address instantly from the plugin settings
+- **Two email modes** — use the built-in disposable mailbox (Mail.tm) or connect your own IMAP server
+- **One-click mailbox creation** — get a dedicated email address instantly from the plugin settings (Mail.tm mode)
+- **IMAP support** — connect to any IMAP-compatible email server such as Gmail, Outlook, or a self-hosted server (desktop only)
 - **Completely free** — no paid service, no self-hosted server, no external account needed
 - **Automatic sync** — the plugin periodically checks for new emails and saves them as notes
 - **Full metadata preservation** — From, To, CC, Subject, Body, and Attachments are all captured
-- **Works on desktop and mobile**
+- **Works on desktop and mobile** (IMAP mode is desktop only)
 
 ## How it works
+
+### Mail.tm mode (default)
 
 1. Open the plugin settings and click **Create Mailbox** to generate your unique email address
 2. Forward or send emails to that address
 3. The plugin automatically fetches new emails and creates notes in your vault
 
+### IMAP mode
+
+1. Open the plugin settings and select **IMAP** as the email provider
+2. Enter your IMAP server details (host, port, TLS) and credentials
+   - For Gmail with 2FA, use an [App Password](https://myaccount.google.com/apppasswords)
+3. The plugin connects to your mailbox, fetches new emails, and creates notes in your vault
+
+> [!NOTE]
+>
+> IMAP mode is only available on desktop. On mobile devices, use Mail.tm instead.
+
 ## Privacy & data handling
+
+### Mail.tm mode
 
 > [!WARNING]
 >
@@ -40,6 +57,10 @@ This plugin uses [mail.tm] as the email provider. Message contents, sender addre
 - No GDPR/CCPA compliance claim is made by the provider.
 
 By using this plugin, you acknowledge that any information you send — including sensitive or private data — is transmitted at your own risk. The plugin author makes no warranties regarding the confidentiality, integrity, or availability of data handled by mail.tm.
+
+### IMAP mode
+
+In IMAP mode, the plugin connects directly to your email server. No data is routed through third-party services beyond your own email provider. Your IMAP password is stored in Obsidian's built-in secret storage.
 
 ## Installation
 
