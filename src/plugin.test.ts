@@ -3,6 +3,7 @@ import type {
   PluginManifest
 } from 'obsidian';
 
+import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -42,6 +43,26 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin', () => ({
 
 vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', () => ({
   CommandHandlerComponent: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler', () => ({
+  OpenSettingsCommandHandler: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/active-file-provider', () => ({
+  AppActiveFileProvider: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/command-registrar', () => ({
+  PluginCommandRegistrar: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/data-handler', () => ({
+  PluginDataHandler: vi.fn()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/menu-event-registrar', () => ({
+  AppMenuEventRegistrar: vi.fn()
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/plugin/components/plugin-settings-tab-component', () => ({
@@ -88,6 +109,7 @@ vi.mock('./plugin-settings-tab.ts', () => ({
   PluginSettingsTab: vi.fn()
 }));
 
+const MockPluginDataHandler = vi.mocked(PluginDataHandler);
 const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailChecker);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
@@ -117,45 +139,45 @@ describe('Plugin', () => {
       expect(MockMailTmDomainManager).toHaveBeenCalledOnce();
     });
 
-    it('should create PluginSettingsComponent with plugin, manifest id, and domain manager', () => {
-      const plugin = new Plugin(mockApp, mockManifest);
-
-      expect(MockPluginSettingsComponent).toHaveBeenCalledWith(
-        plugin,
-        'email-to-vault',
-        MockMailTmDomainManager.mock.instances[0]
-      );
-    });
-
-    it('should create EmailProviderManager with app, manifest id, settings component, and domain manager', () => {
+    it('should create PluginSettingsComponent with dataHandler, mailTmDomainManager, and pluginId', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockEmailProviderManager).toHaveBeenCalledWith(
-        mockApp,
-        'email-to-vault',
-        MockPluginSettingsComponent.mock.instances[0],
-        MockMailTmDomainManager.mock.instances[0]
-      );
+      expect(MockPluginSettingsComponent).toHaveBeenCalledWith({
+        dataHandler: MockPluginDataHandler.mock.instances[0],
+        mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
+        pluginId: 'email-to-vault'
+      });
     });
 
-    it('should create EmailNoteCreator with plugin, settings component, and provider manager', () => {
-      const plugin = new Plugin(mockApp, mockManifest);
-
-      expect(MockEmailNoteCreator).toHaveBeenCalledWith(
-        plugin,
-        MockPluginSettingsComponent.mock.instances[0],
-        MockEmailProviderManager.mock.instances[0]
-      );
-    });
-
-    it('should create EmailChecker with settings component, provider manager, and note creator', () => {
+    it('should create EmailProviderManager with app, mailTmDomainManager, pluginId, and pluginSettingsComponent', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockEmailChecker).toHaveBeenCalledWith(
-        MockPluginSettingsComponent.mock.instances[0],
-        MockEmailProviderManager.mock.instances[0],
-        MockEmailNoteCreator.mock.instances[0]
-      );
+      expect(MockEmailProviderManager).toHaveBeenCalledWith({
+        app: mockApp,
+        mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
+        pluginId: 'email-to-vault',
+        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+      });
+    });
+
+    it('should create EmailNoteCreator with app, emailProvider, and pluginSettingsComponent', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockEmailNoteCreator).toHaveBeenCalledWith({
+        app: mockApp,
+        emailProvider: MockEmailProviderManager.mock.instances[0],
+        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+      });
+    });
+
+    it('should create EmailChecker with emailNoteCreator, emailProvider, and pluginSettingsComponent', () => {
+      new Plugin(mockApp, mockManifest);
+
+      expect(MockEmailChecker).toHaveBeenCalledWith({
+        emailNoteCreator: MockEmailNoteCreator.mock.instances[0],
+        emailProvider: MockEmailProviderManager.mock.instances[0],
+        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+      });
     });
 
     it('should create PluginSettingsTab with plugin, settings component, provider manager, and manifest id', () => {
@@ -175,16 +197,16 @@ describe('Plugin', () => {
       expect(MockPrismComponent).toHaveBeenCalledOnce();
     });
 
-    it('should create CheckEmailsCommandHandler with manifest name and email checker', () => {
+    it('should create CheckEmailsCommandHandler with pluginName and emailChecker', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith(
-        'Email to Vault',
-        MockEmailChecker.mock.instances[0]
-      );
+      expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith({
+        emailChecker: MockEmailChecker.mock.instances[0],
+        pluginName: 'Email to Vault'
+      });
     });
 
-    it('should create RedownloadAllEmailsCommandHandler with manifest name and email checker', () => {
+    it('should create RedownloadAllEmailsCommandHandler with pluginName and emailChecker', () => {
       new Plugin(mockApp, mockManifest);
 
       expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith({
@@ -193,7 +215,7 @@ describe('Plugin', () => {
       });
     });
 
-    it('should create RedownloadRecentEmailsCommandHandler with app, manifest name, and email checker', () => {
+    it('should create RedownloadRecentEmailsCommandHandler with app, pluginName, and emailChecker', () => {
       new Plugin(mockApp, mockManifest);
 
       expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith({
@@ -201,12 +223,6 @@ describe('Plugin', () => {
         emailChecker: MockEmailChecker.mock.instances[0],
         pluginName: 'Email to Vault'
       });
-    });
-
-    it('should add MailTmDomainManager as child', () => {
-      new Plugin(mockApp, mockManifest);
-
-      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockMailTmDomainManager.mock.instances[0]);
     });
 
     it('should add PluginSettingsComponent as child', () => {
@@ -230,7 +246,7 @@ describe('Plugin', () => {
     it('should add all children', () => {
       new Plugin(mockApp, mockManifest);
 
-      const EXPECTED_ADD_CHILD_CALLS = 9;
+      const EXPECTED_ADD_CHILD_CALLS = 6;
       expect(mocks.mockAddChild).toHaveBeenCalledTimes(EXPECTED_ADD_CHILD_CALLS);
     });
   });

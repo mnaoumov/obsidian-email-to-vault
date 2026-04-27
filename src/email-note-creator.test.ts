@@ -3,7 +3,6 @@ import type { App as ObsidianApp } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
-import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
   describe,
@@ -103,7 +102,21 @@ function createMessage(overrides?: MockMessageOverrides): EmailMessageSummary {
 }
 
 function createMockApp(): ObsidianApp {
-  return App.createConfigured__().asOriginalType__();
+  return strictProxy<ObsidianApp>({
+    fileManager: {
+      getAvailablePathForAttachment: vi.fn(async (filename: string) => {
+        await noopAsync();
+        return `Emails/${filename}`;
+      })
+    },
+    vault: {
+      create: vi.fn(),
+      createBinary: vi.fn(),
+      createFolder: vi.fn(),
+      getAvailablePath: vi.fn((path: string, ext: string) => `${path}.${ext}`),
+      getFolderByPath: vi.fn(() => null)
+    }
+  });
 }
 
 function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailProvider {
