@@ -45,7 +45,7 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab', () => ({
     public app: unknown;
     public bind = vi.fn();
 
-    public containerEl = activeDocument.createDiv();
+    public containerEl = activeDocument.body.createDiv();
     public plugin: Plugin;
     public pluginSettingsComponent: PluginSettingsComponent;
     public constructor(params: MockPluginSettingsTabBaseParams) {
