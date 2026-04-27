@@ -9,15 +9,22 @@ import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
+interface EmailCheckerConstructorParams {
+  emailNoteCreator: EmailNoteCreator;
+  emailProvider: EmailProvider;
+  pluginSettingsComponent: PluginSettingsComponent;
+}
 export class EmailChecker extends Component {
+  private readonly emailNoteCreator: EmailNoteCreator;
+  private readonly emailProvider: EmailProvider;
   private intervalId: null | number = null;
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
 
-  public constructor(
-    private readonly pluginSettingsComponent: PluginSettingsComponent,
-    private readonly emailProvider: EmailProvider,
-    private readonly noteCreator: EmailNoteCreator
-  ) {
+  public constructor(params: EmailCheckerConstructorParams) {
     super();
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
+    this.emailProvider = params.emailProvider;
+    this.emailNoteCreator = params.emailNoteCreator;
   }
 
   public async checkEmails(): Promise<void> {
@@ -37,7 +44,7 @@ export class EmailChecker extends Component {
     }
 
     for (const message of unseenMessages) {
-      await this.noteCreator.saveEmailAsNote(message);
+      await this.emailNoteCreator.saveEmailAsNote(message);
       if (this.pluginSettingsComponent.settings.shouldDeleteSeenEmails) {
         await this.emailProvider.deleteMessage(message.id);
       } else {
@@ -65,7 +72,7 @@ export class EmailChecker extends Component {
     const messages = await this.emailProvider.getMessages();
     const toProcess = count ? messages.slice(0, count) : messages;
     for (const message of toProcess) {
-      await this.noteCreator.saveEmailAsNote(message);
+      await this.emailNoteCreator.saveEmailAsNote(message);
     }
     new Notice(`Redownloaded ${String(toProcess.length)} email(s)`);
   }

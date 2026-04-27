@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
 const SHARED_EXCLUDE = ['node_modules', 'dist'];
-const ANDROID_INTEGRATION_TEST_FILES = 'src/**/*.android.integration.test.ts';
 const BIG_TIMEOUT_IN_MILLISECONDS = 30_000;
 const HOOK_TIMEOUT_MULTIPLIER = 4;
 

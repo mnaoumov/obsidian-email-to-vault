@@ -1,4 +1,4 @@
-import type { PluginSettingsComponentConstructorParams } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
+import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import type { MaybeReturn } from 'obsidian-dev-utils/type';
 
 import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
@@ -8,13 +8,20 @@ import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-man
 import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
+interface PluginSettingsComponentConstructorParams {
+  dataHandler: DataHandler;
+  mailTmDomainManager: MailTmDomainManager;
+  pluginId: string;
+}
+
 export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginSettings> {
-  public constructor(
-    params: PluginSettingsComponentConstructorParams,
-    private readonly pluginId: string,
-    private readonly mailTmDomainManager: MailTmDomainManager
-  ) {
-    super(params);
+  private readonly mailTmDomainManager: MailTmDomainManager;
+  private readonly pluginId: string;
+
+  public constructor(params: PluginSettingsComponentConstructorParams) {
+    super(params.dataHandler);
+    this.pluginId = params.pluginId;
+    this.mailTmDomainManager = params.mailTmDomainManager;
   }
 
   protected override createDefaultSettings(): PluginSettings {

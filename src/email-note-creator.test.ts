@@ -1,6 +1,9 @@
+import type { App as ObsidianApp } from 'obsidian';
+
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
   describe,
@@ -10,7 +13,6 @@ import {
 } from 'vitest';
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
-import type { Plugin } from './plugin.ts';
 import type {
   EmailMessageFull,
   EmailMessageSummary
@@ -100,30 +102,14 @@ function createMessage(overrides?: MockMessageOverrides): EmailMessageSummary {
   };
 }
 
+function createMockApp(): ObsidianApp {
+  return App.createConfigured__().asOriginalType__();
+}
+
 function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailProvider {
   return strictProxy<EmailProvider>({
     downloadAttachment: overrides?.downloadAttachment ?? vi.fn(),
     getMessage: overrides?.getMessage ?? vi.fn()
-  });
-}
-
-function createMockPlugin(): Plugin {
-  return strictProxy<Plugin>({
-    app: {
-      fileManager: {
-        getAvailablePathForAttachment: vi.fn(async (filename: string) => {
-          await noopAsync();
-          return `Emails/${filename}`;
-        })
-      },
-      vault: {
-        create: vi.fn(),
-        createBinary: vi.fn(),
-        createFolder: vi.fn(),
-        getAvailablePath: vi.fn((path: string, ext: string) => `${path}.${ext}`),
-        getFolderByPath: vi.fn(() => null)
-      }
-    }
   });
 }
 
@@ -145,7 +131,7 @@ describe('EmailNoteCreator', () => {
 
   describe('saveEmailAsNote', () => {
     it('should save unseen messages as notes', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -165,21 +151,25 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent();
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Test Email' }));
 
-      expect(plugin.app.vault.createFolder).toHaveBeenCalledWith('Emails');
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.createFolder).toHaveBeenCalledWith('Emails');
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.stringMatching(/^Emails\/\d{4}-\d{2}-\d{2} \d{2}-\d{2} Test Email\.md$/),
         expect.stringContaining('Hello body')
       );
     });
 
     it('should convert HTML body to markdown', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -199,13 +189,17 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Hello world'
       );
@@ -215,7 +209,7 @@ describe('EmailNoteCreator', () => {
       htmlToMarkdownMock.mockImplementationOnce(() => {
         throw new TypeError('Cannot read properties of undefined (reading \'cells\')');
       });
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -235,13 +229,17 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'ERROR: Could not parse email HTML. Rolling back to text mode\n\nPlain text fallback'
       );
@@ -251,7 +249,7 @@ describe('EmailNoteCreator', () => {
       htmlToMarkdownMock.mockImplementationOnce(() => {
         throw new TypeError('Cannot read properties of undefined (reading \'cells\')');
       });
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -272,23 +270,27 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'ERROR: Could not parse email HTML. Rolling back to text mode\n\nActual body'
       );
     });
 
     it('should strip empty tables with no rows before converting HTML to markdown', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -308,9 +310,13 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -318,7 +324,7 @@ describe('EmailNoteCreator', () => {
     });
 
     it('should unwrap layout tables preserving cell content', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -338,9 +344,13 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -348,7 +358,7 @@ describe('EmailNoteCreator', () => {
     });
 
     it('should remove hidden elements from HTML before converting', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -368,9 +378,13 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -378,7 +392,7 @@ describe('EmailNoteCreator', () => {
     });
 
     it('should preserve hidden elements when shouldStripHiddenElements is false', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -398,12 +412,16 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{body}}',
         shouldStripHiddenElements: false
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
@@ -411,7 +429,7 @@ describe('EmailNoteCreator', () => {
     });
 
     it('should fall back to plain text when HTML is empty', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -431,20 +449,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Plain text body'
       );
     });
 
     it('should use template with all variables', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -464,20 +486,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} {{to}} {{cc}} {{subject}} {{date}} {{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Subject Line' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'sender@example.com me@mail.tm cc@example.com Subject Line 2026-01-01T05:00:00+05:00 Body text'
       );
     });
 
     it('should format from address with name when available', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -497,20 +523,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{to}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{to}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'John Doe <sender@example.com> | Me <me@mail.tm>'
       );
     });
 
     it('should not create folder if it already exists', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -530,18 +560,22 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent();
-      vi.mocked(plugin.app.vault.getFolderByPath).mockReturnValue({} as never);
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      vi.mocked(app.vault.getFolderByPath).mockReturnValue({} as never);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.createFolder).not.toHaveBeenCalled();
+      expect(app.vault.createFolder).not.toHaveBeenCalled();
     });
 
     it('should sanitize subject in filename', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -561,20 +595,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent();
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Re: Test/File<Name>' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.stringContaining('Re_ Test_File_Name_'),
         expect.any(String)
       );
     });
 
     it('should use custom path template', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -594,20 +632,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Custom/{{subject}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Custom/{{subject}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Test Email' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         'Custom/Test Email.md',
         expect.any(String)
       );
     });
 
     it('should format date in path template', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -627,20 +669,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Test Email' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.stringMatching(/^\d{4}-\d{2}-\d{2}\/Test Email\.md$/),
         expect.any(String)
       );
     });
 
     it('should use Untitled in path template when subject is empty', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -660,20 +706,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Notes/{{subject}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Notes/{{subject}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: '' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         'Notes/Untitled.md',
         expect.any(String)
       );
     });
 
     it('should not strip forward markers when disabled', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -694,24 +744,28 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} {{subject}} {{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} {{subject}} {{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('Forwarder <forwarder@example.com>')
       );
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('Fwd: Original Subject')
       );
     });
 
     it('should extract original sender from Gmail forward header', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -732,23 +786,27 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Original <orig@test.com> | Original Subject | 2024-01-01T11:00:00+05:00 | Actual body'
       );
     });
 
     it('should strip bold markdown from Gmail forward header values', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -769,20 +827,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{subject}}', shouldExtractForwardedEmail: true });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Bold Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'John Doe <john@test.com> | Bold Subject'
       );
     });
 
     it('should strip link markdown from Gmail forward header values', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -803,20 +865,27 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from}} | {{to}} | {{subject}}', shouldExtractForwardedEmail: true });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
+        emailNoteTemplate: '{{from}} | {{to}} | {{subject}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Linked Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Jane | dest@test.com | Linked Subject'
       );
     });
 
     it('should extract original sender from Outlook forward header', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -836,23 +905,27 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'FW: Outlook Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Original Sender <orig@test.com> | Outlook Subject | Outlook body content'
       );
     });
 
     it('should strip Fwd: prefix from subject', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -872,20 +945,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject}}', shouldExtractForwardedEmail: true });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Test' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Test'
       );
     });
 
     it('should strip FW: prefix from subject', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -905,20 +982,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject}}', shouldExtractForwardedEmail: true });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'FW: Test' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Test'
       );
     });
 
     it('should parse Gmail-style date in path template without warnings', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -940,16 +1021,20 @@ describe('EmailNoteCreator', () => {
         })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNotePathTemplate: '{{date:YYYY-MM-DD}}/{{subject}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         '2026-04-14/Original Subject.md',
         expect.any(String)
       );
@@ -958,7 +1043,7 @@ describe('EmailNoteCreator', () => {
     });
 
     it('should keep message as-is when no forward markers found', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -978,16 +1063,20 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Regular Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Sender <sender@example.com> | Regular Subject | Regular body without any forward markers'
       );
@@ -995,7 +1084,7 @@ describe('EmailNoteCreator', () => {
 
     it('should handle rfc822 attachment with headers only and no body', async () => {
       const emlContent = 'Content-Type: text/plain';
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
           return new TextEncoder().encode(emlContent).buffer;
@@ -1019,16 +1108,20 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Headers Only' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         ' |  | '
       );
@@ -1037,7 +1130,7 @@ describe('EmailNoteCreator', () => {
     it('should extract original email from message/rfc822 attachment', async () => {
       const emlContent =
         'From: original@test.com\r\nTo: dest@test.com\r\nCc: cc@test.com\r\nSubject: Original Subject\r\nDate: Mon, 1 Jan 2024 10:00:00 +0000\r\n\r\nOriginal body content';
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
           return new TextEncoder().encode(emlContent).buffer;
@@ -1061,24 +1154,28 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNoteTemplate: '{{from}} | {{to}} | {{cc}} | {{subject}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(mockManager.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'original@test.com | dest@test.com | cc@test.com | Original Subject | Original body content'
       );
     });
 
     it('should use Untitled when subject is empty', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1098,13 +1195,17 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent();
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: '' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.stringContaining('Untitled'),
         expect.any(String)
       );
@@ -1112,7 +1213,7 @@ describe('EmailNoteCreator', () => {
 
     it('should download and save attachments', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
           return mockAttachmentData;
@@ -1139,20 +1240,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent();
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'With Attachments' }));
 
-      expect(mockManager.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
-      expect(mockManager.downloadAttachment).toHaveBeenCalledWith('msg1', 'att2');
-      expect(plugin.app.vault.createBinary).toHaveBeenCalledTimes(2);
+      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
+      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith('msg1', 'att2');
+      expect(app.vault.createBinary).toHaveBeenCalledTimes(2);
     });
 
     it('should add attachment links to note content', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
           return mockAttachmentData;
@@ -1176,20 +1281,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}\n{{attachments}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}\n{{attachments}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Body\n![[photo.png]]'
       );
     });
 
     it('should skip attachments when none present', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1209,21 +1318,25 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}{{attachments}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}{{attachments}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(mockManager.downloadAttachment).not.toHaveBeenCalled();
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(emailProvider.downloadAttachment).not.toHaveBeenCalled();
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Body'
       );
     });
 
     it('should use original date when Gmail forward header has no Date line', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1243,20 +1356,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{date}}', shouldExtractForwardedEmail: true });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{date}}', shouldExtractForwardedEmail: true });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         '2026-01-01T05:00:00+05:00'
       );
     });
 
     it('should handle Gmail forward date with narrow no-break space before AM/PM', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1278,31 +1395,35 @@ describe('EmailNoteCreator', () => {
         })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
       expect(consoleWarnSpy).not.toHaveBeenCalled();
       consoleWarnSpy.mockRestore();
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         'Emails/2026-04-14 16-16 Original Subject.md',
         expect.stringContaining('Original <orig@test.com>')
       );
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('| 2026-04-14T16:16:00+05:00 |')
       );
     });
 
     it('should handle Gmail forward with empty original subject', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1324,20 +1445,24 @@ describe('EmailNoteCreator', () => {
         })
       });
       const consoleWarnSpy = vi.spyOn(console, 'warn');
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
         emailNoteTemplate: '{{from}} | {{subject}} | {{date}} | {{body}}',
         shouldExtractForwardedEmail: true
       });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage({ id: 'msg1', subject: 'Fwd:' }));
 
       expect(consoleWarnSpy).not.toHaveBeenCalled();
       consoleWarnSpy.mockRestore();
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         'Emails/2026-04-14 23-55 Untitled.md',
         expect.stringContaining('Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>')
       );
@@ -1345,7 +1470,7 @@ describe('EmailNoteCreator', () => {
 
     it('should replace inline attachment references with vault links', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
           return mockAttachmentData;
@@ -1369,24 +1494,28 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('![[photo.png]]')
       );
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.not.stringContaining('attachment:')
       );
     });
 
     it('should use alt text when inline attachment ID is not in saved attachments', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1406,13 +1535,17 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('![[mystery.png]]')
       );
@@ -1420,7 +1553,7 @@ describe('EmailNoteCreator', () => {
 
     it('should handle attachment path without folder', async () => {
       const mockAttachmentData = new ArrayBuffer(8);
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
           return mockAttachmentData;
@@ -1444,21 +1577,25 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{attachments}}' });
-      vi.mocked(plugin.app.fileManager.getAvailablePathForAttachment).mockResolvedValue('photo.png');
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{attachments}}' });
+      vi.mocked(app.fileManager.getAvailablePathForAttachment).mockResolvedValue('photo.png');
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         '![[photo.png]]'
       );
     });
 
     it('should use fallback name when inline attachment has empty alt', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1478,20 +1615,24 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         expect.stringContaining('![[attachment]]')
       );
     });
 
     it('should not create folder when path has no directory', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1511,19 +1652,23 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{subject}}' });
-      vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Test.md');
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{subject}}' });
+      vi.mocked(app.vault.getAvailablePath).mockReturnValue('Test.md');
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.createFolder).not.toHaveBeenCalled();
-      expect(plugin.app.vault.create).toHaveBeenCalledWith('Test.md', expect.any(String));
+      expect(app.vault.createFolder).not.toHaveBeenCalled();
+      expect(app.vault.create).toHaveBeenCalledWith('Test.md', expect.any(String));
     });
 
     it('should use available path from vault when note file already exists', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return {
@@ -1543,161 +1688,205 @@ describe('EmailNoteCreator', () => {
           };
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Emails/{{subject}}' });
-      vi.mocked(plugin.app.vault.getAvailablePath).mockReturnValue('Emails/Test 2.md');
-      const noteCreator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: 'Emails/{{subject}}' });
+      vi.mocked(app.vault.getAvailablePath).mockReturnValue('Emails/Test 2.md');
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await noteCreator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.getAvailablePath).toHaveBeenCalledWith('Emails/Test', 'md');
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.getAvailablePath).toHaveBeenCalledWith('Emails/Test', 'md');
+      expect(app.vault.create).toHaveBeenCalledWith(
         'Emails/Test 2.md',
         expect.any(String)
       );
     });
 
     it('should expand date format in content template', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: 'Date: {{date:YYYY-MM-DD}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: 'Date: {{date:YYYY-MM-DD}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await creator.saveEmailAsNote(createMessage());
 
-      expect(plugin.app.vault.create).toHaveBeenCalledWith(
+      expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'Date: 2026-01-01'
       );
     });
 
     it('should throw when attachments token has format', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{attachments:foo}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{attachments:foo}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Attachments token does not support format: foo');
     });
 
     it('should throw when attachments token is used in path template', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{attachments}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{attachments}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Attachments token is not supported in path template');
     });
 
     it('should throw when body token has format', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body:foo}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body:foo}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Body token does not support format: foo');
     });
 
     it('should throw when body token is used in path template', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{body}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNotePathTemplate: '{{body}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Body token is not supported in path template');
     });
 
     it('should throw when cc token has format', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{cc:foo}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{cc:foo}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('CC token does not support format: foo');
     });
 
     it('should throw when from token has format', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from:foo}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{from:foo}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('From token does not support format: foo');
     });
 
     it('should throw when subject token has format', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject:foo}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{subject:foo}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Subject token does not support format: foo');
     });
 
     it('should throw when to token has format', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{to:foo}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{to:foo}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('To token does not support format: foo');
     });
 
     it('should throw when unknown token is used', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
           await noopAsync();
           return createFullMessage({ subject: 'Test' });
         })
       });
-      const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{unknown}}' });
-      const creator = new EmailNoteCreator(plugin, settingsComponent, mockManager);
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{unknown}}' });
+      const creator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Unknown token: unknown');
     });

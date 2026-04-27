@@ -1,7 +1,4 @@
-import {
-  Component,
-  requestUrl
-} from 'obsidian';
+import { requestUrl } from 'obsidian';
 
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
@@ -14,7 +11,7 @@ interface MailTmDomainsResponse {
   'hydra:member': MailTmDomain[];
 }
 
-export class MailTmDomainManager extends Component {
+export class MailTmDomainManager {
   public async getAvailableDomain(): Promise<string> {
     const domains = await this.getAvailableDomains();
     const activeDomain = domains.find((d) => d.isActive);

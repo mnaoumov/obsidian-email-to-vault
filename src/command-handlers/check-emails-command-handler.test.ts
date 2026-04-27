@@ -40,7 +40,10 @@ function createMockEmailChecker(): EmailChecker {
 
 describe('CheckEmailsCommandHandler', () => {
   it('should have correct command properties', () => {
-    const command = new CheckEmailsCommandHandler('Email to Vault', createMockEmailChecker());
+    const command = new CheckEmailsCommandHandler({
+      emailChecker: createMockEmailChecker(),
+      pluginName: 'Email to Vault'
+    });
 
     expect(command.id).toBe('check-emails');
     expect(command.name).toBe('Check emails');
@@ -49,7 +52,10 @@ describe('CheckEmailsCommandHandler', () => {
 
   it('should call checkEmails on execute', async () => {
     const checker = createMockEmailChecker();
-    const command = new CheckEmailsCommandHandler('Email to Vault', checker);
+    const command = new CheckEmailsCommandHandler({
+      emailChecker: checker,
+      pluginName: 'Email to Vault'
+    });
 
     await command.execute();
 

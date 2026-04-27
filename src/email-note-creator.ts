@@ -1,4 +1,5 @@
 import {
+  App,
   htmlToMarkdown,
   moment as momentLib,
   Notice
@@ -8,7 +9,6 @@ import { replaceAll } from 'obsidian-dev-utils/string';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
-import type { Plugin } from './plugin.ts';
 import type {
   EmailAddress,
   EmailMessageFull,
@@ -43,19 +43,28 @@ interface EmailData {
   to: string;
 }
 
+interface EmailNoteCreatorConstructorParams {
+  app: App;
+  emailProvider: EmailProvider;
+  pluginSettingsComponent: PluginSettingsComponent;
+}
+
 export class EmailNoteCreator {
-  public constructor(
-    private readonly plugin: Plugin,
-    private readonly pluginSettingsComponent: PluginSettingsComponent,
-    private readonly emailProvider: EmailProvider
-  ) {
+  private readonly app: App;
+  private readonly emailProvider: EmailProvider;
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
+
+  public constructor(params: EmailNoteCreatorConstructorParams) {
+    this.app = params.app;
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
+    this.emailProvider = params.emailProvider;
   }
 
   public async saveEmailAsNote(message: EmailMessageSummary): Promise<void> {
     const fullMessage = await this.emailProvider.getMessage(message.id);
     const emailData = await this.extractEmailData(fullMessage);
     const basePath = fillTemplate(this.pluginSettingsComponent.settings.emailNotePathTemplate, emailData, true);
-    const filePath = this.plugin.app.vault.getAvailablePath(basePath, 'md');
+    const filePath = this.app.vault.getAvailablePath(basePath, 'md');
 
     const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
     emailData.body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
@@ -64,7 +73,7 @@ export class EmailNoteCreator {
     const content = fillTemplate(this.pluginSettingsComponent.settings.emailNoteTemplate, emailData);
 
     await this.ensureFolderExists(filePath);
-    await this.plugin.app.vault.create(filePath, content);
+    await this.app.vault.create(filePath, content);
   }
 
   private async downloadAttachments(fullMessage: EmailMessageFull, notePath: string): Promise<DownloadAttachmentsResult> {
@@ -77,8 +86,8 @@ export class EmailNoteCreator {
     const savedAttachments = new Map<string, string>();
     for (const attachment of attachments) {
       const data = await this.emailProvider.downloadAttachment(fullMessage.id, attachment.id);
-      const attachmentPath = await this.plugin.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
-      await this.plugin.app.vault.createBinary(attachmentPath, data);
+      const attachmentPath = await this.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
+      await this.app.vault.createBinary(attachmentPath, data);
       const filename = extractFilename(attachmentPath);
       links.push(`![[${filename}]]`);
       savedAttachments.set(attachment.id, filename);
@@ -93,9 +102,9 @@ export class EmailNoteCreator {
       return;
     }
     const folderPath = filePath.slice(0, lastSlash);
-    const folder = this.plugin.app.vault.getFolderByPath(folderPath);
+    const folder = this.app.vault.getFolderByPath(folderPath);
     if (!folder) {
-      await this.plugin.app.vault.createFolder(folderPath);
+      await this.app.vault.createFolder(folderPath);
     }
   }
 

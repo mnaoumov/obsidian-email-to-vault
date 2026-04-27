@@ -3,7 +3,12 @@ import type {
   PluginManifest
 } from 'obsidian';
 
+import { AppActiveFileProvider } from 'obsidian-dev-utils/obsidian/active-file-provider';
 import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
+import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
+import { PluginCommandRegistrar } from 'obsidian-dev-utils/obsidian/command-registrar';
+import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
+import { AppMenuEventRegistrar } from 'obsidian-dev-utils/obsidian/menu-event-registrar';
 import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-tab-component';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
@@ -21,46 +26,71 @@ import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.
 export class Plugin extends PluginBase {
   public constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
-    const mailTmDomainManager = this.addChild(new MailTmDomainManager());
-    const pluginSettingsComponent = this.addChild(new PluginSettingsComponent(this, this.manifest.id, mailTmDomainManager));
-    const emailProviderManager = this.addChild(new EmailProviderManager(this.app, this.manifest.id, pluginSettingsComponent, mailTmDomainManager));
-    const emailNoteCreator = new EmailNoteCreator(this, pluginSettingsComponent, emailProviderManager);
-    const emailChecker = this.addChild(new EmailChecker(pluginSettingsComponent, emailProviderManager, emailNoteCreator));
+    const mailTmDomainManager = new MailTmDomainManager();
+    const pluginSettingsComponent = this.addChild(
+      new PluginSettingsComponent({
+        dataHandler: new PluginDataHandler(this),
+        mailTmDomainManager,
+        pluginId: this.manifest.id
+      })
+    );
+    const emailProviderManager = this.addChild(
+      new EmailProviderManager({
+        app: this.app,
+        mailTmDomainManager,
+        pluginId: this.manifest.id,
+        pluginSettingsComponent
+      })
+    );
+    const emailNoteCreator = new EmailNoteCreator({
+      app: this.app,
+      emailProvider: emailProviderManager,
+      pluginSettingsComponent
+    });
+    const emailChecker = this.addChild(
+      new EmailChecker({
+        emailNoteCreator,
+        emailProvider: emailProviderManager,
+        pluginSettingsComponent
+      })
+    );
+    const pluginSettingsTab = new PluginSettingsTab({
+      emailProviderManager,
+      plugin: this,
+      pluginId: this.manifest.id,
+      pluginSettingsComponent
+    });
     this.addChild(
       new PluginSettingsTabComponent({
         plugin: this,
-        pluginSettingsTab: new PluginSettingsTab({
-          emailProviderManager,
-          plugin: this,
-          pluginId: this.manifest.id,
-          pluginSettingsComponent
-        })
+        pluginSettingsTab
       })
     );
     this.addChild(new PrismComponent());
     this.addChild(
       new CommandHandlerComponent({
-        commandHandler: new CheckEmailsCommandHandler(this.manifest.name, emailChecker),
-        plugin: this
-      })
-    );
-    this.addChild(
-      new CommandHandlerComponent({
-        commandHandler: new RedownloadAllEmailsCommandHandler({
-          emailChecker,
-          pluginName: this.manifest.name
-        }),
-        plugin: this
-      })
-    );
-    this.addChild(
-      new CommandHandlerComponent({
-        commandHandler: new RedownloadRecentEmailsCommandHandler({
-          app: this.app,
-          emailChecker,
-          pluginName: this.manifest.name
-        }),
-        plugin: this
+        activeFileProvider: new AppActiveFileProvider(this.app),
+        commandHandlers: [
+          new CheckEmailsCommandHandler({
+            emailChecker,
+            pluginName: this.manifest.name
+          }),
+          new OpenSettingsCommandHandler({
+            pluginName: this.manifest.name,
+            pluginSettingsTab
+          }),
+          new RedownloadAllEmailsCommandHandler({
+            emailChecker,
+            pluginName: this.manifest.name
+          }),
+          new RedownloadRecentEmailsCommandHandler({
+            app: this.app,
+            emailChecker,
+            pluginName: this.manifest.name
+          })
+        ],
+        commandRegistrar: new PluginCommandRegistrar(this),
+        menuEventRegistrar: new AppMenuEventRegistrar(this.app, this)
       })
     );
   }

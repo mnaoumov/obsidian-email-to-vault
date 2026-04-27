@@ -425,12 +425,12 @@ describe('PluginSettingsTab', () => {
     it('should copy email address to clipboard', async () => {
       const writeTextFn = vi.fn(async () => Promise.resolve());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
-      const settingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 
@@ -445,12 +445,12 @@ describe('PluginSettingsTab', () => {
     it('should copy password to clipboard', async () => {
       const writeTextFn = vi.fn(async () => Promise.resolve());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
-      const settingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 
@@ -464,12 +464,12 @@ describe('PluginSettingsTab', () => {
 
     it('should save password to secret storage on manual entry when unregistered', async () => {
       const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 
@@ -492,17 +492,17 @@ describe('PluginSettingsTab', () => {
         await noopAsync();
         cb(settings);
       });
-      const settingsComponent = createMockPluginSettingsComponent({
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         editAndSave: editAndSaveFn,
         emailPasswordSecretKey: ''
       });
       // Update settings reference to match the component's settings
-      ensureGenericObject<object>(settingsComponent)['settings'] = settings;
+      ensureGenericObject<object>(pluginSettingsComponent)['settings'] = settings;
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 
@@ -517,14 +517,14 @@ describe('PluginSettingsTab', () => {
 
     it('should not recreate password secret key if already set', async () => {
       const editAndSaveFn = vi.fn();
-      const settingsComponent = createMockPluginSettingsComponent({
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
         editAndSave: editAndSaveFn
       });
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 
@@ -541,12 +541,12 @@ describe('PluginSettingsTab', () => {
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
-      const settingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 
@@ -561,10 +561,10 @@ describe('PluginSettingsTab', () => {
     it('should show empty password when secret storage returns null for IMAP', () => {
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
-      const settingsComponent = createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap });
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap });
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
-      const tab = new PluginSettingsTab({ emailProviderManager: manager, plugin, pluginId: 'email-to-vault', pluginSettingsComponent: settingsComponent });
+      const tab = new PluginSettingsTab({ emailProviderManager: manager, plugin, pluginId: 'email-to-vault', pluginSettingsComponent });
       tab.display();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
@@ -574,14 +574,14 @@ describe('PluginSettingsTab', () => {
 
     it('should save IMAP password to secret storage on entry', async () => {
       const plugin = createMockPlugin();
-      const settingsComponent = createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap });
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap });
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({
         emailProviderManager: manager,
         plugin,
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: settingsComponent
+        pluginSettingsComponent
       });
       tab.display();
 

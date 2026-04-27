@@ -41,7 +41,7 @@ vi.stubGlobal('window', {
 });
 
 interface CreateMockPluginSettingsComponentResult {
-  component: PluginSettingsComponent;
+  pluginSettingsComponent: PluginSettingsComponent;
   triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => void;
 }
 
@@ -100,7 +100,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
   });
 
   return {
-    component,
+    pluginSettingsComponent: component,
     triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): void {
       if (saveSettingsCallback) {
         saveSettingsCallback(newState, oldState, undefined);
@@ -129,18 +129,22 @@ describe('EmailChecker', () => {
 
   describe('checkEmails', () => {
     it('should return early when no email address configured', async () => {
-      const mockManager = createMockEmailProvider();
-      const { component } = createMockPluginSettingsComponent({ emailAddress: '' });
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailAddress: '' });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.checkEmails();
 
-      expect(mockManager.getMessages).not.toHaveBeenCalled();
+      expect(emailProvider.getMessages).not.toHaveBeenCalled();
     });
 
     it('should show notice when no unseen messages', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
@@ -158,9 +162,13 @@ describe('EmailChecker', () => {
           ];
         })
       });
-      const { component } = createMockPluginSettingsComponent();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.checkEmails();
 
@@ -177,15 +185,19 @@ describe('EmailChecker', () => {
         subject: 'Test Email',
         to: [{ address: 'me@mail.tm', name: '' }]
       };
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [unseenMessage];
         })
       });
-      const { component } = createMockPluginSettingsComponent();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.checkEmails();
 
@@ -194,7 +206,7 @@ describe('EmailChecker', () => {
     });
 
     it('should delete message after save when shouldDeleteSeenEmails is enabled', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
@@ -212,17 +224,21 @@ describe('EmailChecker', () => {
           ];
         })
       });
-      const { component } = createMockPluginSettingsComponent({ shouldDeleteSeenEmails: true });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ shouldDeleteSeenEmails: true });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.checkEmails();
 
-      expect(mockManager.deleteMessage).toHaveBeenCalledWith('msg1');
+      expect(emailProvider.deleteMessage).toHaveBeenCalledWith('msg1');
     });
 
     it('should mark message as seen when shouldDeleteSeenEmails is disabled', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
@@ -240,20 +256,24 @@ describe('EmailChecker', () => {
           ];
         })
       });
-      const { component } = createMockPluginSettingsComponent({ shouldDeleteSeenEmails: false });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ shouldDeleteSeenEmails: false });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.checkEmails();
 
-      expect(mockManager.deleteMessage).not.toHaveBeenCalled();
-      expect(mockManager.markMessageAsSeen).toHaveBeenCalledWith('msg1');
+      expect(emailProvider.deleteMessage).not.toHaveBeenCalled();
+      expect(emailProvider.markMessageAsSeen).toHaveBeenCalledWith('msg1');
     });
   });
 
   describe('redownloadEmails', () => {
     it('should redownload all messages regardless of seen status', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
@@ -282,9 +302,13 @@ describe('EmailChecker', () => {
           ];
         })
       });
-      const { component } = createMockPluginSettingsComponent();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.redownloadEmails();
 
@@ -293,7 +317,7 @@ describe('EmailChecker', () => {
     });
 
     it('should limit to count when specified', async () => {
-      const mockManager = createMockEmailProvider({
+      const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {
           await noopAsync();
           return [
@@ -322,9 +346,13 @@ describe('EmailChecker', () => {
           ];
         })
       });
-      const { component } = createMockPluginSettingsComponent();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       await checker.redownloadEmails(1);
 
@@ -335,14 +363,18 @@ describe('EmailChecker', () => {
 
   describe('onload', () => {
     it('should not schedule when interval is 0', () => {
-      const mockManager = createMockEmailProvider();
-      const { component } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 0 });
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 0 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       checker.load();
 
-      expect(component.registerInterval).not.toHaveBeenCalled();
+      expect(pluginSettingsComponent.registerInterval).not.toHaveBeenCalled();
     });
 
     it('should schedule with correct interval', () => {
@@ -352,10 +384,14 @@ describe('EmailChecker', () => {
         setInterval: mockSetInterval
       });
 
-      const mockManager = createMockEmailProvider();
-      const { component } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       checker.load();
 
@@ -364,14 +400,18 @@ describe('EmailChecker', () => {
     });
 
     it('should register saveSettings event listener', () => {
-      const mockManager = createMockEmailProvider();
-      const { component } = createMockPluginSettingsComponent();
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       checker.load();
 
-      expect(component.on).toHaveBeenCalledWith('saveSettings', expect.any(Function));
+      expect(pluginSettingsComponent.on).toHaveBeenCalledWith('saveSettings', expect.any(Function));
     });
 
     it('should reschedule when emailCheckIntervalInMinutes changes', () => {
@@ -382,10 +422,14 @@ describe('EmailChecker', () => {
         setInterval: mockSetInterval
       });
 
-      const mockManager = createMockEmailProvider();
-      const { component, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       checker.load();
       mockSetInterval.mockClear();
@@ -405,10 +449,14 @@ describe('EmailChecker', () => {
         setInterval: mockSetInterval
       });
 
-      const mockManager = createMockEmailProvider();
-      const { component, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       checker.load();
       mockSetInterval.mockClear();
@@ -426,10 +474,14 @@ describe('EmailChecker', () => {
         setInterval: vi.fn(() => 1)
       });
 
-      const mockManager = createMockEmailProvider();
-      const { component, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
+      const emailProvider = createMockEmailProvider();
+      const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker(component, mockManager, noteCreator);
+      const checker = new EmailChecker({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginSettingsComponent
+      });
 
       checker.load();
 

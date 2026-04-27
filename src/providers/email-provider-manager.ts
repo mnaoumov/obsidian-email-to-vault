@@ -15,16 +15,26 @@ import { EmailProviderType } from './email-provider-type.ts';
 import { ImapProvider } from './imap/imap-provider.ts';
 import { MailTmProvider } from './mail-tm/mail-tm-provider.ts';
 
+interface EmailProviderManagerConstructorParams {
+  app: App;
+  mailTmDomainManager: MailTmDomainManager;
+  pluginId: string;
+  pluginSettingsComponent: PluginSettingsComponent;
+}
+
 export class EmailProviderManager extends Component implements EmailProvider {
   private activeProvider: (Component & EmailProvider) | null = null;
+  private readonly app: App;
+  private readonly mailTmDomainManager: MailTmDomainManager;
+  private readonly pluginId: string;
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
 
-  public constructor(
-    private readonly app: App,
-    private readonly pluginId: string,
-    private readonly pluginSettingsComponent: PluginSettingsComponent,
-    private readonly mailTmDomainManager: MailTmDomainManager
-  ) {
+  public constructor(params: EmailProviderManagerConstructorParams) {
     super();
+    this.app = params.app;
+    this.pluginId = params.pluginId;
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
+    this.mailTmDomainManager = params.mailTmDomainManager;
   }
 
   public async deleteMessage(messageId: string): Promise<void> {
