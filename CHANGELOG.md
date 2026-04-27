@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.0.1
+
+- refactor: new template
+- chore: separate integration tests
+
 ## 2.0.0
 
 - feat: add generic IMAP provider (Desktop only)
