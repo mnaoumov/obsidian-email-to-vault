@@ -102,8 +102,7 @@ describe('RedownloadRecentEmailsCommandHandler', () => {
   it('should have correct command properties', () => {
     const command = new RedownloadRecentEmailsCommandHandler({
       app: createMockApp(),
-      emailChecker: createMockEmailChecker(),
-      pluginName: 'Email to Vault'
+      emailChecker: createMockEmailChecker()
     });
 
     expect(command.id).toBe('redownload-recent-emails');
@@ -115,8 +114,7 @@ describe('RedownloadRecentEmailsCommandHandler', () => {
     const checker = createMockEmailChecker();
     const command = new RedownloadRecentEmailsCommandHandler({
       app: createMockApp(),
-      emailChecker: checker,
-      pluginName: 'Email to Vault'
+      emailChecker: checker
     });
 
     await command.execute();

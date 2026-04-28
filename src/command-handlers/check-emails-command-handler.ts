@@ -2,22 +2,13 @@ import { GlobalCommandHandler } from 'obsidian-dev-utils/obsidian/command-handle
 
 import type { EmailChecker } from '../email-checker.ts';
 
-interface CheckEmailsCommandHandlerConstructorParams {
-  emailChecker: EmailChecker;
-  pluginName: string;
-}
-
 export class CheckEmailsCommandHandler extends GlobalCommandHandler {
-  private readonly emailChecker: EmailChecker;
-
-  public constructor(params: CheckEmailsCommandHandlerConstructorParams) {
+  public constructor(private readonly emailChecker: EmailChecker) {
     super({
       icon: 'mail',
       id: 'check-emails',
-      name: 'Check emails',
-      pluginName: params.pluginName
+      name: 'Check emails'
     });
-    this.emailChecker = params.emailChecker;
   }
 
   public override async execute(): Promise<void> {

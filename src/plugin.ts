@@ -71,26 +71,17 @@ export class Plugin extends PluginBase {
       new CommandHandlerComponent({
         activeFileProvider: new AppActiveFileProvider(this.app),
         commandHandlers: [
-          new CheckEmailsCommandHandler({
-            emailChecker,
-            pluginName: this.manifest.name
-          }),
-          new OpenSettingsCommandHandler({
-            pluginName: this.manifest.name,
-            pluginSettingsTab
-          }),
-          new RedownloadAllEmailsCommandHandler({
-            emailChecker,
-            pluginName: this.manifest.name
-          }),
+          new CheckEmailsCommandHandler(emailChecker),
+          new OpenSettingsCommandHandler(pluginSettingsTab),
+          new RedownloadAllEmailsCommandHandler(emailChecker),
           new RedownloadRecentEmailsCommandHandler({
             app: this.app,
-            emailChecker,
-            pluginName: this.manifest.name
+            emailChecker
           })
         ],
         commandRegistrar: new PluginCommandRegistrar(this),
-        menuEventRegistrar: new AppMenuEventRegistrar(this.app, this)
+        menuEventRegistrar: new AppMenuEventRegistrar(this.app, this),
+        pluginName: this.manifest.name
       })
     );
   }

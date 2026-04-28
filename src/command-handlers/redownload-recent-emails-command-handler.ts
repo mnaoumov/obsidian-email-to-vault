@@ -11,7 +11,6 @@ import type { EmailChecker } from '../email-checker.ts';
 interface RedownloadRecentEmailsCommandHandlerConstructorParams {
   app: App;
   emailChecker: EmailChecker;
-  pluginName: string;
 }
 /* v8 ignore stop */
 
@@ -67,8 +66,7 @@ export class RedownloadRecentEmailsCommandHandler extends GlobalCommandHandler {
     super({
       icon: 'mail-question',
       id: 'redownload-recent-emails',
-      name: 'Redownload recent emails',
-      pluginName: params.pluginName
+      name: 'Redownload recent emails'
     });
     this.app = params.app;
     this.emailChecker = params.emailChecker;

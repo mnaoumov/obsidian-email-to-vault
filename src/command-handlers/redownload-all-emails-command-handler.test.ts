@@ -40,10 +40,7 @@ function createMockEmailChecker(): EmailChecker {
 
 describe('RedownloadAllEmailsCommandHandler', () => {
   it('should have correct command properties', () => {
-    const command = new RedownloadAllEmailsCommandHandler({
-      emailChecker: createMockEmailChecker(),
-      pluginName: 'Email to Vault'
-    });
+    const command = new RedownloadAllEmailsCommandHandler(createMockEmailChecker());
 
     expect(command.id).toBe('redownload-all-emails');
     expect(command.name).toBe('Redownload all emails');
@@ -52,10 +49,7 @@ describe('RedownloadAllEmailsCommandHandler', () => {
 
   it('should call redownloadEmails without count on execute', async () => {
     const checker = createMockEmailChecker();
-    const command = new RedownloadAllEmailsCommandHandler({
-      emailChecker: checker,
-      pluginName: 'Email to Vault'
-    });
+    const command = new RedownloadAllEmailsCommandHandler(checker);
 
     await command.execute();
 
