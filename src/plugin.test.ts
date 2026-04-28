@@ -197,31 +197,28 @@ describe('Plugin', () => {
       expect(MockPrismComponent).toHaveBeenCalledOnce();
     });
 
-    it('should create CheckEmailsCommandHandler with pluginName and emailChecker', () => {
+    it('should create CheckEmailsCommandHandler with emailChecker', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith({
-        emailChecker: MockEmailChecker.mock.instances[0],
-        pluginName: 'Email to Vault'
-      });
+      expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith(
+        MockEmailChecker.mock.instances[0]
+      );
     });
 
-    it('should create RedownloadAllEmailsCommandHandler with pluginName and emailChecker', () => {
+    it('should create RedownloadAllEmailsCommandHandler with emailChecker', () => {
       new Plugin(mockApp, mockManifest);
 
-      expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith({
-        emailChecker: MockEmailChecker.mock.instances[0],
-        pluginName: 'Email to Vault'
-      });
+      expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith(
+        MockEmailChecker.mock.instances[0]
+      );
     });
 
-    it('should create RedownloadRecentEmailsCommandHandler with app, pluginName, and emailChecker', () => {
+    it('should create RedownloadRecentEmailsCommandHandler with app and emailChecker', () => {
       new Plugin(mockApp, mockManifest);
 
       expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith({
         app: mockApp,
-        emailChecker: MockEmailChecker.mock.instances[0],
-        pluginName: 'Email to Vault'
+        emailChecker: MockEmailChecker.mock.instances[0]
       });
     });
 
