@@ -6,7 +6,10 @@ import type {
 } from 'imapflow';
 import type { App } from 'obsidian';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
+import {
+  noop,
+  noopAsync
+} from 'obsidian-dev-utils/function';
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
@@ -27,7 +30,7 @@ vi.mock('obsidian', async (importOriginal) => {
     ...original,
     Component: class MockComponent {
       public onload(): void {
-        // Noop
+        noop();
       }
     },
     Notice: vi.fn()

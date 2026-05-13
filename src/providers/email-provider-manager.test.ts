@@ -3,7 +3,10 @@ import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { ReadonlyPluginSettingsState } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
 import type { Promisable } from 'type-fest';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
+import {
+  noop,
+  noopAsync
+} from 'obsidian-dev-utils/function';
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
@@ -32,7 +35,7 @@ vi.mock('obsidian', async (importOriginal) => {
       }
 
       public onload(): void {
-        // Noop
+        noop();
       }
 
       public removeChild<T>(child: T): T {

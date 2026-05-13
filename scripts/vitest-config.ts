@@ -1,9 +1,15 @@
+import { existsSync } from 'node:fs';
+import { loadEnvFile } from 'node:process';
 import { defineConfig } from 'vitest/config';
 
 const SHARED_EXCLUDE = ['node_modules', 'dist'];
 const BIG_TIMEOUT_IN_MILLISECONDS = 30_000;
 const ANDROID_TIMEOUT_IN_MILLISECONDS = 60_000;
 const HOOK_TIMEOUT_MULTIPLIER = 4;
+
+if (existsSync('.env')) {
+  loadEnvFile();
+}
 
 export const config = defineConfig({
   test: {

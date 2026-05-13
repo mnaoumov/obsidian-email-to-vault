@@ -1,5 +1,8 @@
 import { Notice } from 'obsidian';
-import { noopAsync } from 'obsidian-dev-utils/function';
+import {
+  noop,
+  noopAsync
+} from 'obsidian-dev-utils/function';
 import {
   beforeEach,
   describe,
@@ -16,7 +19,7 @@ vi.mock('obsidian', async (importOriginal) => {
     ...original,
     Component: class MockComponent {
       public onload(): void {
-        // Noop
+        noop();
       }
     },
     Notice: vi.fn()
