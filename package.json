@@ -1,6 +1,6 @@
 {
   "name": "email-to-vault",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Sends emails to your vault as notes. Create a free mailbox with one click — no backend or paid service required.",
   "keywords": [],
   "license": "MIT",
