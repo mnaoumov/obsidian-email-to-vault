@@ -66,7 +66,6 @@ export const config = defineConfig({
             obsidianTransport: {
               appiumUrl: 'http://localhost:4723',
               avdName: 'obsidian_test',
-              deviceId: 'emulator-5554',
               type: 'obsidian-android-appium'
             }
           },
