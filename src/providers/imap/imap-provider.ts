@@ -46,6 +46,7 @@ export class ImapProvider extends AsyncComponentBase implements EmailProvider {
   }
 
   public override async onload(): Promise<void> {
+    await super.onload();
     if (Platform.isDesktop) {
       // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
       this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktop(this.app, this.pluginSettingsComponent);

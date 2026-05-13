@@ -21,10 +21,12 @@ class RedownloadRecentEmailsModal extends Modal {
   }
 
   public override onClose(): void {
+    super.onClose();
     this.contentEl.empty();
   }
 
   public override onOpen(): void {
+    super.onOpen();
     this.contentEl.addClass('redownload-recent-emails-modal');
     this.setTitle('Redownload recent emails');
 

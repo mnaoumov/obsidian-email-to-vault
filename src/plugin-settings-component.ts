@@ -29,6 +29,7 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
   }
 
   protected override registerValidators(): void {
+    super.registerValidators();
     this.registerValidator('emailAddress', async (value, settings): Promise<MaybeReturn<string>> => {
       if (settings.emailProviderType === EmailProviderType.MailTm) {
         return this.validateMailTmEmailAddress(value);
