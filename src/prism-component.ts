@@ -1,7 +1,7 @@
 /* v8 ignore start -- Prism syntax highlighting requires Obsidian runtime. */
 
+import { loadPrism } from '@obsidian-typings/obsidian-public-latest/implementations';
 import { AsyncComponentBase } from 'obsidian-dev-utils/obsidian/components/async-component';
-import { loadPrism } from 'obsidian-typings/implementations';
 
 export const TOKENIZED_STRING_LANGUAGE = 'email-to-vault-template';
 

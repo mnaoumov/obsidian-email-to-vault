@@ -72,7 +72,10 @@ export class Plugin extends PluginBase {
         activeFileProvider: new AppActiveFileProvider(this.app),
         commandHandlers: [
           new CheckEmailsCommandHandler(emailChecker),
-          new OpenSettingsCommandHandler(pluginSettingsTab),
+          new OpenSettingsCommandHandler({
+            app,
+            settingTab: pluginSettingsTab
+          }),
           new RedownloadAllEmailsCommandHandler(emailChecker),
           new RedownloadRecentEmailsCommandHandler({
             app: this.app,
