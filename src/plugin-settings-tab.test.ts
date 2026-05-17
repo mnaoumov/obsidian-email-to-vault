@@ -44,7 +44,6 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab', () => ({
   PluginSettingsTabBase: class MockPluginSettingsTabBase {
     public app: unknown;
     public bind = vi.fn();
-    // eslint-disable-next-line obsidianmd/prefer-create-el -- createDiv on document appends to #document causing HierarchyRequestError in jsdom
     public containerEl = activeDocument.createElement('div');
     public plugin: Plugin;
     public pluginSettingsComponent: PluginSettingsComponent;
