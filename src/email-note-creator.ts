@@ -44,9 +44,9 @@ interface EmailData {
 }
 
 interface EmailNoteCreatorConstructorParams {
-  app: App;
-  emailProvider: EmailProvider;
-  pluginSettingsComponent: PluginSettingsComponent;
+  readonly app: App;
+  readonly emailProvider: EmailProvider;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 export class EmailNoteCreator {
@@ -163,7 +163,7 @@ interface ExtractBodyResult {
 }
 
 interface SanitizeOptions {
-  shouldStripHiddenElements: boolean;
+  readonly shouldStripHiddenElements: boolean;
 }
 
 function extractBody(fullMessage: EmailMessageFull, options: SanitizeOptions): ExtractBodyResult {

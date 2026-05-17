@@ -9,9 +9,9 @@ import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
 interface PluginSettingsComponentConstructorParams {
-  dataHandler: DataHandler;
-  mailTmDomainManager: MailTmDomainManager;
-  pluginId: string;
+  readonly dataHandler: DataHandler;
+  readonly mailTmDomainManager: MailTmDomainManager;
+  readonly pluginId: string;
 }
 
 export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginSettings> {

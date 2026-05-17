@@ -11,10 +11,10 @@ import type { EmailChecker } from '../email-checker.ts';
 import { RedownloadAllEmailsCommandHandler } from './redownload-all-emails-command-handler.ts';
 
 interface CommandHandlerParams {
-  icon: string;
-  id: string;
-  name: string;
-  pluginName: string;
+  readonly icon: string;
+  readonly id: string;
+  readonly name: string;
+  readonly pluginName: string;
 }
 
 vi.mock('obsidian-dev-utils/obsidian/command-handlers/global-command-handler', () => ({

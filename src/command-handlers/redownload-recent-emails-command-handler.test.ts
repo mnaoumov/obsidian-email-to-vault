@@ -14,10 +14,10 @@ import type { EmailChecker } from '../email-checker.ts';
 import { RedownloadRecentEmailsCommandHandler } from './redownload-recent-emails-command-handler.ts';
 
 interface CommandHandlerParams {
-  icon: string;
-  id: string;
-  name: string;
-  pluginName: string;
+  readonly icon: string;
+  readonly id: string;
+  readonly name: string;
+  readonly pluginName: string;
 }
 
 vi.mock('obsidian', async (importOriginal) => {

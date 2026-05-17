@@ -36,8 +36,8 @@ const captured = vi.hoisted(() => ({
 }));
 
 interface MockPluginSettingsTabBaseParams {
-  plugin: Plugin;
-  pluginSettingsComponent: PluginSettingsComponent;
+  readonly plugin: Plugin;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab', () => ({

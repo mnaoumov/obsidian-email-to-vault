@@ -9,8 +9,8 @@ import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
 import type { EmailChecker } from '../email-checker.ts';
 
 interface RedownloadRecentEmailsCommandHandlerConstructorParams {
-  app: App;
-  emailChecker: EmailChecker;
+  readonly app: App;
+  readonly emailChecker: EmailChecker;
 }
 /* v8 ignore stop */
 

@@ -16,10 +16,10 @@ import { ImapProvider } from './imap/imap-provider.ts';
 import { MailTmProvider } from './mail-tm/mail-tm-provider.ts';
 
 interface EmailProviderManagerConstructorParams {
-  app: App;
-  mailTmDomainManager: MailTmDomainManager;
-  pluginId: string;
-  pluginSettingsComponent: PluginSettingsComponent;
+  readonly app: App;
+  readonly mailTmDomainManager: MailTmDomainManager;
+  readonly pluginId: string;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 export class EmailProviderManager extends Component implements EmailProvider {

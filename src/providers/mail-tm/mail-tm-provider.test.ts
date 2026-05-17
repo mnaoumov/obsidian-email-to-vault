@@ -30,13 +30,13 @@ vi.mock('obsidian', async (importOriginal) => {
 const mockRequestUrl = vi.mocked(requestUrl);
 
 interface MockParams {
-  emailAddress?: string;
-  emailPasswordSecretKey?: string;
-  getAvailableDomain?: () => Promise<string>;
-  pluginId?: string;
-  secretStorageGetSecret?: (key: string) => null | string;
-  secretStorageSetSecret?: (key: string, value: string) => void;
-  settingsComponentEditAndSave?: (cb: (settings: PluginSettings) => void) => Promise<void>;
+  readonly emailAddress?: string;
+  readonly emailPasswordSecretKey?: string;
+  readonly getAvailableDomain?: () => Promise<string>;
+  readonly pluginId?: string;
+  readonly secretStorageGetSecret?: (key: string) => null | string;
+  readonly secretStorageSetSecret?: (key: string, value: string) => void;
+  readonly settingsComponentEditAndSave?: (cb: (settings: PluginSettings) => void) => Promise<void>;
 }
 
 interface MockResult {

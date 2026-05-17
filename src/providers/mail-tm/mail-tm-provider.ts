@@ -22,8 +22,8 @@ import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 const HTTP_STATUS_CREATED = 201;
 
 interface CreateAccountParams {
-  address: string;
-  password: string;
+  readonly address: string;
+  readonly password: string;
 }
 
 interface JwtPayload {

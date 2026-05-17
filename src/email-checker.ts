@@ -10,9 +10,9 @@ import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
 interface EmailCheckerConstructorParams {
-  emailNoteCreator: EmailNoteCreator;
-  emailProvider: EmailProvider;
-  pluginSettingsComponent: PluginSettingsComponent;
+  readonly emailNoteCreator: EmailNoteCreator;
+  readonly emailProvider: EmailProvider;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 export class EmailChecker extends Component {
   private readonly emailNoteCreator: EmailNoteCreator;

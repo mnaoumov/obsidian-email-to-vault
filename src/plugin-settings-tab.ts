@@ -14,8 +14,8 @@ import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
-  emailProviderManager: EmailProviderManager;
-  pluginId: string;
+  readonly emailProviderManager: EmailProviderManager;
+  readonly pluginId: string;
 }
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {

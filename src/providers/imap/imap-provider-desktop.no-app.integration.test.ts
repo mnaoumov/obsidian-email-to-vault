@@ -16,10 +16,10 @@ const MAX_WAIT_IN_MILLISECONDS = 60_000;
 const TEST_SUBJECT_PREFIX = `imap-integration-test-${String(Date.now())}`;
 
 interface SendTestEmailOptions {
-  attachments?: TestAttachment[];
-  cc?: string;
-  html?: string;
-  text?: string;
+  readonly attachments?: TestAttachment[];
+  readonly cc?: string;
+  readonly html?: string;
+  readonly text?: string;
 }
 
 interface TestAttachment {
