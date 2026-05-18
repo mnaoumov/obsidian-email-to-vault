@@ -65,7 +65,7 @@ vi.mock('obsidian-dev-utils/obsidian/menu-event-registrar', () => ({
   AppMenuEventRegistrar: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/plugin/components/plugin-settings-tab-component', () => ({
+vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', () => ({
   PluginSettingsTabComponent: vi.fn()
 }));
 

@@ -8,8 +8,8 @@ import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-han
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { PluginCommandRegistrar } from 'obsidian-dev-utils/obsidian/command-registrar';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
-import { AppMenuEventRegistrar } from 'obsidian-dev-utils/obsidian/menu-event-registrar';
-import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-tab-component';
+import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/components/menu-event-registrar-component';
+import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
@@ -67,6 +67,7 @@ export class Plugin extends PluginBase {
       })
     );
     this.addChild(new PrismComponent());
+    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(app));
     this.addChild(
       new CommandHandlerComponent({
         activeFileProvider: new AppActiveFileProvider(this.app),
@@ -83,7 +84,7 @@ export class Plugin extends PluginBase {
           })
         ],
         commandRegistrar: new PluginCommandRegistrar(this),
-        menuEventRegistrar: new AppMenuEventRegistrar(this.app, this),
+        menuEventRegistrar,
         pluginName: this.manifest.name
       })
     );

@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
-import type { ReadonlyPluginSettingsState } from 'obsidian-dev-utils/obsidian/plugin/components/plugin-settings-component';
+import type { ReadonlyPluginSettingsState } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 import type { Promisable } from 'type-fest';
 
 import {
