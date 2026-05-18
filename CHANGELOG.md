@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2.0.4
+
+- fix(test): update expected addChild count to match 7 children in Plugin constructor
+- refactor: migrate to @obsidian-typings/obsidian-public-latest
+- chore: update libs
+- build: replace commitizen with czg
+- chore: add attestation
+- docs: add contributing
+
 ## 2.0.3
 
 - refactor: new template
