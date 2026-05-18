@@ -7,9 +7,9 @@ import { AppActiveFileProvider } from 'obsidian-dev-utils/obsidian/active-file-p
 import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { PluginCommandRegistrar } from 'obsidian-dev-utils/obsidian/command-registrar';
-import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/components/menu-event-registrar-component';
 import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
+import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';

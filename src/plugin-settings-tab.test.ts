@@ -169,7 +169,7 @@ vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
 const MockSettingGroupEx = vi.mocked(SettingGroupEx);
 
 interface MockPluginSettingsComponentOverrides {
-  editAndSave?: (cb: (s: PluginSettings) => void) => Promise<void>;
+  editAndSave?(cb: (s: PluginSettings) => void): Promise<void>;
   emailAddress?: string;
   emailPasswordSecretKey?: string;
   emailProviderType?: EmailProviderType;

@@ -90,7 +90,7 @@ vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => (
 
 interface CreateMockPluginSettingsComponentResult {
   pluginSettingsComponent: PluginSettingsComponent;
-  triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => void;
+  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): void;
 }
 
 type SaveSettingsCallback = (
