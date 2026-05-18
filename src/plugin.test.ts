@@ -243,7 +243,7 @@ describe('Plugin', () => {
     it('should add all children', () => {
       new Plugin(mockApp, mockManifest);
 
-      const EXPECTED_ADD_CHILD_CALLS = 6;
+      const EXPECTED_ADD_CHILD_CALLS = 7;
       expect(mocks.mockAddChild).toHaveBeenCalledTimes(EXPECTED_ADD_CHILD_CALLS);
     });
   });
