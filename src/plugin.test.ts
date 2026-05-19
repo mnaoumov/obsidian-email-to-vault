@@ -16,13 +16,14 @@ import {
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
 import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
-import { EmailChecker } from './email-checker.ts';
+import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { PluginSettings } from './plugin-settings.ts';
 import { Plugin } from './plugin.ts';
 import { PrismComponent } from './prism-component.ts';
-import { EmailProviderManager } from './providers/email-provider-manager.ts';
+import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 const mocks = vi.hoisted(() => ({
@@ -82,11 +83,11 @@ vi.mock('./plugin-settings-component.ts', () => ({
 }));
 
 vi.mock('./providers/email-provider-manager.ts', () => ({
-  EmailProviderManager: vi.fn()
+  EmailProviderManagerComponent: vi.fn()
 }));
 
 vi.mock('./email-checker.ts', () => ({
-  EmailChecker: vi.fn()
+  EmailCheckerComponent: vi.fn()
 }));
 
 vi.mock('./email-note-creator.ts', () => ({
@@ -111,10 +112,10 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 
 const MockPluginDataHandler = vi.mocked(PluginDataHandler);
 const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
-const MockEmailChecker = vi.mocked(EmailChecker);
+const MockEmailChecker = vi.mocked(EmailCheckerComponent);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
 const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
-const MockEmailProviderManager = vi.mocked(EmailProviderManager);
+const MockEmailProviderManager = vi.mocked(EmailProviderManagerComponent);
 const MockPluginSettingsComponent = vi.mocked(PluginSettingsComponent);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
 const MockPrismComponent = vi.mocked(PrismComponent);
@@ -145,7 +146,8 @@ describe('Plugin', () => {
       expect(MockPluginSettingsComponent).toHaveBeenCalledWith({
         dataHandler: MockPluginDataHandler.mock.instances[0],
         mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
-        pluginId: 'email-to-vault'
+        pluginId: 'email-to-vault',
+        pluginSettingsClass: PluginSettings
       });
     });
 

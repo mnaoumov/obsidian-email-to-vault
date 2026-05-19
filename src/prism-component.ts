@@ -1,11 +1,11 @@
 /* v8 ignore start -- Prism syntax highlighting requires Obsidian runtime. */
 
 import { loadPrism } from '@obsidian-typings/obsidian-public-latest/implementations';
-import { AsyncComponentBase } from 'obsidian-dev-utils/obsidian/components/async-component';
+import { AsyncComponent } from 'obsidian-dev-utils/obsidian/components/async-component';
 
 export const TOKENIZED_STRING_LANGUAGE = 'email-to-vault-template';
 
-export class PrismComponent extends AsyncComponentBase {
+export class PrismComponent extends AsyncComponent {
   public override async onload(): Promise<void> {
     await super.onload();
     await this.initPrism();

@@ -21,8 +21,8 @@ import {
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { Plugin } from './plugin.ts';
-import type { EmailProviderManager } from './providers/email-provider-manager.ts';
-import type { MailTmProvider } from './providers/mail-tm/mail-tm-provider.ts';
+import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
+import type { MailTmProviderComponent } from './providers/mail-tm/mail-tm-provider.ts';
 
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
@@ -175,15 +175,15 @@ interface MockPluginSettingsComponentOverrides {
   emailProviderType?: EmailProviderType;
 }
 
-function createMockEmailProviderManager(mailTmProvider?: MailTmProvider): EmailProviderManager {
+function createMockEmailProviderManager(mailTmProvider?: MailTmProviderComponent): EmailProviderManagerComponent {
   const provider = mailTmProvider ?? createMockMailTmProvider();
-  return strictProxy<EmailProviderManager>({
+  return strictProxy<EmailProviderManagerComponent>({
     getMailTmProvider: vi.fn(() => provider)
   });
 }
 
-function createMockMailTmProvider(): MailTmProvider {
-  return strictProxy<MailTmProvider>({
+function createMockMailTmProvider(): MailTmProviderComponent {
+  return strictProxy<MailTmProviderComponent>({
     registerRandomEmailAddress: vi.fn(),
     unregisterEmailAddress: vi.fn()
   });
@@ -422,7 +422,7 @@ describe('PluginSettingsTab', () => {
     });
 
     it('should copy email address to clipboard', async () => {
-      const writeTextFn = vi.fn(async () => Promise.resolve());
+      const writeTextFn = vi.fn(async () => noopAsync());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const pluginSettingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
       const tab = new PluginSettingsTab({
@@ -442,7 +442,7 @@ describe('PluginSettingsTab', () => {
     });
 
     it('should copy password to clipboard', async () => {
-      const writeTextFn = vi.fn(async () => Promise.resolve());
+      const writeTextFn = vi.fn(async () => noopAsync());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const pluginSettingsComponent = createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' });
       const tab = new PluginSettingsTab({
@@ -536,7 +536,7 @@ describe('PluginSettingsTab', () => {
     });
 
     it('should show notice when no password found for copy', async () => {
-      const writeTextFn = vi.fn(async () => Promise.resolve());
+      const writeTextFn = vi.fn(async () => noopAsync());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);

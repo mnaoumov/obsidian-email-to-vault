@@ -11,7 +11,7 @@ import {
   vi
 } from 'vitest';
 
-import { ImapProviderMobile } from './imap-provider-mobile.ts';
+import { ImapProviderMobileComponent } from './imap-provider-mobile.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
@@ -27,7 +27,8 @@ vi.mock('obsidian', async (importOriginal) => {
 });
 
 vi.mock('obsidian-dev-utils/function', () => ({
-  noopAsync: vi.fn(async () => Promise.resolve())
+  noop: vi.fn(),
+  noopAsync: vi.fn(() => noopAsync())
 }));
 
 describe('ImapProviderMobile', () => {
@@ -37,7 +38,7 @@ describe('ImapProviderMobile', () => {
 
   describe('getMessages', () => {
     it('should return empty array', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       const result = await provider.getMessages();
 
@@ -45,7 +46,7 @@ describe('ImapProviderMobile', () => {
     });
 
     it('should show notice', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.getMessages();
 
@@ -53,7 +54,7 @@ describe('ImapProviderMobile', () => {
     });
 
     it('should call noopAsync', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.getMessages();
 
@@ -63,7 +64,7 @@ describe('ImapProviderMobile', () => {
 
   describe('getMessage', () => {
     it('should return empty message with given id', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       const result = await provider.getMessage('42');
 
@@ -83,7 +84,7 @@ describe('ImapProviderMobile', () => {
     });
 
     it('should show notice', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.getMessage('42');
 
@@ -93,7 +94,7 @@ describe('ImapProviderMobile', () => {
 
   describe('downloadAttachment', () => {
     it('should return empty ArrayBuffer', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       const result = await provider.downloadAttachment();
 
@@ -101,7 +102,7 @@ describe('ImapProviderMobile', () => {
     });
 
     it('should show notice', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.downloadAttachment();
 
@@ -111,7 +112,7 @@ describe('ImapProviderMobile', () => {
 
   describe('markMessageAsSeen', () => {
     it('should show notice', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.markMessageAsSeen();
 
@@ -119,7 +120,7 @@ describe('ImapProviderMobile', () => {
     });
 
     it('should call noopAsync', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.markMessageAsSeen();
 
@@ -129,7 +130,7 @@ describe('ImapProviderMobile', () => {
 
   describe('deleteMessage', () => {
     it('should show notice', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.deleteMessage();
 
@@ -137,7 +138,7 @@ describe('ImapProviderMobile', () => {
     });
 
     it('should call noopAsync', async () => {
-      const provider = new ImapProviderMobile();
+      const provider = new ImapProviderMobileComponent();
 
       await provider.deleteMessage();
 

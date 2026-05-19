@@ -19,7 +19,7 @@ import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
-import { EmailChecker } from './email-checker.ts';
+import { EmailCheckerComponent } from './email-checker.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
@@ -42,7 +42,7 @@ vi.stubGlobal('window', {
 
 interface CreateMockPluginSettingsComponentResult {
   pluginSettingsComponent: PluginSettingsComponent;
-  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): void;
+  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): Promise<void>;
 }
 
 interface MockEmailProviderOverrides {
@@ -101,9 +101,9 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
 
   return {
     pluginSettingsComponent: component,
-    triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): void {
+    async triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): Promise<void> {
       if (saveSettingsCallback) {
-        saveSettingsCallback(newState, oldState, undefined);
+        await saveSettingsCallback(newState, oldState, undefined);
       }
     }
   };
@@ -132,7 +132,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailAddress: '' });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -164,7 +164,7 @@ describe('EmailChecker', () => {
       });
       const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -193,7 +193,7 @@ describe('EmailChecker', () => {
       });
       const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -226,7 +226,7 @@ describe('EmailChecker', () => {
       });
       const { pluginSettingsComponent } = createMockPluginSettingsComponent({ shouldDeleteSeenEmails: true });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -258,7 +258,7 @@ describe('EmailChecker', () => {
       });
       const { pluginSettingsComponent } = createMockPluginSettingsComponent({ shouldDeleteSeenEmails: false });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -304,7 +304,7 @@ describe('EmailChecker', () => {
       });
       const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -348,7 +348,7 @@ describe('EmailChecker', () => {
       });
       const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -366,7 +366,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 0 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -387,7 +387,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -403,7 +403,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent } = createMockPluginSettingsComponent();
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -414,7 +414,7 @@ describe('EmailChecker', () => {
       expect(pluginSettingsComponent.on).toHaveBeenCalledWith('saveSettings', expect.any(Function));
     });
 
-    it('should reschedule when emailCheckIntervalInMinutes changes', () => {
+    it('should reschedule when emailCheckIntervalInMinutes changes', async () => {
       const mockClearInterval = vi.fn();
       const mockSetInterval = vi.fn(() => 1);
       vi.stubGlobal('window', {
@@ -425,7 +425,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -436,13 +436,13 @@ describe('EmailChecker', () => {
 
       const oldState = createSettingsState(5);
       const newState = createSettingsState(15);
-      triggerSaveSettings(newState, oldState);
+      await triggerSaveSettings(newState, oldState);
 
       expect(mockClearInterval).toHaveBeenCalled();
       expect(mockSetInterval).toHaveBeenCalled();
     });
 
-    it('should not reschedule when emailCheckIntervalInMinutes does not change', () => {
+    it('should not reschedule when emailCheckIntervalInMinutes does not change', async () => {
       const mockSetInterval = vi.fn(() => 1);
       vi.stubGlobal('window', {
         clearInterval: vi.fn(),
@@ -452,7 +452,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -462,12 +462,12 @@ describe('EmailChecker', () => {
       mockSetInterval.mockClear();
 
       const state = createSettingsState(5);
-      triggerSaveSettings(state, state);
+      await triggerSaveSettings(state, state);
 
       expect(mockSetInterval).not.toHaveBeenCalled();
     });
 
-    it('should clear previous interval before scheduling new one', () => {
+    it('should clear previous interval before scheduling new one', async () => {
       const mockClearInterval = vi.fn();
       vi.stubGlobal('window', {
         clearInterval: mockClearInterval,
@@ -477,7 +477,7 @@ describe('EmailChecker', () => {
       const emailProvider = createMockEmailProvider();
       const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({ emailCheckIntervalInMinutes: 5 });
       const noteCreator = createMockNoteCreator();
-      const checker = new EmailChecker({
+      const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
         pluginSettingsComponent
@@ -487,7 +487,7 @@ describe('EmailChecker', () => {
 
       const oldState = createSettingsState(5);
       const newState = createSettingsState(10);
-      triggerSaveSettings(newState, oldState);
+      await triggerSaveSettings(newState, oldState);
 
       expect(mockClearInterval).toHaveBeenCalled();
     });

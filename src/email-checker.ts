@@ -9,18 +9,18 @@ import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
-interface EmailCheckerConstructorParams {
+interface EmailCheckerComponentConstructorParams {
   readonly emailNoteCreator: EmailNoteCreator;
   readonly emailProvider: EmailProvider;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
-export class EmailChecker extends Component {
+export class EmailCheckerComponent extends Component {
   private readonly emailNoteCreator: EmailNoteCreator;
   private readonly emailProvider: EmailProvider;
   private intervalId: null | number = null;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
-  public constructor(params: EmailCheckerConstructorParams) {
+  public constructor(params: EmailCheckerComponentConstructorParams) {
     super();
     this.pluginSettingsComponent = params.pluginSettingsComponent;
     this.emailProvider = params.emailProvider;

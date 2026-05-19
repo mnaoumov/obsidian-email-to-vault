@@ -6,17 +6,17 @@ import { noopAsync } from 'obsidian-dev-utils/function';
 import { GlobalCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/global-command-handler';
 import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
 
-import type { EmailChecker } from '../email-checker.ts';
+import type { EmailCheckerComponent } from '../email-checker.ts';
 
 interface RedownloadRecentEmailsCommandHandlerConstructorParams {
   readonly app: App;
-  readonly emailChecker: EmailChecker;
+  readonly emailChecker: EmailCheckerComponent;
 }
 /* v8 ignore stop */
 
 /* v8 ignore start -- Modal UI requires Obsidian runtime. */
 class RedownloadRecentEmailsModal extends Modal {
-  public constructor(app: App, private readonly emailChecker: EmailChecker) {
+  public constructor(app: App, private readonly emailChecker: EmailCheckerComponent) {
     super(app);
   }
 
@@ -62,7 +62,7 @@ class RedownloadRecentEmailsModal extends Modal {
 
 export class RedownloadRecentEmailsCommandHandler extends GlobalCommandHandler {
   private readonly app: App;
-  private readonly emailChecker: EmailChecker;
+  private readonly emailChecker: EmailCheckerComponent;
 
   public constructor(params: RedownloadRecentEmailsCommandHandlerConstructorParams) {
     super({

@@ -1,9 +1,9 @@
 import { GlobalCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/global-command-handler';
 
-import type { EmailChecker } from '../email-checker.ts';
+import type { EmailCheckerComponent } from '../email-checker.ts';
 
 export class CheckEmailsCommandHandler extends GlobalCommandHandler {
-  public constructor(private readonly emailChecker: EmailChecker) {
+  public constructor(private readonly emailChecker: EmailCheckerComponent) {
     super({
       icon: 'mail',
       id: 'check-emails',

@@ -19,7 +19,7 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
-export class ImapProviderDesktop extends Component implements EmailProvider {
+export class ImapProviderDesktopComponent extends Component implements EmailProvider {
   public constructor(
     private readonly app: App,
     private readonly pluginSettingsComponent: PluginSettingsComponent

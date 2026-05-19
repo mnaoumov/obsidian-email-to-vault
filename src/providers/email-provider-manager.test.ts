@@ -22,7 +22,7 @@ import type { PluginSettings } from '../plugin-settings.ts';
 import type { EmailMessageFull } from './email-provider-types.ts';
 import type { MailTmDomainManager } from './mail-tm/mail-tm-domain-manager.ts';
 
-import { EmailProviderManager } from './email-provider-manager.ts';
+import { EmailProviderManagerComponent } from './email-provider-manager.ts';
 import { EmailProviderType } from './email-provider-type.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
@@ -74,14 +74,14 @@ vi.mock('./mail-tm/mail-tm-provider.ts', () => {
       mocks.mockMailTmProviderInstance = castTo<Record<string, ReturnType<typeof vi.fn>>>(this);
     }
   }
-  return { MailTmProvider: MockMailTmProvider };
+  return { MailTmProviderComponent: MockMailTmProvider };
 });
 
 vi.mock('./imap/imap-provider.ts', () => {
   class MockImapProvider {
     public readonly isImap = true;
   }
-  return { ImapProvider: MockImapProvider };
+  return { ImapProviderComponent: MockImapProvider };
 });
 
 vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => ({
@@ -90,7 +90,7 @@ vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => (
 
 interface CreateMockPluginSettingsComponentResult {
   pluginSettingsComponent: PluginSettingsComponent;
-  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): void;
+  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): Promise<void>;
 }
 
 type SaveSettingsCallback = (
@@ -125,9 +125,9 @@ function createMockPluginSettingsComponent(providerType: EmailProviderType = Ema
 
   return {
     pluginSettingsComponent,
-    triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): void {
+    async triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): Promise<void> {
       if (saveSettingsCallback) {
-        saveSettingsCallback(newState, oldState, undefined);
+        await saveSettingsCallback(newState, oldState, undefined);
       }
     }
   };
@@ -153,7 +153,7 @@ describe('EmailProviderManager', () => {
   describe('onload', () => {
     it('should activate Mail.tm provider when settings have MailTm type', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -167,7 +167,7 @@ describe('EmailProviderManager', () => {
 
     it('should activate IMAP provider when settings have Imap type', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.Imap);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -181,7 +181,7 @@ describe('EmailProviderManager', () => {
 
     it('should register saveSettings event listener', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -195,9 +195,9 @@ describe('EmailProviderManager', () => {
   });
 
   describe('provider switching', () => {
-    it('should swap provider when settings change', () => {
+    it('should swap provider when settings change', async () => {
       const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -208,7 +208,7 @@ describe('EmailProviderManager', () => {
       const firstProvider = manager.getMailTmProvider();
       expect(firstProvider).not.toBeNull();
 
-      triggerSaveSettings(
+      await triggerSaveSettings(
         createSettingsState(EmailProviderType.MailTm),
         createSettingsState(EmailProviderType.Imap)
       );
@@ -216,9 +216,9 @@ describe('EmailProviderManager', () => {
       expect(manager.getMailTmProvider()).not.toBe(firstProvider);
     });
 
-    it('should not swap provider when other settings change', () => {
+    it('should not swap provider when other settings change', async () => {
       const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -228,7 +228,7 @@ describe('EmailProviderManager', () => {
 
       const firstProvider = manager.getMailTmProvider();
 
-      triggerSaveSettings(
+      await triggerSaveSettings(
         createSettingsState(EmailProviderType.MailTm),
         createSettingsState(EmailProviderType.MailTm)
       );
@@ -240,7 +240,7 @@ describe('EmailProviderManager', () => {
   describe('delegation', () => {
     it('should delegate deleteMessage to active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -255,7 +255,7 @@ describe('EmailProviderManager', () => {
 
     it('should delegate downloadAttachment to active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -270,7 +270,7 @@ describe('EmailProviderManager', () => {
 
     it('should delegate getMessage to active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -285,7 +285,7 @@ describe('EmailProviderManager', () => {
 
     it('should delegate getMessages to active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -300,7 +300,7 @@ describe('EmailProviderManager', () => {
 
     it('should delegate markMessageAsSeen to active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -315,7 +315,7 @@ describe('EmailProviderManager', () => {
 
     it('should throw when no active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -329,7 +329,7 @@ describe('EmailProviderManager', () => {
   describe('getMailTmProvider', () => {
     it('should return null when no provider is active', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
@@ -341,7 +341,7 @@ describe('EmailProviderManager', () => {
 
     it('should return the MailTmProvider when active', () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
-      const manager = new EmailProviderManager({
+      const manager = new EmailProviderManagerComponent({
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',

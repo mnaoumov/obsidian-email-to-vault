@@ -15,12 +15,13 @@ import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
 import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
-import { EmailChecker } from './email-checker.ts';
+import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { PluginSettings } from './plugin-settings.ts';
 import { PrismComponent } from './prism-component.ts';
-import { EmailProviderManager } from './providers/email-provider-manager.ts';
+import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 export class Plugin extends PluginBase {
@@ -31,11 +32,12 @@ export class Plugin extends PluginBase {
       new PluginSettingsComponent({
         dataHandler: new PluginDataHandler(this),
         mailTmDomainManager,
-        pluginId: this.manifest.id
+        pluginId: this.manifest.id,
+        pluginSettingsClass: PluginSettings
       })
     );
     const emailProviderManager = this.addChild(
-      new EmailProviderManager({
+      new EmailProviderManagerComponent({
         app: this.app,
         mailTmDomainManager,
         pluginId: this.manifest.id,
@@ -48,7 +50,7 @@ export class Plugin extends PluginBase {
       pluginSettingsComponent
     });
     const emailChecker = this.addChild(
-      new EmailChecker({
+      new EmailCheckerComponent({
         emailNoteCreator,
         emailProvider: emailProviderManager,
         pluginSettingsComponent

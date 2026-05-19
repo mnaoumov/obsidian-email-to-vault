@@ -9,7 +9,7 @@ import {
   vi
 } from 'vitest';
 
-import type { EmailChecker } from '../email-checker.ts';
+import type { EmailCheckerComponent } from '../email-checker.ts';
 
 import { RedownloadRecentEmailsCommandHandler } from './redownload-recent-emails-command-handler.ts';
 
@@ -92,8 +92,8 @@ function createMockApp(): App {
   return strictProxy<App>({});
 }
 
-function createMockEmailChecker(): EmailChecker {
-  return strictProxy<EmailChecker>({
+function createMockEmailChecker(): EmailCheckerComponent {
+  return strictProxy<EmailCheckerComponent>({
     redownloadEmails: vi.fn()
   });
 }

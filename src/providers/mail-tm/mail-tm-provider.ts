@@ -69,7 +69,7 @@ interface MailTmTokenResponse {
   token: string;
 }
 
-export class MailTmProvider extends Component implements EmailProvider {
+export class MailTmProviderComponent extends Component implements EmailProvider {
   public constructor(
     private readonly app: App,
     private readonly pluginId: string,

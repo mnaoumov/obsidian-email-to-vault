@@ -16,7 +16,7 @@ import type { EmailMessageFull } from '../email-provider-types.ts';
 import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
 
 import { PluginSettings } from '../../plugin-settings.ts';
-import { MailTmProvider } from './mail-tm-provider.ts';
+import { MailTmProviderComponent } from './mail-tm-provider.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
@@ -45,9 +45,9 @@ interface MockResult {
   pluginSettingsComponent: PluginSettingsComponent;
 }
 
-function createManager(overrides?: MockParams): MailTmProvider {
+function createManager(overrides?: MockParams): MailTmProviderComponent {
   const { app, mailTmDomainManager, pluginSettingsComponent } = createMocks(overrides);
-  return new MailTmProvider(app, overrides?.pluginId ?? 'email-to-vault', pluginSettingsComponent, mailTmDomainManager);
+  return new MailTmProviderComponent(app, overrides?.pluginId ?? 'email-to-vault', pluginSettingsComponent, mailTmDomainManager);
 }
 
 function createMocks(overrides?: MockParams): MockResult {

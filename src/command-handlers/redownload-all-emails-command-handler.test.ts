@@ -6,7 +6,7 @@ import {
   vi
 } from 'vitest';
 
-import type { EmailChecker } from '../email-checker.ts';
+import type { EmailCheckerComponent } from '../email-checker.ts';
 
 import { RedownloadAllEmailsCommandHandler } from './redownload-all-emails-command-handler.ts';
 
@@ -32,8 +32,8 @@ vi.mock('obsidian-dev-utils/obsidian/command-handlers/global-command-handler', (
   }
 }));
 
-function createMockEmailChecker(): EmailChecker {
-  return strictProxy<EmailChecker>({
+function createMockEmailChecker(): EmailCheckerComponent {
+  return strictProxy<EmailCheckerComponent>({
     redownloadEmails: vi.fn()
   });
 }

@@ -10,7 +10,7 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
-export class ImapProviderMobile extends Component implements EmailProvider {
+export class ImapProviderMobileComponent extends Component implements EmailProvider {
   public constructor() {
     super();
   }

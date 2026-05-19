@@ -8,18 +8,18 @@ import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
 import type { PluginSettings } from './plugin-settings.ts';
-import type { EmailProviderManager } from './providers/email-provider-manager.ts';
+import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 
 import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
-  readonly emailProviderManager: EmailProviderManager;
+  readonly emailProviderManager: EmailProviderManagerComponent;
   readonly pluginId: string;
 }
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
-  private readonly emailProviderManager: EmailProviderManager;
+  private readonly emailProviderManager: EmailProviderManagerComponent;
   private readonly pluginId: string;
 
   public constructor(params: PluginSettingsTabConstructorParams) {

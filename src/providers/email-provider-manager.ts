@@ -12,24 +12,24 @@ import type { EmailProvider } from './email-provider.ts';
 import type { MailTmDomainManager } from './mail-tm/mail-tm-domain-manager.ts';
 
 import { EmailProviderType } from './email-provider-type.ts';
-import { ImapProvider } from './imap/imap-provider.ts';
-import { MailTmProvider } from './mail-tm/mail-tm-provider.ts';
+import { ImapProviderComponent } from './imap/imap-provider.ts';
+import { MailTmProviderComponent } from './mail-tm/mail-tm-provider.ts';
 
-interface EmailProviderManagerConstructorParams {
+interface EmailProviderManagerComponentConstructorParams {
   readonly app: App;
   readonly mailTmDomainManager: MailTmDomainManager;
   readonly pluginId: string;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
-export class EmailProviderManager extends Component implements EmailProvider {
+export class EmailProviderManagerComponent extends Component implements EmailProvider {
   private activeProvider: (Component & EmailProvider) | null = null;
   private readonly app: App;
   private readonly mailTmDomainManager: MailTmDomainManager;
   private readonly pluginId: string;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
-  public constructor(params: EmailProviderManagerConstructorParams) {
+  public constructor(params: EmailProviderManagerComponentConstructorParams) {
     super();
     this.app = params.app;
     this.pluginId = params.pluginId;
@@ -45,8 +45,8 @@ export class EmailProviderManager extends Component implements EmailProvider {
     return this.getActiveProvider().downloadAttachment(messageId, attachmentId);
   }
 
-  public getMailTmProvider(): MailTmProvider | null {
-    if (this.activeProvider instanceof MailTmProvider) {
+  public getMailTmProvider(): MailTmProviderComponent | null {
+    if (this.activeProvider instanceof MailTmProviderComponent) {
       return this.activeProvider;
     }
     return null;
@@ -86,12 +86,12 @@ export class EmailProviderManager extends Component implements EmailProvider {
     switch (type) {
       case EmailProviderType.Imap:
         this.activeProvider = this.addChild(
-          new ImapProvider(this.app, this.pluginSettingsComponent)
+          new ImapProviderComponent(this.app, this.pluginSettingsComponent)
         );
         break;
       case EmailProviderType.MailTm:
         this.activeProvider = this.addChild(
-          new MailTmProvider(this.app, this.pluginId, this.pluginSettingsComponent, this.mailTmDomainManager)
+          new MailTmProviderComponent(this.app, this.pluginId, this.pluginSettingsComponent, this.mailTmDomainManager)
         );
         break;
       /* v8 ignore start -- Exhaustive check for future enum values. */

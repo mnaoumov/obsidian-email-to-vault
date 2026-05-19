@@ -48,22 +48,12 @@ function createMailTmDomainManager(isValidDomain: boolean): MailTmDomainManager 
 }
 
 describe('PluginSettingsManager', () => {
-  it('should create default settings', () => {
-    const manager = new PluginSettingsComponent({
-      dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
-    });
-    const settings = manager['createDefaultSettings']();
-
-    expect(settings).toBeInstanceOf(PluginSettings);
-  });
-
   it('should validate email address through registered validator', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailAddress = 'email-to-vault-abc@mail.tm';
@@ -77,7 +67,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailAddress = 'wrong@mail.tm';
@@ -91,7 +82,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(false),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailAddress = 'email-to-vault-abc@invalid.com';
@@ -105,7 +97,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailAddress = '';
@@ -120,7 +113,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailAddress = 'wrong@mail.tm';
@@ -135,7 +129,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(false),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailProviderType = EmailProviderType.Imap;
@@ -151,7 +146,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailProviderType = EmailProviderType.Imap;
@@ -166,7 +162,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailProviderType = EmailProviderType.MailTm;
@@ -181,7 +178,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailProviderType = EmailProviderType.Imap;
@@ -197,7 +195,8 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
-      pluginId: 'email-to-vault'
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
     settings.emailProviderType = EmailProviderType.MailTm;

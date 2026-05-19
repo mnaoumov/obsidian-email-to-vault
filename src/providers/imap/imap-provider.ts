@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 
 import { Platform } from 'obsidian';
-import { AsyncComponentBase } from 'obsidian-dev-utils/obsidian/components/async-component';
+import { AsyncComponent } from 'obsidian-dev-utils/obsidian/components/async-component';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
@@ -11,7 +11,7 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
-export class ImapProvider extends AsyncComponentBase implements EmailProvider {
+export class ImapProviderComponent extends AsyncComponent implements EmailProvider {
   private _platformImapProvider?: EmailProvider;
 
   private get platformImapProvider(): EmailProvider {
@@ -49,10 +49,10 @@ export class ImapProvider extends AsyncComponentBase implements EmailProvider {
     await super.onload();
     if (Platform.isDesktop) {
       // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
-      this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktop(this.app, this.pluginSettingsComponent);
+      this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktopComponent(this.app, this.pluginSettingsComponent);
     } else {
       // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
-      this._platformImapProvider = new (await import('./imap-provider-mobile.ts')).ImapProviderMobile();
+      this._platformImapProvider = new (await import('./imap-provider-mobile.ts')).ImapProviderMobileComponent();
     }
   }
 }
