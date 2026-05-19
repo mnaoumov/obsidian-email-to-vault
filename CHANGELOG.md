@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.5
+
+- chore: update template
+
 ## 2.0.4
 
 - fix(test): update expected addChild count to match 7 children in Plugin constructor
