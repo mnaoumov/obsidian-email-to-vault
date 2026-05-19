@@ -28,7 +28,7 @@ vi.mock('obsidian', async (importOriginal) => {
 
 vi.mock('obsidian-dev-utils/function', () => ({
   noop: vi.fn(),
-  noopAsync: vi.fn(() => noopAsync())
+  noopAsync: vi.fn().mockResolvedValue(undefined)
 }));
 
 describe('ImapProviderMobile', () => {
