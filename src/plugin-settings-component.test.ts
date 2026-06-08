@@ -1,4 +1,5 @@
 import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
+import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -47,11 +48,16 @@ function createMailTmDomainManager(isValidDomain: boolean): MailTmDomainManager 
   });
 }
 
+function createMockPluginEventSource(): PluginEventSource {
+  return strictProxy<PluginEventSource>({});
+}
+
 describe('PluginSettingsManager', () => {
   it('should validate email address through registered validator', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -67,6 +73,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -82,6 +89,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(false),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -97,6 +105,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -113,6 +122,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -129,6 +139,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(false),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -146,6 +157,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -162,6 +174,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -178,6 +191,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
@@ -195,6 +209,7 @@ describe('PluginSettingsManager', () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
       mailTmDomainManager: createMailTmDomainManager(true),
+      pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });

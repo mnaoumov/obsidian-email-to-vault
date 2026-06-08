@@ -8,7 +8,7 @@ import type { App } from 'obsidian';
 
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
-import { Component } from 'obsidian';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
@@ -19,7 +19,7 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
-export class ImapProviderDesktopComponent extends Component implements EmailProvider {
+export class ImapProviderDesktopComponent extends ComponentEx implements EmailProvider {
   public constructor(
     private readonly app: App,
     private readonly pluginSettingsComponent: PluginSettingsComponent

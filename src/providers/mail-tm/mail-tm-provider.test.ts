@@ -1,7 +1,11 @@
-import type { App } from 'obsidian';
+import type {
+  App,
+  RequestUrlResponse
+} from 'obsidian';
 
 import { requestUrl } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
+import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -94,10 +98,10 @@ describe('MailTmProvider', () => {
       });
 
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: 'jwt-token' }
-        } as never)
-        .mockResolvedValueOnce({} as never);
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({}));
 
       await manager.deleteMessage('msg-to-delete');
 
@@ -119,12 +123,12 @@ describe('MailTmProvider', () => {
 
       const mockArrayBuffer = new ArrayBuffer(8);
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: 'jwt-token' }
-        } as never)
-        .mockResolvedValueOnce({
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           arrayBuffer: mockArrayBuffer
-        } as never);
+        }));
 
       const result = await manager.downloadAttachment('msg1', 'att1');
 
@@ -146,10 +150,10 @@ describe('MailTmProvider', () => {
       });
 
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: 'jwt-token' }
-        } as never)
-        .mockResolvedValueOnce({} as never);
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({}));
 
       await manager.markMessageAsSeen('msg1');
 
@@ -175,9 +179,9 @@ describe('MailTmProvider', () => {
         settingsComponentEditAndSave: editAndSaveFn
       });
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         status: 201
-      } as never);
+      }));
 
       await manager.registerRandomEmailAddress();
 
@@ -199,9 +203,9 @@ describe('MailTmProvider', () => {
     it('should throw when account creation fails', async () => {
       const manager = createManager();
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         status: 400
-      } as never);
+      }));
 
       await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 400');
     });
@@ -224,10 +228,10 @@ describe('MailTmProvider', () => {
 
       const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-456' }))}.sig`;
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: TEST_JWT }
-        } as never)
-        .mockResolvedValueOnce({} as never);
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({}));
 
       await manager.unregisterEmailAddress();
 
@@ -251,10 +255,10 @@ describe('MailTmProvider', () => {
 
       const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-123' }))}.sig`;
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: TEST_JWT }
-        } as never)
-        .mockResolvedValueOnce({} as never);
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({}));
 
       await manager.unregisterEmailAddress();
 
@@ -307,12 +311,12 @@ describe('MailTmProvider', () => {
       });
 
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: 'jwt-token' }
-        } as never)
-        .mockResolvedValueOnce({
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: apiResponse
-        } as never);
+        }));
 
       const result = await manager.getMessage('abc123');
 
@@ -343,12 +347,12 @@ describe('MailTmProvider', () => {
       });
 
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: 'jwt-token' }
-        } as never)
-        .mockResolvedValueOnce({
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: apiResponse
-        } as never);
+        }));
 
       const result = await manager.getMessage('msg1');
 
@@ -392,12 +396,12 @@ describe('MailTmProvider', () => {
       ];
 
       mockRequestUrl
-        .mockResolvedValueOnce({
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { token: 'jwt-token' }
-        } as never)
-        .mockResolvedValueOnce({
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
           json: { 'hydra:member': apiMessages }
-        } as never);
+        }));
 
       const result = await manager.getMessages();
 

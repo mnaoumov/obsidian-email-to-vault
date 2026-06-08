@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 
 import { Platform } from 'obsidian';
-import { AsyncComponent } from 'obsidian-dev-utils/obsidian/components/async-component';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
@@ -11,7 +11,7 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
-export class ImapProviderComponent extends AsyncComponent implements EmailProvider {
+export class ImapProviderComponent extends ComponentEx implements EmailProvider {
   private _platformImapProvider?: EmailProvider;
 
   private get platformImapProvider(): EmailProvider {
@@ -45,8 +45,7 @@ export class ImapProviderComponent extends AsyncComponent implements EmailProvid
     await this.platformImapProvider.markMessageAsSeen(messageId);
   }
 
-  public override async onload(): Promise<void> {
-    await super.onload();
+  public override async onloadAsync(): Promise<void> {
     if (Platform.isDesktop) {
       // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
       this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktopComponent(this.app, this.pluginSettingsComponent);

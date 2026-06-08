@@ -1,8 +1,6 @@
-import {
-  Component,
-  Notice
-} from 'obsidian';
+import { Notice } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
 import type {
   EmailMessageFull,
@@ -10,7 +8,7 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
-export class ImapProviderMobileComponent extends Component implements EmailProvider {
+export class ImapProviderMobileComponent extends ComponentEx implements EmailProvider {
   public constructor() {
     super();
   }

@@ -1,9 +1,7 @@
-import {
-  Component,
-  Notice
-} from 'obsidian';
+import { Notice } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
@@ -14,7 +12,7 @@ interface EmailCheckerComponentConstructorParams {
   readonly emailProvider: EmailProvider;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
-export class EmailCheckerComponent extends Component {
+export class EmailCheckerComponent extends ComponentEx {
   private readonly emailNoteCreator: EmailNoteCreator;
   private readonly emailProvider: EmailProvider;
   private intervalId: null | number = null;

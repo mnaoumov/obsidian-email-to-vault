@@ -1,4 +1,7 @@
+import type { RequestUrlResponse } from 'obsidian';
+
 import { requestUrl } from 'obsidian';
+import { castTo } from 'obsidian-dev-utils/object-utils';
 import {
   beforeEach,
   describe,
@@ -28,9 +31,9 @@ describe('MailTmDomainManager', () => {
     it('should return the first active domain', async () => {
       const manager = new MailTmDomainManager();
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-      } as never);
+      }));
 
       const result = await manager.getAvailableDomain();
 
@@ -40,9 +43,9 @@ describe('MailTmDomainManager', () => {
     it('should throw when no active domains available', async () => {
       const manager = new MailTmDomainManager();
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: false }] }
-      } as never);
+      }));
 
       await expect(manager.getAvailableDomain()).rejects.toThrow('No active Mail.tm domains available');
     });
@@ -52,9 +55,9 @@ describe('MailTmDomainManager', () => {
     it('should return true for valid active domain', async () => {
       const manager = new MailTmDomainManager();
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-      } as never);
+      }));
 
       const result = await manager.validateEmailDomain('user@mail.tm');
 
@@ -64,9 +67,9 @@ describe('MailTmDomainManager', () => {
     it('should return false for inactive domain', async () => {
       const manager = new MailTmDomainManager();
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: false }] }
-      } as never);
+      }));
 
       const result = await manager.validateEmailDomain('user@mail.tm');
 
@@ -76,9 +79,9 @@ describe('MailTmDomainManager', () => {
     it('should return false for unknown domain', async () => {
       const manager = new MailTmDomainManager();
 
-      mockRequestUrl.mockResolvedValueOnce({
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
-      } as never);
+      }));
 
       const result = await manager.validateEmailDomain('user@other.com');
 

@@ -1,9 +1,7 @@
 import type { App } from 'obsidian';
 
-import {
-  Component,
-  requestUrl
-} from 'obsidian';
+import { requestUrl } from 'obsidian';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
@@ -69,7 +67,7 @@ interface MailTmTokenResponse {
   token: string;
 }
 
-export class MailTmProviderComponent extends Component implements EmailProvider {
+export class MailTmProviderComponent extends ComponentEx implements EmailProvider {
   public constructor(
     private readonly app: App,
     private readonly pluginId: string,

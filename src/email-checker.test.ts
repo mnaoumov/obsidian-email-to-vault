@@ -87,7 +87,6 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
     on: vi.fn((_name: string, callback: (...args: unknown[]) => unknown) => {
       saveSettingsCallback = castTo<SaveSettingsCallback>(callback);
       return strictProxy<AsyncEventRef>({
-        asyncEvents: {},
         callback: vi.fn()
       });
     }) as PluginSettingsComponent['on'],

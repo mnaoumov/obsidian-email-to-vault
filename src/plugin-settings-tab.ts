@@ -29,6 +29,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   }
 
   public override display(): void {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
     super.display();
 
     this.displayProviderSelection();
@@ -232,6 +233,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                   }
 
                   await mailTmProvider.unregisterEmailAddress();
+                  // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
                   this.display();
                 }));
             } else {
@@ -239,6 +241,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                 .setButtonText('Register new random email address')
                 .onClick(convertAsyncToSync(async () => {
                   await mailTmProvider.registerRandomEmailAddress();
+                  // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
                   this.display();
                 }));
             }
@@ -324,6 +327,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               .addOption(EmailProviderType.Imap, 'IMAP');
             this.bind(dropdown, 'emailProviderType', {
               onChanged: () => {
+                // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
                 this.display();
               }
             });

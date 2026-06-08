@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 
-import { Component } from 'obsidian';
 import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
 import type { PluginSettingsComponent } from '../plugin-settings-component.ts';
 import type {
@@ -22,8 +22,8 @@ interface EmailProviderManagerComponentConstructorParams {
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
-export class EmailProviderManagerComponent extends Component implements EmailProvider {
-  private activeProvider: (Component & EmailProvider) | null = null;
+export class EmailProviderManagerComponent extends ComponentEx implements EmailProvider {
+  private activeProvider: ComponentEx & EmailProvider | null = null;
   private readonly app: App;
   private readonly mailTmDomainManager: MailTmDomainManager;
   private readonly pluginId: string;

@@ -11,6 +11,7 @@ import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/compone
 import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
+import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
 import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
@@ -32,6 +33,7 @@ export class Plugin extends PluginBase {
       new PluginSettingsComponent({
         dataHandler: new PluginDataHandler(this),
         mailTmDomainManager,
+        pluginEventSource: new PluginEventSourceImpl(this),
         pluginId: this.manifest.id,
         pluginSettingsClass: PluginSettings
       })

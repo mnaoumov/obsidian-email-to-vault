@@ -4,6 +4,7 @@ import type {
 } from 'obsidian';
 
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
+import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -62,6 +63,10 @@ vi.mock('obsidian-dev-utils/obsidian/data-handler', () => ({
   PluginDataHandler: vi.fn()
 }));
 
+vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-event-source', () => ({
+  PluginEventSourceImpl: vi.fn()
+}));
+
 vi.mock('obsidian-dev-utils/obsidian/menu-event-registrar', () => ({
   AppMenuEventRegistrar: vi.fn()
 }));
@@ -111,6 +116,7 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 }));
 
 const MockPluginDataHandler = vi.mocked(PluginDataHandler);
+const MockPluginEventSourceImpl = vi.mocked(PluginEventSourceImpl);
 const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailCheckerComponent);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
@@ -146,6 +152,7 @@ describe('Plugin', () => {
       expect(MockPluginSettingsComponent).toHaveBeenCalledWith({
         dataHandler: MockPluginDataHandler.mock.instances[0],
         mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
+        pluginEventSource: MockPluginEventSourceImpl.mock.instances[0],
         pluginId: 'email-to-vault',
         pluginSettingsClass: PluginSettings
       });

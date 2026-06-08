@@ -30,6 +30,8 @@ vi.mock('obsidian', async (importOriginal) => {
   return {
     ...original,
     Component: class MockComponent {
+      public _children: unknown[] = [];
+
       public addChild<T>(child: T): T {
         return child;
       }
@@ -114,7 +116,7 @@ function createMockPluginSettingsComponent(providerType: EmailProviderType = Ema
     on: vi.fn((_name: string, callback: (...args: unknown[]) => unknown) => {
       saveSettingsCallback = castTo<SaveSettingsCallback>(callback);
       return strictProxy<AsyncEventRef>({
-        asyncEvents: {},
+        asyncEventSource: {},
         callback: vi.fn()
       });
     }) as PluginSettingsComponent['on'],

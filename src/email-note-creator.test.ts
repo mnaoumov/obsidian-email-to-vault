@@ -1,7 +1,13 @@
-import type { App as ObsidianApp } from 'obsidian';
+import type {
+  App as ObsidianApp,
+  TFolder
+} from 'obsidian';
 
 import { noopAsync } from 'obsidian-dev-utils/function';
-import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
+import {
+  castTo,
+  extractDefaultExportInterop
+} from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   beforeEach,
@@ -575,7 +581,7 @@ describe('EmailNoteCreator', () => {
       });
       const app = createMockApp();
       const pluginSettingsComponent = createMockPluginSettingsComponent();
-      vi.mocked(app.vault.getFolderByPath).mockReturnValue({} as never);
+      vi.mocked(app.vault.getFolderByPath).mockReturnValue(castTo<TFolder>({}));
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
