@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.0.6
+
+- chore: update libs
+- chore: upgrade dependencies and green up all checks
+
 ## 2.0.5
 
 - chore: update template
