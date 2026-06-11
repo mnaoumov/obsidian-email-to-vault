@@ -6,6 +6,6 @@
   "id": "email-to-vault",
   "isDesktopOnly": false,
   "name": "Email to Vault",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "minAppVersion": "1.12.7"
 }
