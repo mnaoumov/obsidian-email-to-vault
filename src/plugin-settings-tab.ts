@@ -261,6 +261,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               .setTooltip('Copy to clipboard')
               .setIcon('clipboard')
               .onClick(convertAsyncToSync(async () => {
+                // eslint-disable-next-line n/no-unsupported-features/node-builtins -- navigator.clipboard is the Web Clipboard API, available in Obsidian's Electron renderer; the rule incorrectly flags it as a Node experimental builtin.
                 await navigator.clipboard.writeText(this.pluginSettingsComponent.settings.emailAddress);
                 new Notice('Email address copied to clipboard');
               }));
@@ -291,6 +292,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                   new Notice('No email password found');
                   return;
                 }
+                // eslint-disable-next-line n/no-unsupported-features/node-builtins -- navigator.clipboard is the Web Clipboard API, available in Obsidian's Electron renderer; the rule incorrectly flags it as a Node experimental builtin.
                 await navigator.clipboard.writeText(password);
                 new Notice('Email password copied to clipboard');
               }));
