@@ -61,7 +61,7 @@
     "nano-staged": "^1.0.2",
     "nodemailer": "^9.0.1",
     "obsidian": "^1.13.1",
-    "obsidian-dev-utils": "^74.1.0",
+    "obsidian-dev-utils": "^74.2.0",
     "obsidian-integration-testing": "^4.2.6",
     "obsidian-test-mocks": "^3.1.1",
     "vitest": "^4.1.9",
