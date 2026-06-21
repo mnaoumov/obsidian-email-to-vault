@@ -21,7 +21,7 @@ import { EmailProviderManagerComponent } from './providers/email-provider-manage
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 export class Plugin extends PluginBase {
-  public override onloadImpl(): void {
+  protected override onloadImpl(): void {
     const mailTmDomainManager = new MailTmDomainManager();
     const pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
