@@ -283,8 +283,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Original Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -757,8 +756,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Original Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -799,8 +797,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Original Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -840,8 +837,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Bold Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: **John Doe** <john@test.com>\nDate: Mon, 1 Jan 2024\nSubject: **Bold Subject**\nTo: dest@test.com\n\nForwarded body',
+            text: '---------- Forwarded message ---------\nFrom: **John Doe** <john@test.com>\nDate: Mon, 1 Jan 2024\nSubject: **Bold Subject**\nTo: dest@test.com\n\nForwarded body',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -878,8 +874,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Linked Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: [Jane](mailto:jane@test.com)\nDate: Mon, 1 Jan 2024\nSubject: Linked Subject\nTo: [dest@test.com](mailto:dest@test.com)\n\nForwarded body',
+            text: '---------- Forwarded message ---------\nFrom: [Jane](mailto:jane@test.com)\nDate: Mon, 1 Jan 2024\nSubject: Linked Subject\nTo: [dest@test.com](mailto:dest@test.com)\n\nForwarded body',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -1033,8 +1028,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Original Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject: Original Subject\nTo: dest@test.com\n\nActual body',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -1147,8 +1141,7 @@ describe('EmailNoteCreator', () => {
     });
 
     it('should extract original email from message/rfc822 attachment', async () => {
-      const emlContent =
-        'From: original@test.com\r\nTo: dest@test.com\r\nCc: cc@test.com\r\nSubject: Original Subject\r\nDate: Mon, 1 Jan 2024 10:00:00 +0000\r\n\r\nOriginal body content';
+      const emlContent = 'From: original@test.com\r\nTo: dest@test.com\r\nCc: cc@test.com\r\nSubject: Original Subject\r\nDate: Mon, 1 Jan 2024 10:00:00 +0000\r\n\r\nOriginal body content';
       const emailProvider = createMockEmailProvider({
         downloadAttachment: vi.fn(async () => {
           await noopAsync();
@@ -1407,8 +1400,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Original Subject',
-            text:
-              '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })
@@ -1457,8 +1449,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd:',
-            text:
-              'Regards,\nMichael Naumov\n\n\n---------- Forwarded message ---------\nFrom: Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject:\nTo: Michael Naumov <mnaoumov@gmail.com>\n\n\nнапечатай пж 4 на 10см',
+            text: 'Regards,\nMichael Naumov\n\n\n---------- Forwarded message ---------\nFrom: Leonid Naumov <leonid.naumov@colegiofinlandes.edu.mx>\nDate: Tue, Apr 14, 2026 at 12:55 PM\nSubject:\nTo: Michael Naumov <mnaoumov@gmail.com>\n\n\nнапечатай пж 4 на 10см',
             to: [{ address: 'email-to-vault-ohqlfltv1i@deltajohnsons.com', name: '' }]
           };
         })

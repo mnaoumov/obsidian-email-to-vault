@@ -137,8 +137,7 @@ async function sendGmailForwardedEmail(baseAddress: string): Promise<void> {
       </div>
     `,
     subject: 'Fwd: Test Forward Subject',
-    text:
-      'Regards,\nTest User\n\n\n---------- Forwarded message ---------\nFrom: Original Sender <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Test Forward Subject\nTo: dest@test.com\n\nForwarded body content',
+    text: 'Regards,\nTest User\n\n\n---------- Forwarded message ---------\nFrom: Original Sender <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Test Forward Subject\nTo: dest@test.com\n\nForwarded body content',
     to: baseAddress
   });
 }

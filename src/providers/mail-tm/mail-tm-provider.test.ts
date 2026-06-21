@@ -44,9 +44,9 @@ interface MockParams {
 }
 
 interface MockResult {
-  app: App;
-  mailTmDomainManager: MailTmDomainManager;
-  pluginSettingsComponent: PluginSettingsComponent;
+  readonly app: App;
+  readonly mailTmDomainManager: MailTmDomainManager;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 function createManager(overrides?: MockParams): MailTmProviderComponent {

@@ -235,7 +235,7 @@ describe('PluginSettingsTab', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       expect(MockSettingGroupEx).toHaveBeenCalledTimes(3);
       const group1 = ensureNonNullable(MockSettingGroupEx.mock.instances[0]);
@@ -257,7 +257,7 @@ describe('PluginSettingsTab', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       expect(MockSettingGroupEx).toHaveBeenCalledTimes(3);
       const group1 = ensureNonNullable(MockSettingGroupEx.mock.instances[0]);
@@ -279,7 +279,7 @@ describe('PluginSettingsTab', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       expect(MockSettingGroupEx).toHaveBeenCalledTimes(2);
     });
@@ -292,14 +292,14 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent()
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const bindCall = ensureNonNullable(vi.mocked(tab.bind).mock.calls.find((call) => call[1] === 'emailProviderType'));
       const options = ensureGenericObject<object>(bindCall[2]);
       const onChanged = ensureNonNullable(options['onChanged']) as () => void;
       expect(onChanged).toBeTypeOf('function');
 
-      const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
+      const displaySpy = vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
       onChanged();
 
       expect(displaySpy).toHaveBeenCalledOnce();
@@ -313,7 +313,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent()
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const dropdown = ensureNonNullable(captured.dropdowns[0]);
       expect(dropdown['onChange']).not.toHaveBeenCalled();
@@ -328,7 +328,7 @@ describe('PluginSettingsTab', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       expect(MockSettingGroupEx).toHaveBeenNthCalledWith(1, tab.containerEl);
       expect(MockSettingGroupEx).toHaveBeenNthCalledWith(2, tab.containerEl);
@@ -344,7 +344,7 @@ describe('PluginSettingsTab', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const dropdown = ensureNonNullable(captured.dropdowns[0]);
       expect(dropdown['addOption']).toHaveBeenCalledWith('mail-tm', 'Mail.tm');
@@ -360,8 +360,8 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent()
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
-      vi.spyOn(tab, 'display').mockImplementation(noop);
+      tab.displayLegacy();
+      vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
 
       const button = ensureNonNullable(captured.buttons[0]);
       const onClickMock = ensureNonNullable(button['onClick']);
@@ -379,8 +379,8 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent()
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
-      const displaySpy = vi.spyOn(tab, 'display').mockImplementation(noop);
+      tab.displayLegacy();
+      const displaySpy = vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
 
       const button = ensureNonNullable(captured.buttons[0]);
       const onClickMock = ensureNonNullable(button['onClick']);
@@ -400,8 +400,8 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'old@mail.tm' })
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
-      vi.spyOn(tab, 'display').mockImplementation(noop);
+      tab.displayLegacy();
+      vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
 
       const button = ensureNonNullable(captured.buttons[0]);
       const onClickMock = ensureNonNullable(button['onClick']);
@@ -421,8 +421,8 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'old@mail.tm' })
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
-      vi.spyOn(tab, 'display').mockImplementation(noop);
+      tab.displayLegacy();
+      vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
 
       const button = ensureNonNullable(captured.buttons[0]);
       const onClickMock = ensureNonNullable(button['onClick']);
@@ -443,7 +443,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const emailCopyButton = ensureNonNullable(captured.extraButtons[0]);
       const onClickMock = ensureNonNullable(emailCopyButton['onClick']);
@@ -464,7 +464,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordCopyButton = ensureNonNullable(captured.extraButtons[1]);
       const onClickMock = ensureNonNullable(passwordCopyButton['onClick']);
@@ -484,7 +484,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
       const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
@@ -518,7 +518,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
       const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
@@ -541,7 +541,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
       const onChangeMock = ensureNonNullable(passwordComponent['onChange']);
@@ -564,7 +564,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordCopyButton = ensureNonNullable(captured.extraButtons[1]);
       const onClickMock = ensureNonNullable(passwordCopyButton['onClick']);
@@ -582,7 +582,7 @@ describe('PluginSettingsTab', () => {
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({ emailProviderManager: manager, plugin, pluginId: 'email-to-vault', pluginSettingsComponent });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
       const setValueMock = ensureNonNullable(passwordComponent['setValue']);
@@ -601,7 +601,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent
       });
       // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-      tab.display();
+      tab.displayLegacy();
 
       const passwordComponent = ensureNonNullable(captured.passwordComponents[0]);
       const onChangeMock = ensureNonNullable(passwordComponent['onChange']);

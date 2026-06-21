@@ -29,8 +29,8 @@ const HEADER_CC_PATTERN = /Cc: (?<value>.+)/;
 const HEADER_DATE_PATTERN = /Date: (?<value>.+)/;
 
 interface DownloadAttachmentsResult {
-  attachmentLinks: string;
-  savedAttachments: Map<string, string>;
+  readonly attachmentLinks: string;
+  readonly savedAttachments: Map<string, string>;
 }
 
 interface EmailData {
@@ -158,8 +158,8 @@ function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
 const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:(?<attachId>[^)]+)\)/g;
 
 interface ExtractBodyResult {
-  body: string;
-  hadHtmlParseError: boolean;
+  readonly body: string;
+  readonly hadHtmlParseError: boolean;
 }
 
 interface SanitizeOptions {

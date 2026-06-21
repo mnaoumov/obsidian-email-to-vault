@@ -28,9 +28,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     this.pluginId = params.pluginId;
   }
 
-  public override display(): void {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
-    super.display();
+  public override displayLegacy(): void {
+    super.displayLegacy();
 
     this.displayProviderSelection();
 
@@ -234,7 +233,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
 
                   await mailTmProvider.unregisterEmailAddress();
                   // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
-                  this.display();
+                  this.displayLegacy();
                 }));
             } else {
               button
@@ -242,7 +241,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                 .onClick(convertAsyncToSync(async () => {
                   await mailTmProvider.registerRandomEmailAddress();
                   // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
-                  this.display();
+                  this.displayLegacy();
                 }));
             }
           });
@@ -330,7 +329,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             this.bind(dropdown, 'emailProviderType', {
               onChanged: () => {
                 // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
-                this.display();
+                this.displayLegacy();
               }
             });
           });

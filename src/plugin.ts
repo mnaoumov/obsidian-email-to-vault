@@ -1,8 +1,3 @@
-import type {
-  App,
-  PluginManifest
-} from 'obsidian';
-
 import { AppActiveFileProvider } from 'obsidian-dev-utils/obsidian/active-file-provider';
 import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
@@ -26,8 +21,7 @@ import { EmailProviderManagerComponent } from './providers/email-provider-manage
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
 export class Plugin extends PluginBase {
-  public constructor(app: App, manifest: PluginManifest) {
-    super(app, manifest);
+  public override onloadImpl(): void {
     const mailTmDomainManager = new MailTmDomainManager();
     const pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
