@@ -3,10 +3,7 @@ import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { ReadonlyPluginSettingsState } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 import type { Promisable } from 'type-fest';
 
-import {
-  noop,
-  noopAsync
-} from 'obsidian-dev-utils/function';
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
@@ -25,34 +22,17 @@ import type { MailTmDomainManager } from './mail-tm/mail-tm-domain-manager.ts';
 import { EmailProviderManagerComponent } from './email-provider-manager.ts';
 import { EmailProviderType } from './email-provider-type.ts';
 
-vi.mock('obsidian', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian')>();
-  return {
-    ...original,
-    Component: class MockComponent {
-      public _children: unknown[] = [];
-
-      public addChild<T>(child: T): T {
-        return child;
-      }
-
-      public onload(): void {
-        noop();
-      }
-
-      public removeChild<T>(child: T): T {
-        return child;
-      }
-    }
-  };
-});
+interface ObsidianComponentModule {
+  Component: new () => object;
+}
 
 const mocks = vi.hoisted(() => ({
   mockMailTmProviderInstance: null as null | Record<string, ReturnType<typeof vi.fn>>
 }));
 
-vi.mock('./mail-tm/mail-tm-provider.ts', () => {
-  class MockMailTmProvider {
+vi.mock('./mail-tm/mail-tm-provider.ts', async () => {
+  const { Component } = await vi.importActual<ObsidianComponentModule>('obsidian');
+  class MockMailTmProviderComponent extends Component {
     public deleteMessage = vi.fn(async () => noopAsync());
 
     public downloadAttachment = vi.fn(async () => {
@@ -73,22 +53,20 @@ vi.mock('./mail-tm/mail-tm-provider.ts', () => {
     public markMessageAsSeen = vi.fn(async () => noopAsync());
 
     public constructor() {
+      super();
       mocks.mockMailTmProviderInstance = castTo<Record<string, ReturnType<typeof vi.fn>>>(this);
     }
   }
-  return { MailTmProviderComponent: MockMailTmProvider };
+  return { MailTmProviderComponent: MockMailTmProviderComponent };
 });
 
-vi.mock('./imap/imap-provider.ts', () => {
-  class MockImapProvider {
+vi.mock('./imap/imap-provider.ts', async () => {
+  const { Component } = await vi.importActual<ObsidianComponentModule>('obsidian');
+  class MockImapProviderComponent extends Component {
     public readonly isImap = true;
   }
-  return { ImapProviderComponent: MockImapProvider };
+  return { ImapProviderComponent: MockImapProviderComponent };
 });
-
-vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => ({
-  registerAsyncEvent: vi.fn()
-}));
 
 interface CreateMockPluginSettingsComponentResult {
   readonly pluginSettingsComponent: PluginSettingsComponent;
@@ -162,7 +140,7 @@ describe('EmailProviderManager', () => {
         pluginSettingsComponent
       });
 
-      manager.onload();
+      manager.load();
 
       expect(manager.getMailTmProvider()).not.toBeNull();
     });
@@ -176,7 +154,7 @@ describe('EmailProviderManager', () => {
         pluginSettingsComponent
       });
 
-      manager.onload();
+      manager.load();
 
       expect(manager.getMailTmProvider()).toBeNull();
     });
@@ -190,7 +168,7 @@ describe('EmailProviderManager', () => {
         pluginSettingsComponent
       });
 
-      manager.onload();
+      manager.load();
 
       expect(pluginSettingsComponent.on).toHaveBeenCalledWith('saveSettings', expect.any(Function));
     });
@@ -205,7 +183,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       const firstProvider = manager.getMailTmProvider();
       expect(firstProvider).not.toBeNull();
@@ -226,7 +204,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       const firstProvider = manager.getMailTmProvider();
 
@@ -248,7 +226,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       await manager.deleteMessage('msg-1');
 
@@ -263,7 +241,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       await manager.downloadAttachment('msg-1', 'att-1');
 
@@ -278,7 +256,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       await manager.getMessage('msg-1');
 
@@ -293,7 +271,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       await manager.getMessages();
 
@@ -308,7 +286,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       await manager.markMessageAsSeen('msg-1');
 
@@ -349,7 +327,7 @@ describe('EmailProviderManager', () => {
         pluginId: 'email-to-vault',
         pluginSettingsComponent
       });
-      manager.onload();
+      manager.load();
 
       expect(manager.getMailTmProvider()).not.toBeNull();
     });

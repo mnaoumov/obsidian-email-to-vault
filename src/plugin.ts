@@ -65,14 +65,14 @@ export class Plugin extends PluginBase {
       })
     );
     this.addChild(new PrismComponent());
-    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(app));
+    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(this.app));
     this.addChild(
       new CommandHandlerComponent({
         activeFileProvider: new AppActiveFileProvider(this.app),
         commandHandlers: [
           new CheckEmailsCommandHandler(emailChecker),
           new OpenSettingsCommandHandler({
-            app,
+            app: this.app,
             settingTab: pluginSettingsTab
           }),
           new RedownloadAllEmailsCommandHandler(emailChecker),

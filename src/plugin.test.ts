@@ -1,11 +1,11 @@
 import type {
-  App,
+  App as AppOriginal,
   PluginManifest
 } from 'obsidian';
 
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
   describe,
@@ -27,24 +27,42 @@ import { PrismComponent } from './prism-component.ts';
 import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 
-const mocks = vi.hoisted(() => ({
-  mockAddChild: vi.fn(<T>(child: T): T => child)
+// The real `PluginBase.onload()` loads dev-utils' own notice/context/debug components, which read a
+// Shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
+// Stub this one utility (return a fresh value wrapper per call) — mirroring dev-utils' own PluginBase test.
+vi.mock('obsidian-dev-utils/obsidian/app', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/app')>(),
+  getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/plugin/plugin', () => ({
-  PluginBase: class MockPluginBase {
-    public addChild = mocks.mockAddChild;
-    public app: unknown;
-    public manifest: unknown;
-    public constructor(app: unknown, manifest: unknown) {
-      this.app = app;
-      this.manifest = manifest;
-    }
-  }
+// A dev-utils/own component that is added via `addChild` must be loadable, so its stub returns a
+// Real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
+// Not the discarded `this` (`mock.instances[0]`).
+interface ObsidianComponentModule {
+  Component: new () => object;
+}
+
+async function loadableComponentStub(): Promise<ReturnType<typeof vi.fn>> {
+  const { Component } = await vi.importActual<ObsidianComponentModule>('obsidian');
+  // Vitest requires a non-arrow function for a mock invoked with `new`; it must return a fresh real
+  // `Component`. Constructing a stub class directly would route `this` through vitest's mock proxy and
+  // Break the test-mocks `Component` constructor's own strict proxy.
+  // eslint-disable-next-line prefer-arrow-callback -- See above; an arrow cannot be used here.
+  return vi.fn(function componentStub() {
+    return new Component();
+  });
+}
+
+vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', async () => ({
+  CommandHandlerComponent: await loadableComponentStub()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', () => ({
-  CommandHandlerComponent: vi.fn()
+vi.mock('obsidian-dev-utils/obsidian/components/menu-event-registrar-component', async () => ({
+  MenuEventRegistrarComponent: await loadableComponentStub()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', async () => ({
+  PluginSettingsTabComponent: await loadableComponentStub()
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler', () => ({
@@ -67,32 +85,24 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-event-source', () => ({
   PluginEventSourceImpl: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/menu-event-registrar', () => ({
-  AppMenuEventRegistrar: vi.fn()
+vi.mock('./prism-component.ts', async () => ({
+  PrismComponent: await loadableComponentStub()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', () => ({
-  PluginSettingsTabComponent: vi.fn()
+vi.mock('./plugin-settings-component.ts', async () => ({
+  PluginSettingsComponent: await loadableComponentStub()
 }));
 
-vi.mock('./prism-component.ts', () => ({
-  PrismComponent: vi.fn()
+vi.mock('./providers/email-provider-manager.ts', async () => ({
+  EmailProviderManagerComponent: await loadableComponentStub()
+}));
+
+vi.mock('./email-checker.ts', async () => ({
+  EmailCheckerComponent: await loadableComponentStub()
 }));
 
 vi.mock('./providers/mail-tm/mail-tm-domain-manager.ts', () => ({
   MailTmDomainManager: vi.fn()
-}));
-
-vi.mock('./plugin-settings-component.ts', () => ({
-  PluginSettingsComponent: vi.fn()
-}));
-
-vi.mock('./providers/email-provider-manager.ts', () => ({
-  EmailProviderManagerComponent: vi.fn()
-}));
-
-vi.mock('./email-checker.ts', () => ({
-  EmailCheckerComponent: vi.fn()
 }));
 
 vi.mock('./email-note-creator.ts', () => ({
@@ -128,26 +138,43 @@ const MockPrismComponent = vi.mocked(PrismComponent);
 const MockRedownloadAllEmailsCommandHandler = vi.mocked(RedownloadAllEmailsCommandHandler);
 const MockRedownloadRecentEmailsCommandHandler = vi.mocked(RedownloadRecentEmailsCommandHandler);
 
-describe('Plugin', () => {
-  const mockApp = strictProxy<App>({});
-  const mockManifest = strictProxy<PluginManifest>({
-    id: 'email-to-vault',
-    name: 'Email to Vault'
-  });
+const manifest: PluginManifest = {
+  author: 'test',
+  description: 'test',
+  id: 'email-to-vault',
+  minAppVersion: '1.0.0',
+  name: 'Email to Vault',
+  version: '1.0.0'
+};
 
+let app: AppOriginal;
+
+function instanceOf(mock: ReturnType<typeof vi.fn>): unknown {
+  // The value that flows through `addChild` is the constructor's return value.
+  return mock.mock.results[0]?.value;
+}
+
+describe('Plugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const appMock = App.createConfigured__();
+    appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
+      cb();
+    });
+    app = appMock.asOriginalType__();
   });
 
-  describe('constructor', () => {
-    it('should create MailTmDomainManager', () => {
-      new Plugin(mockApp, mockManifest);
+  describe('onload', () => {
+    it('should create MailTmDomainManager', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockMailTmDomainManager).toHaveBeenCalledOnce();
     });
 
-    it('should create PluginSettingsComponent with dataHandler, mailTmDomainManager, and pluginId', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create PluginSettingsComponent with dataHandler, mailTmDomainManager, and pluginId', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockPluginSettingsComponent).toHaveBeenCalledWith({
         dataHandler: MockPluginDataHandler.mock.instances[0],
@@ -158,102 +185,96 @@ describe('Plugin', () => {
       });
     });
 
-    it('should create EmailProviderManager with app, mailTmDomainManager, pluginId, and pluginSettingsComponent', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create EmailProviderManager with app, mailTmDomainManager, pluginId, and pluginSettingsComponent', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockEmailProviderManager).toHaveBeenCalledWith({
-        app: mockApp,
+        app,
         mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+        pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create EmailNoteCreator with app, emailProvider, and pluginSettingsComponent', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create EmailNoteCreator with app, emailProvider, and pluginSettingsComponent', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockEmailNoteCreator).toHaveBeenCalledWith({
-        app: mockApp,
-        emailProvider: MockEmailProviderManager.mock.instances[0],
-        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+        app,
+        emailProvider: instanceOf(MockEmailProviderManager),
+        pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create EmailChecker with emailNoteCreator, emailProvider, and pluginSettingsComponent', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create EmailChecker with emailNoteCreator, emailProvider, and pluginSettingsComponent', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockEmailChecker).toHaveBeenCalledWith({
         emailNoteCreator: MockEmailNoteCreator.mock.instances[0],
-        emailProvider: MockEmailProviderManager.mock.instances[0],
-        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+        emailProvider: instanceOf(MockEmailProviderManager),
+        pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create PluginSettingsTab with plugin, settings component, provider manager, and manifest id', () => {
-      const plugin = new Plugin(mockApp, mockManifest);
+    it('should create PluginSettingsTab with plugin, settings component, provider manager, and manifest id', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockPluginSettingsTab).toHaveBeenCalledWith({
-        emailProviderManager: MockEmailProviderManager.mock.instances[0],
+        emailProviderManager: instanceOf(MockEmailProviderManager),
         plugin,
         pluginId: 'email-to-vault',
-        pluginSettingsComponent: MockPluginSettingsComponent.mock.instances[0]
+        pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create PrismComponent', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create PrismComponent', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockPrismComponent).toHaveBeenCalledOnce();
     });
 
-    it('should create CheckEmailsCommandHandler with emailChecker', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create CheckEmailsCommandHandler with emailChecker', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith(
-        MockEmailChecker.mock.instances[0]
+        instanceOf(MockEmailChecker)
       );
     });
 
-    it('should create RedownloadAllEmailsCommandHandler with emailChecker', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create RedownloadAllEmailsCommandHandler with emailChecker', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith(
-        MockEmailChecker.mock.instances[0]
+        instanceOf(MockEmailChecker)
       );
     });
 
-    it('should create RedownloadRecentEmailsCommandHandler with app and emailChecker', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should create RedownloadRecentEmailsCommandHandler with app and emailChecker', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
 
       expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith({
-        app: mockApp,
-        emailChecker: MockEmailChecker.mock.instances[0]
+        app,
+        emailChecker: instanceOf(MockEmailChecker)
       });
     });
 
-    it('should add PluginSettingsComponent as child', () => {
-      new Plugin(mockApp, mockManifest);
+    it('should add the plugin components as children', async () => {
+      const plugin = new Plugin(app, manifest);
+      const addChildSpy = vi.spyOn(plugin, 'addChild');
+      await plugin.onload();
 
-      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockPluginSettingsComponent.mock.instances[0]);
-    });
-
-    it('should add EmailProviderManager as child', () => {
-      new Plugin(mockApp, mockManifest);
-
-      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockEmailProviderManager.mock.instances[0]);
-    });
-
-    it('should add EmailChecker as child', () => {
-      new Plugin(mockApp, mockManifest);
-
-      expect(mocks.mockAddChild).toHaveBeenCalledWith(MockEmailChecker.mock.instances[0]);
-    });
-
-    it('should add all children', () => {
-      new Plugin(mockApp, mockManifest);
-
-      const EXPECTED_ADD_CHILD_CALLS = 7;
-      expect(mocks.mockAddChild).toHaveBeenCalledTimes(EXPECTED_ADD_CHILD_CALLS);
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPluginSettingsComponent));
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailProviderManager));
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailChecker));
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPrismComponent));
     });
   });
 });

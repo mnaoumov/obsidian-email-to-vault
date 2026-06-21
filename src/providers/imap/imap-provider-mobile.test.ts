@@ -1,8 +1,5 @@
 import { Notice } from 'obsidian';
-import {
-  noop,
-  noopAsync
-} from 'obsidian-dev-utils/function';
+import { noopAsync } from 'obsidian-dev-utils/function';
 import {
   beforeEach,
   describe,
@@ -17,19 +14,17 @@ vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   return {
     ...original,
-    Component: class MockComponent {
-      public onload(): void {
-        noop();
-      }
-    },
     Notice: vi.fn()
   };
 });
 
-vi.mock('obsidian-dev-utils/function', () => ({
-  noop: vi.fn(),
-  noopAsync: vi.fn().mockResolvedValue(undefined)
-}));
+vi.mock('obsidian-dev-utils/function', async (importOriginal) => {
+  const original = await importOriginal<typeof import('obsidian-dev-utils/function')>();
+  return {
+    ...original,
+    noopAsync: vi.fn(original.noopAsync)
+  };
+});
 
 describe('ImapProviderMobile', () => {
   beforeEach(() => {

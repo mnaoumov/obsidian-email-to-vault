@@ -4,6 +4,7 @@ import { Platform } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -79,22 +80,6 @@ const mocks = vi.hoisted(() => ({
   } satisfies EmailProvider
 }));
 
-vi.mock('obsidian', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian')>();
-  return {
-    ...original,
-    Platform: { isDesktop: true }
-  };
-});
-
-vi.mock('obsidian-dev-utils/obsidian/components/async-component', () => ({
-  ComponentEx: class MockComponentEx {
-    public async onload(): Promise<void> {
-      await noopAsync();
-    }
-  }
-}));
-
 vi.mock('./imap-provider-desktop.ts', () => {
   return {
     ImapProviderDesktopComponent: class MockImapProviderDesktopComponent {
@@ -133,11 +118,15 @@ describe('ImapProvider', () => {
     Object.defineProperty(Platform, 'isDesktop', { value: true, writable: true });
   });
 
+  afterEach(() => {
+    Object.defineProperty(Platform, 'isDesktop', { value: true, writable: true });
+  });
+
   describe('onload', () => {
     it('should create desktop provider when on desktop', async () => {
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
 
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
       const result = await provider.getMessages();
 
       expect(result).toEqual([]);
@@ -149,7 +138,7 @@ describe('ImapProvider', () => {
 
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
 
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
       const result = await provider.getMessages();
 
       expect(result).toEqual([]);
@@ -160,7 +149,7 @@ describe('ImapProvider', () => {
   describe('delegation', () => {
     it('should delegate getMessages to platform provider', async () => {
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
 
       await provider.getMessages();
 
@@ -169,7 +158,7 @@ describe('ImapProvider', () => {
 
     it('should delegate getMessage to platform provider', async () => {
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
 
       await provider.getMessage('42');
 
@@ -178,7 +167,7 @@ describe('ImapProvider', () => {
 
     it('should delegate downloadAttachment to platform provider', async () => {
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
 
       await provider.downloadAttachment('42', '2');
 
@@ -187,7 +176,7 @@ describe('ImapProvider', () => {
 
     it('should delegate markMessageAsSeen to platform provider', async () => {
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
 
       await provider.markMessageAsSeen('42');
 
@@ -196,7 +185,7 @@ describe('ImapProvider', () => {
 
     it('should delegate deleteMessage to platform provider', async () => {
       const provider = new ImapProviderComponent(createMockApp(), createMockPluginSettingsComponent());
-      await provider.onloadAsync();
+      await provider.loadWithPromises();
 
       await provider.deleteMessage('42');
 

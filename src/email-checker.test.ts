@@ -29,10 +29,6 @@ vi.mock('obsidian', async (importOriginal) => {
   };
 });
 
-vi.mock('obsidian-dev-utils/obsidian/components/async-events-component', () => ({
-  registerAsyncEvent: vi.fn()
-}));
-
 const mockNotice = vi.mocked(Notice);
 
 vi.stubGlobal('window', {

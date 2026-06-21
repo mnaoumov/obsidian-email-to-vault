@@ -10,28 +10,6 @@ import type { EmailCheckerComponent } from '../email-checker.ts';
 
 import { RedownloadAllEmailsCommandHandler } from './redownload-all-emails-command-handler.ts';
 
-interface CommandHandlerParams {
-  readonly icon: string;
-  readonly id: string;
-  readonly name: string;
-  readonly pluginName: string;
-}
-
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/global-command-handler', () => ({
-  GlobalCommandHandler: class MockGlobalCommandHandler {
-    public icon: string;
-    public id: string;
-    public name: string;
-    public pluginName: string;
-    public constructor(params: CommandHandlerParams) {
-      this.icon = params.icon;
-      this.id = params.id;
-      this.name = params.name;
-      this.pluginName = params.pluginName;
-    }
-  }
-}));
-
 function createMockEmailChecker(): EmailCheckerComponent {
   return strictProxy<EmailCheckerComponent>({
     redownloadEmails: vi.fn()
