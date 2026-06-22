@@ -3,6 +3,7 @@ import type { MessageStructureObject } from 'imapflow';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { createTransport } from 'nodemailer';
+import { sleep } from 'obsidian-dev-utils/async';
 import {
   afterAll,
   beforeAll,
@@ -75,10 +76,7 @@ async function pollForMessage(subject: string): Promise<number> {
           return foundUidList[0] ?? 0;
         }
 
-        await new Promise((resolve) => {
-          // eslint-disable-next-line obsidianmd/prefer-window-timers -- Integration test uses Node.js setTimeout.
-          setTimeout(resolve, POLL_INTERVAL_IN_MILLISECONDS);
-        });
+        await sleep(POLL_INTERVAL_IN_MILLISECONDS);
       }
     } finally {
       lock.release();
