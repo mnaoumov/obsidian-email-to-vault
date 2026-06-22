@@ -19,11 +19,6 @@ import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
 const HTTP_STATUS_CREATED = 201;
 
-interface CreateAccountParams {
-  readonly address: string;
-  readonly password: string;
-}
-
 interface JwtPayload {
   id: string;
 }
@@ -61,6 +56,11 @@ interface MailTmMessageFull extends MailTmMessage {
 
 interface MailTmMessagesResponse {
   'hydra:member': MailTmMessage[];
+}
+
+interface MailTmProviderComponentCreateAccountParams {
+  readonly address: string;
+  readonly password: string;
 }
 
 interface MailTmTokenResponse {
@@ -167,7 +167,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     });
   }
 
-  private async createAccount(params: CreateAccountParams): Promise<void> {
+  private async createAccount(params: MailTmProviderComponentCreateAccountParams): Promise<void> {
     const response = await requestUrl({
       body: JSON.stringify({
         address: params.address,
