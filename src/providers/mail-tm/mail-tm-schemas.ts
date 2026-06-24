@@ -2,12 +2,12 @@
 
 import { z } from 'zod';
 
-export const mailTmAddressSchema = z.object({
+const mailTmAddressSchema = z.object({
   address: z.string(),
   name: z.string()
 });
 
-export const mailTmDomainSchema = z.object({
+const mailTmDomainSchema = z.object({
   domain: z.string(),
   isActive: z.boolean()
 });
@@ -16,7 +16,7 @@ export const mailTmDomainsResponseSchema = z.object({
   'hydra:member': z.array(mailTmDomainSchema)
 });
 
-export const mailTmMessageSchema = z.object({
+const mailTmMessageSchema = z.object({
   createdAt: z.string(),
   downloadUrl: z.string(),
   from: mailTmAddressSchema,
@@ -29,7 +29,7 @@ export const mailTmMessageSchema = z.object({
   updatedAt: z.string()
 });
 
-export const mailTmAttachmentSchema = z.object({
+const mailTmAttachmentSchema = z.object({
   contentType: z.string(),
   filename: z.string(),
   id: z.string()

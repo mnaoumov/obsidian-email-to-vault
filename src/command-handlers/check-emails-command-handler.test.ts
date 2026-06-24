@@ -1,3 +1,4 @@
+import { waitForAllAsyncOperations } from 'obsidian-dev-utils/async';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   describe,
@@ -20,16 +21,18 @@ describe('CheckEmailsCommandHandler', () => {
   it('should have correct command properties', () => {
     const command = new CheckEmailsCommandHandler(createMockEmailChecker());
 
-    expect(command.id).toBe('check-emails');
-    expect(command.name).toBe('Check emails');
-    expect(command.icon).toBe('mail');
+    const builtCommand = command.buildCommand();
+    expect(builtCommand.id).toBe('check-emails');
+    expect(builtCommand.name).toBe('Check emails');
+    expect(builtCommand.icon).toBe('mail');
   });
 
   it('should call checkEmails on execute', async () => {
     const checker = createMockEmailChecker();
     const command = new CheckEmailsCommandHandler(checker);
 
-    await command.execute();
+    command.buildCommand().checkCallback?.(false);
+    await waitForAllAsyncOperations();
 
     expect(checker.checkEmails).toHaveBeenCalledOnce();
   });
