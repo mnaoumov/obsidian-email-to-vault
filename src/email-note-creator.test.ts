@@ -25,7 +25,7 @@ import type {
 import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailNoteCreator } from './email-note-creator.ts';
-import { DEFAULT_EMAIL_NOTE_TEMPLATE } from './plugin-settings.ts';
+import { PluginSettings } from './plugin-settings.ts';
 
 const MOCK_UTC_OFFSET_MINUTES = 300;
 
@@ -136,7 +136,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsOverrid
   return strictProxy<PluginSettingsComponent>({
     settings: {
       emailNotePathTemplate: overrides?.emailNotePathTemplate ?? 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
-      emailNoteTemplate: overrides?.emailNoteTemplate ?? DEFAULT_EMAIL_NOTE_TEMPLATE,
+      emailNoteTemplate: overrides?.emailNoteTemplate ?? new PluginSettings().emailNoteTemplate,
       shouldExtractForwardedEmail: overrides?.shouldExtractForwardedEmail ?? false,
       shouldStripHiddenElements: overrides?.shouldStripHiddenElements ?? true
     }
