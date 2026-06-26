@@ -1,6 +1,6 @@
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { PluginSettingsTabBaseConstructorParams } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
 
-import { Notice } from 'obsidian';
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
 import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
@@ -16,16 +16,19 @@ import { EmailProviderType } from './providers/email-provider-type.ts';
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
   readonly emailProviderManager: EmailProviderManagerComponent;
   readonly pluginId: string;
+  readonly pluginNoticeComponent: PluginNoticeComponent;
 }
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   private readonly emailProviderManager: EmailProviderManagerComponent;
   private readonly pluginId: string;
+  private readonly pluginNoticeComponent: PluginNoticeComponent;
 
   public constructor(params: PluginSettingsTabConstructorParams) {
     super(params);
     this.emailProviderManager = params.emailProviderManager;
     this.pluginId = params.pluginId;
+    this.pluginNoticeComponent = params.pluginNoticeComponent;
   }
 
   public override displayLegacy(): void {
@@ -262,7 +265,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               .onClick(convertAsyncToSync(async () => {
                 // eslint-disable-next-line n/no-unsupported-features/node-builtins -- navigator.clipboard is the Web Clipboard API, available in Obsidian's Electron renderer; the rule incorrectly flags it as a Node experimental builtin.
                 await navigator.clipboard.writeText(this.pluginSettingsComponent.settings.emailAddress);
-                new Notice('Email address copied to clipboard');
+                this.pluginNoticeComponent.showNotice('Email address copied to clipboard');
               }));
           });
       })
@@ -288,12 +291,12 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               .onClick(convertAsyncToSync(async () => {
                 const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey);
                 if (!password) {
-                  new Notice('No email password found');
+                  this.pluginNoticeComponent.showNotice('No email password found');
                   return;
                 }
                 // eslint-disable-next-line n/no-unsupported-features/node-builtins -- navigator.clipboard is the Web Clipboard API, available in Obsidian's Electron renderer; the rule incorrectly flags it as a Node experimental builtin.
                 await navigator.clipboard.writeText(password);
-                new Notice('Email password copied to clipboard');
+                this.pluginNoticeComponent.showNotice('Email password copied to clipboard');
               }));
           });
       })

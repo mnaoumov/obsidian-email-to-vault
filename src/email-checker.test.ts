@@ -1,8 +1,8 @@
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { ReadonlyPluginSettingsState } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 import type { Promisable } from 'type-fest';
 
-import { Notice } from 'obsidian';
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -21,15 +21,7 @@ import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailCheckerComponent } from './email-checker.ts';
 
-vi.mock('obsidian', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian')>();
-  return {
-    ...original,
-    Notice: vi.fn()
-  };
-});
-
-const mockNotice = vi.mocked(Notice);
+const mockShowNotice = vi.fn();
 
 vi.stubGlobal('window', {
   clearInterval: vi.fn(),
@@ -130,6 +122,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -162,12 +155,13 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
       await checker.checkEmails();
 
-      expect(mockNotice).toHaveBeenCalledWith('No new emails');
+      expect(mockShowNotice).toHaveBeenCalledWith('No new emails');
     });
 
     it('should delegate to noteCreator.saveEmailAsNote for unseen messages', async () => {
@@ -191,13 +185,14 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
       await checker.checkEmails();
 
       expect(noteCreator.saveEmailAsNote).toHaveBeenCalledWith(unseenMessage);
-      expect(mockNotice).toHaveBeenCalledWith('Saved 1 new email(s)');
+      expect(mockShowNotice).toHaveBeenCalledWith('Saved 1 new email(s)');
     });
 
     it('should delete message after save when shouldDeleteSeenEmails is enabled', async () => {
@@ -224,6 +219,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -256,6 +252,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -302,13 +299,14 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
       await checker.redownloadEmails();
 
       expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(2);
-      expect(mockNotice).toHaveBeenCalledWith('Redownloaded 2 email(s)');
+      expect(mockShowNotice).toHaveBeenCalledWith('Redownloaded 2 email(s)');
     });
 
     it('should limit to count when specified', async () => {
@@ -346,13 +344,14 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
       await checker.redownloadEmails(1);
 
       expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(1);
-      expect(mockNotice).toHaveBeenCalledWith('Redownloaded 1 email(s)');
+      expect(mockShowNotice).toHaveBeenCalledWith('Redownloaded 1 email(s)');
     });
   });
 
@@ -364,6 +363,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -385,6 +385,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -401,6 +402,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -423,6 +425,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -450,6 +453,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -475,6 +479,7 @@ describe('EmailChecker', () => {
       const checker = new EmailCheckerComponent({
         emailNoteCreator: noteCreator,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 

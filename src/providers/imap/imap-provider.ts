@@ -1,4 +1,5 @@
 import type { App } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { Platform } from 'obsidian';
 import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
@@ -11,18 +12,27 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
+interface ImapProviderComponentConstructorParams {
+  readonly app: App;
+  readonly pluginNoticeComponent: PluginNoticeComponent;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
+}
+
 export class ImapProviderComponent extends ComponentEx implements EmailProvider {
   private _platformImapProvider?: EmailProvider;
+  private readonly app: App;
+  private readonly pluginNoticeComponent: PluginNoticeComponent;
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
 
   private get platformImapProvider(): EmailProvider {
     return ensureNonNullable(this._platformImapProvider);
   }
 
-  public constructor(
-    private readonly app: App,
-    private readonly pluginSettingsComponent: PluginSettingsComponent
-  ) {
+  public constructor(params: ImapProviderComponentConstructorParams) {
     super();
+    this.app = params.app;
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
+    this.pluginNoticeComponent = params.pluginNoticeComponent;
   }
 
   public async deleteMessage(messageId: string): Promise<void> {
@@ -51,7 +61,7 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
       this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktopComponent(this.app, this.pluginSettingsComponent);
     } else {
       // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
-      this._platformImapProvider = new (await import('./imap-provider-mobile.ts')).ImapProviderMobileComponent();
+      this._platformImapProvider = new (await import('./imap-provider-mobile.ts')).ImapProviderMobileComponent(this.pluginNoticeComponent);
     }
   }
 }

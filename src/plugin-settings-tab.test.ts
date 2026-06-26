@@ -1,4 +1,5 @@
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { MockInstance } from 'vitest';
 
 import {
@@ -37,13 +38,7 @@ import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
-vi.mock('obsidian', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian')>();
-  return {
-    ...original,
-    Notice: vi.fn()
-  };
-});
+const mockShowNotice = vi.fn();
 
 // The setting `onClick`/`onChange` handlers are wrapped in `convertAsyncToSync` (fire-and-forget). Stub it
 // To identity so the captured handlers are the raw async functions and the test can `await` them — the
@@ -147,6 +142,7 @@ function createTab(overrides?: MockPluginSettingsComponentOverrides, mailTmProvi
     emailProviderManager: createMockEmailProviderManager(mailTmProvider),
     plugin: createMockPlugin(),
     pluginId: 'email-to-vault',
+    pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
     pluginSettingsComponent: createMockPluginSettingsComponent(overrides)
   });
 }
@@ -185,6 +181,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: manager,
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
       });
 
@@ -200,6 +197,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: manager,
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.MailTm })
       });
 
@@ -331,6 +329,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
       tab.displayLegacy();
@@ -354,6 +353,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
       tab.displayLegacy();
@@ -374,6 +374,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
       tab.displayLegacy();
@@ -393,6 +394,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' })
       });
       tab.displayLegacy();
@@ -400,6 +402,7 @@ describe('PluginSettingsTab', () => {
       const onClick = ensureNonNullable(extraButtonOnClickSpy.mock.calls[1])[0];
       await onClick();
 
+      expect(mockShowNotice).toHaveBeenCalledWith('No email password found');
       expect(writeTextFn).not.toHaveBeenCalled();
     });
 
@@ -412,6 +415,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: manager,
         plugin,
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
       });
 
@@ -428,6 +432,7 @@ describe('PluginSettingsTab', () => {
         emailProviderManager: manager,
         plugin,
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
       });
       tab.displayLegacy();

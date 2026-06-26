@@ -2,6 +2,7 @@ import type {
   App as ObsidianApp,
   TFolder
 } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { noopAsync } from 'obsidian-dev-utils/function';
 import {
@@ -48,10 +49,11 @@ vi.mock('obsidian', async (importOriginal) => {
   return {
     ...original,
     htmlToMarkdown: htmlToMarkdownMock,
-    moment: wrappedMoment,
-    Notice: vi.fn()
+    moment: wrappedMoment
   };
 });
+
+const mockShowNotice = vi.fn();
 
 interface MockEmailProviderOverrides {
   downloadAttachment?: EmailProvider['downloadAttachment'];
@@ -175,6 +177,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -213,6 +216,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -253,6 +257,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -296,6 +301,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -333,6 +339,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -367,6 +374,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -401,6 +409,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -438,6 +447,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -472,6 +482,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -509,6 +520,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -546,6 +558,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -584,6 +597,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -618,6 +632,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -655,6 +670,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -692,6 +708,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -729,6 +746,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -766,6 +784,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -810,6 +829,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -847,6 +867,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -887,6 +908,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -927,6 +949,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -964,6 +987,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1001,6 +1025,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1042,6 +1067,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1084,6 +1110,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1129,6 +1156,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1174,6 +1202,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1212,6 +1241,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1257,6 +1287,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1298,6 +1329,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1335,6 +1367,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1373,6 +1406,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1415,6 +1449,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1464,6 +1499,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1509,6 +1545,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1550,6 +1587,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1593,6 +1631,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1630,6 +1669,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1668,6 +1708,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1704,6 +1745,7 @@ describe('EmailNoteCreator', () => {
       const noteCreator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1728,6 +1770,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1751,6 +1794,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1769,6 +1813,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1787,6 +1832,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1805,6 +1851,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1823,6 +1870,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1841,6 +1889,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1859,6 +1908,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1877,6 +1927,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 
@@ -1895,6 +1946,7 @@ describe('EmailNoteCreator', () => {
       const creator = new EmailNoteCreator({
         app,
         emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
 

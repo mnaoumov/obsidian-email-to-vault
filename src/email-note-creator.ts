@@ -1,8 +1,9 @@
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+
 import {
   App,
   htmlToMarkdown,
-  moment as momentLib,
-  Notice
+  moment as momentLib
 } from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { replaceAll } from 'obsidian-dev-utils/string';
@@ -46,18 +47,21 @@ interface EmailData {
 interface EmailNoteCreatorConstructorParams {
   readonly app: App;
   readonly emailProvider: EmailProvider;
+  readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 export class EmailNoteCreator {
   private readonly app: App;
   private readonly emailProvider: EmailProvider;
+  private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
   public constructor(params: EmailNoteCreatorConstructorParams) {
     this.app = params.app;
-    this.pluginSettingsComponent = params.pluginSettingsComponent;
     this.emailProvider = params.emailProvider;
+    this.pluginNoticeComponent = params.pluginNoticeComponent;
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
   }
 
   public async saveEmailAsNote(message: EmailMessageSummary): Promise<void> {
@@ -137,13 +141,13 @@ export class EmailNoteCreator {
 
       const extracted = extractForwardedEmail(data);
       if (hadHtmlParseError) {
-        extracted.body = prependHtmlParseError(extracted.body);
+        extracted.body = prependHtmlParseError(extracted.body, this.pluginNoticeComponent);
       }
       return extracted;
     }
 
     if (hadHtmlParseError) {
-      data.body = prependHtmlParseError(data.body);
+      data.body = prependHtmlParseError(data.body, this.pluginNoticeComponent);
     }
     return data;
   }
@@ -248,8 +252,8 @@ function formatAddresses(addresses: EmailAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
 }
 
-function prependHtmlParseError(body: string): string {
-  new Notice(HTML_PARSE_ERROR_MESSAGE);
+function prependHtmlParseError(body: string, pluginNoticeComponent: PluginNoticeComponent): string {
+  pluginNoticeComponent.showNotice(HTML_PARSE_ERROR_MESSAGE);
   return `${HTML_PARSE_ERROR_MESSAGE}\n\n${body}`;
 }
 

@@ -1,4 +1,5 @@
-import { Notice } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+
 import { convertAsyncToSync } from 'obsidian-dev-utils/async';
 import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
 import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
@@ -10,16 +11,19 @@ import type { EmailProvider } from './providers/email-provider.ts';
 interface EmailCheckerComponentConstructorParams {
   readonly emailNoteCreator: EmailNoteCreator;
   readonly emailProvider: EmailProvider;
+  readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 export class EmailCheckerComponent extends ComponentEx {
   private readonly emailNoteCreator: EmailNoteCreator;
   private readonly emailProvider: EmailProvider;
   private intervalId: null | number = null;
+  private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
   public constructor(params: EmailCheckerComponentConstructorParams) {
     super();
+    this.pluginNoticeComponent = params.pluginNoticeComponent;
     this.pluginSettingsComponent = params.pluginSettingsComponent;
     this.emailProvider = params.emailProvider;
     this.emailNoteCreator = params.emailNoteCreator;
@@ -31,13 +35,13 @@ export class EmailCheckerComponent extends ComponentEx {
       return;
     }
 
-    new Notice('Checking emails...');
+    this.pluginNoticeComponent.showNotice('Checking emails...');
 
     const messages = await this.emailProvider.getMessages();
     const unseenMessages = messages.filter((m) => !m.seen);
 
     if (unseenMessages.length === 0) {
-      new Notice('No new emails');
+      this.pluginNoticeComponent.showNotice('No new emails');
       return;
     }
 
@@ -50,7 +54,7 @@ export class EmailCheckerComponent extends ComponentEx {
       }
     }
 
-    new Notice(`Saved ${String(unseenMessages.length)} new email(s)`);
+    this.pluginNoticeComponent.showNotice(`Saved ${String(unseenMessages.length)} new email(s)`);
   }
 
   public override onload(): void {
@@ -72,7 +76,7 @@ export class EmailCheckerComponent extends ComponentEx {
     for (const message of toProcess) {
       await this.emailNoteCreator.saveEmailAsNote(message);
     }
-    new Notice(`Redownloaded ${String(toProcess.length)} email(s)`);
+    this.pluginNoticeComponent.showNotice(`Redownloaded ${String(toProcess.length)} email(s)`);
   }
 
   private getCheckIntervalInMilliseconds(): number {

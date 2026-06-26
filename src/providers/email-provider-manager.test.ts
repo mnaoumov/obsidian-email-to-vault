@@ -1,5 +1,6 @@
 import type { App } from 'obsidian';
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { ReadonlyPluginSettingsState } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 import type { Promisable } from 'type-fest';
 
@@ -137,6 +138,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
 
@@ -151,6 +153,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
 
@@ -165,6 +168,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
 
@@ -181,6 +185,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -202,6 +207,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -224,6 +230,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -239,6 +246,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -254,6 +262,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -269,6 +278,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -284,6 +294,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();
@@ -299,6 +310,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
 
@@ -313,6 +325,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
 
@@ -325,6 +338,7 @@ describe('EmailProviderManager', () => {
         app: createMockApp(),
         mailTmDomainManager: createMockMailTmDomainManager(),
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
         pluginSettingsComponent
       });
       manager.load();

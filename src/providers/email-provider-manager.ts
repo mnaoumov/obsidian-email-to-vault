@@ -1,4 +1,5 @@
 import type { App } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
 import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
@@ -19,6 +20,7 @@ interface EmailProviderManagerComponentConstructorParams {
   readonly app: App;
   readonly mailTmDomainManager: MailTmDomainManager;
   readonly pluginId: string;
+  readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
@@ -27,12 +29,14 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
   private readonly app: App;
   private readonly mailTmDomainManager: MailTmDomainManager;
   private readonly pluginId: string;
+  private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
   public constructor(params: EmailProviderManagerComponentConstructorParams) {
     super();
     this.app = params.app;
     this.pluginId = params.pluginId;
+    this.pluginNoticeComponent = params.pluginNoticeComponent;
     this.pluginSettingsComponent = params.pluginSettingsComponent;
     this.mailTmDomainManager = params.mailTmDomainManager;
   }
@@ -86,7 +90,11 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
     switch (type) {
       case EmailProviderType.Imap:
         this.activeProvider = this.addChild(
-          new ImapProviderComponent(this.app, this.pluginSettingsComponent)
+          new ImapProviderComponent({
+            app: this.app,
+            pluginNoticeComponent: this.pluginNoticeComponent,
+            pluginSettingsComponent: this.pluginSettingsComponent
+          })
         );
         break;
       case EmailProviderType.MailTm:

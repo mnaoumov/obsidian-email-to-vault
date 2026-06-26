@@ -1,4 +1,5 @@
-import { Notice } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+
 import { noopAsync } from 'obsidian-dev-utils/function';
 import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
@@ -9,7 +10,7 @@ import type {
 import type { EmailProvider } from '../email-provider.ts';
 
 export class ImapProviderMobileComponent extends ComponentEx implements EmailProvider {
-  public constructor() {
+  public constructor(private readonly pluginNoticeComponent: PluginNoticeComponent) {
     super();
   }
 
@@ -42,7 +43,7 @@ export class ImapProviderMobileComponent extends ComponentEx implements EmailPro
   }
 
   private showNotice(): void {
-    new Notice('IMAP is not available on mobile devices');
+    this.pluginNoticeComponent.showNotice('IMAP is not available on mobile devices');
   }
 }
 

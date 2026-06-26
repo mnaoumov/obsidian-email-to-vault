@@ -37,18 +37,22 @@ export class Plugin extends PluginBase {
         app: this.app,
         mailTmDomainManager,
         pluginId: this.manifest.id,
+        pluginNoticeComponent: this.pluginNoticeComponent,
         pluginSettingsComponent
       })
     );
+
     const emailNoteCreator = new EmailNoteCreator({
       app: this.app,
       emailProvider: emailProviderManager,
+      pluginNoticeComponent: this.pluginNoticeComponent,
       pluginSettingsComponent
     });
     const emailChecker = this.addChild(
       new EmailCheckerComponent({
         emailNoteCreator,
         emailProvider: emailProviderManager,
+        pluginNoticeComponent: this.pluginNoticeComponent,
         pluginSettingsComponent
       })
     );
@@ -56,6 +60,7 @@ export class Plugin extends PluginBase {
       emailProviderManager,
       plugin: this,
       pluginId: this.manifest.id,
+      pluginNoticeComponent: this.pluginNoticeComponent,
       pluginSettingsComponent
     });
     this.addChild(

@@ -2,7 +2,9 @@ import type {
   App as AppOriginal,
   PluginManifest
 } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
+import { castTo } from 'obsidian-dev-utils/object-utils';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 import { App } from 'obsidian-test-mocks/obsidian';
@@ -149,9 +151,19 @@ const manifest: PluginManifest = {
 
 let app: AppOriginal;
 
+interface PluginWithNoticeComponent {
+  readonly pluginNoticeComponent: PluginNoticeComponent;
+}
+
 function instanceOf(mock: ReturnType<typeof vi.fn>): unknown {
   // The value that flows through `addChild` is the constructor's return value.
   return mock.mock.results[0]?.value;
+}
+
+function noticeComponentOf(plugin: Plugin): PluginNoticeComponent {
+  // `pluginNoticeComponent` is `protected` on the dev-utils `PluginBase`; the plugin wires this exact
+  // Instance into every collaborator, so the tests assert against the real instance rather than a matcher.
+  return castTo<PluginWithNoticeComponent>(plugin).pluginNoticeComponent;
 }
 
 describe('Plugin', () => {
@@ -185,7 +197,7 @@ describe('Plugin', () => {
       });
     });
 
-    it('should create EmailProviderManager with app, mailTmDomainManager, pluginId, and pluginSettingsComponent', async () => {
+    it('should create EmailProviderManager with app, mailTmDomainManager, pluginId, pluginNoticeComponent, and pluginSettingsComponent', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
@@ -193,33 +205,36 @@ describe('Plugin', () => {
         app,
         mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: noticeComponentOf(plugin),
         pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create EmailNoteCreator with app, emailProvider, and pluginSettingsComponent', async () => {
+    it('should create EmailNoteCreator with app, emailProvider, pluginNoticeComponent, and pluginSettingsComponent', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
       expect(MockEmailNoteCreator).toHaveBeenCalledWith({
         app,
         emailProvider: instanceOf(MockEmailProviderManager),
+        pluginNoticeComponent: noticeComponentOf(plugin),
         pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create EmailChecker with emailNoteCreator, emailProvider, and pluginSettingsComponent', async () => {
+    it('should create EmailChecker with emailNoteCreator, emailProvider, pluginNoticeComponent, and pluginSettingsComponent', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
       expect(MockEmailChecker).toHaveBeenCalledWith({
         emailNoteCreator: MockEmailNoteCreator.mock.instances[0],
         emailProvider: instanceOf(MockEmailProviderManager),
+        pluginNoticeComponent: noticeComponentOf(plugin),
         pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
 
-    it('should create PluginSettingsTab with plugin, settings component, provider manager, and manifest id', async () => {
+    it('should create PluginSettingsTab with plugin, settings component, provider manager, notice component, and manifest id', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
@@ -227,6 +242,7 @@ describe('Plugin', () => {
         emailProviderManager: instanceOf(MockEmailProviderManager),
         plugin,
         pluginId: 'email-to-vault',
+        pluginNoticeComponent: noticeComponentOf(plugin),
         pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
       });
     });
