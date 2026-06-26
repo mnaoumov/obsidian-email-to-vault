@@ -150,7 +150,7 @@ function createTab(overrides?: MockPluginSettingsComponentOverrides, mailTmProvi
 describe('PluginSettingsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    bindSpy = vi.spyOn(PluginSettingsTab.prototype, 'bind').mockImplementation((valueComponent) => valueComponent);
+    bindSpy = vi.spyOn(PluginSettingsTab.prototype, 'bind').mockImplementation((params) => params.valueComponent);
     setHeadingSpy = vi.spyOn(SettingGroupEx.prototype, 'setHeading');
     buttonOnClickSpy = vi.spyOn(ButtonComponent.prototype, 'onClick');
     extraButtonOnClickSpy = vi.spyOn(ExtraButtonComponent.prototype, 'onClick');
@@ -210,8 +210,8 @@ describe('PluginSettingsTab', () => {
       const tab = createTab();
       tab.displayLegacy();
 
-      const bindCall = ensureNonNullable(bindSpy.mock.calls.find((call) => call[1] === 'emailProviderType'));
-      const options = ensureGenericObject<ProviderDropdownBindOptions>(bindCall[2]);
+      const bindCall = ensureNonNullable(bindSpy.mock.calls.find((call) => call[0].propertyName === 'emailProviderType'));
+      const options = ensureGenericObject<ProviderDropdownBindOptions>(bindCall[0]);
       const onChanged = ensureNonNullable(options.onChanged);
       expect(onChanged).toBeTypeOf('function');
 

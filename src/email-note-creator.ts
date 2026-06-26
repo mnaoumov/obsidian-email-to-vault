@@ -223,7 +223,7 @@ function extractFilename(path: string): string {
 function extractForwardedEmail(data: EmailData): EmailData {
   const result = { ...data };
 
-  result.subject = replaceAll(result.subject, FORWARD_PREFIX_PATTERN, '');
+  result.subject = replaceAll({ replacer: '', searchValue: FORWARD_PREFIX_PATTERN, str: result.subject });
 
   const gmailMatch = GMAIL_FORWARD_HEADER_PATTERN.exec(result.body);
   if (gmailMatch) {
@@ -287,12 +287,16 @@ function removeHiddenElements(doc: Document): void {
 }
 
 function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string, string>): string {
-  return replaceAll(body, INLINE_ATTACHMENT_PATTERN, ({ capturedGroupArgs: [alt = '', attachId = ''] }) => {
-    const savedFilename = savedAttachments.get(attachId);
-    if (savedFilename) {
-      return `![[${savedFilename}]]`;
-    }
-    return `![[${alt || 'attachment'}]]`;
+  return replaceAll({
+    replacer: ({ capturedGroupArgs: [alt = '', attachId = ''] }) => {
+      const savedFilename = savedAttachments.get(attachId);
+      if (savedFilename) {
+        return `![[${savedFilename}]]`;
+      }
+      return `![[${alt || 'attachment'}]]`;
+    },
+    searchValue: INLINE_ATTACHMENT_PATTERN,
+    str: body
   });
 }
 
@@ -337,8 +341,16 @@ function checkHiddenByStyle(style: string): boolean {
 }
 
 function stripMarkdownFormatting(text: string): string {
-  const withoutBold = replaceAll(text, /\*\*(?<content>[^*]+)\*\*/g, ({ capturedGroupArgs: [content] }) => ensureNonNullable(content));
-  return replaceAll(withoutBold, /\[(?<label>[^\]]+)\]\([^)]+\)/g, ({ capturedGroupArgs: [label] }) => ensureNonNullable(label));
+  const withoutBold = replaceAll({
+    replacer: ({ capturedGroupArgs: [content] }) => ensureNonNullable(content),
+    searchValue: /\*\*(?<content>[^*]+)\*\*/g,
+    str: text
+  });
+  return replaceAll({
+    replacer: ({ capturedGroupArgs: [label] }) => ensureNonNullable(label),
+    searchValue: /\[(?<label>[^\]]+)\]\([^)]+\)/g,
+    str: withoutBold
+  });
 }
 
 function unwrapElement(element: Element): void {
@@ -418,8 +430,12 @@ function extractTokenValue(emailData: EmailData, token: string, format: string, 
 function fillTemplate(template: string, emailData: EmailData, isPathTemplate = false): string {
   const TOKEN_PATTERN = /\{\{(?<Token>\w+)(?::(?<Format>[^}]+))?\}\}/g;
 
-  return replaceAll(template, TOKEN_PATTERN, ({ capturedGroupArgs: [token = '', format = ''] }) => {
-    return extractTokenValue(emailData, token, format, isPathTemplate);
+  return replaceAll({
+    replacer: ({ capturedGroupArgs: [token = '', format = ''] }) => {
+      return extractTokenValue(emailData, token, format, isPathTemplate);
+    },
+    searchValue: TOKEN_PATTERN,
+    str: template
   });
 }
 
@@ -433,9 +449,9 @@ function normalizeDate(dateStr: string): string {
 }
 
 function normalizeWhitespace(str: string): string {
-  return replaceAll(str, /\s/g, ' ');
+  return replaceAll({ replacer: ' ', searchValue: /\s/g, str });
 }
 
 function sanitizeFileName(name: string): string {
-  return replaceAll(name, /[\\/:*?"<>|]/g, '_').trim();
+  return replaceAll({ replacer: '_', searchValue: /[\\/:*?"<>|]/g, str: name }).trim();
 }

@@ -76,7 +76,7 @@ async function pollForMessage(subject: string): Promise<number> {
           return foundUidList[0] ?? 0;
         }
 
-        await sleep(POLL_INTERVAL_IN_MILLISECONDS);
+        await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
       }
     } finally {
       lock.release();

@@ -61,7 +61,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }))
           .addNumber((numberComponent) => {
             numberComponent.setMin(0);
-            this.bind(numberComponent, 'emailCheckIntervalInMinutes');
+            this.bind({ propertyName: 'emailCheckIntervalInMinutes', valueComponent: numberComponent });
           });
       })
       .addSettingEx((setting) => {
@@ -74,7 +74,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }))
           .addCodeHighlighter((codeHighlighter) => {
             codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
-            this.bind(codeHighlighter, 'emailNotePathTemplate');
+            this.bind({ propertyName: 'emailNotePathTemplate', valueComponent: codeHighlighter });
           });
       })
       .addSettingEx((setting) => {
@@ -88,7 +88,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }))
           .addCodeHighlighter((codeHighlighter) => {
             codeHighlighter.setLanguage(TOKENIZED_STRING_LANGUAGE);
-            this.bind(codeHighlighter, 'emailNoteTemplate');
+            this.bind({ propertyName: 'emailNoteTemplate', valueComponent: codeHighlighter });
           });
       })
       .addSettingEx((setting) => {
@@ -100,7 +100,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             f.appendText('When enabled, treats forwarded emails as direct messages.');
           }))
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldExtractForwardedEmail');
+            this.bind({ propertyName: 'shouldExtractForwardedEmail', valueComponent: toggle });
           });
       })
       .addSettingEx((setting) => {
@@ -108,7 +108,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Strip hidden elements')
           .setDesc('Whether to remove hidden HTML elements (display:none, visibility:hidden, opacity:0, aria-hidden) before converting to markdown.')
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldStripHiddenElements');
+            this.bind({ propertyName: 'shouldStripHiddenElements', valueComponent: toggle });
           });
       });
   }
@@ -129,7 +129,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Server host')
           .setDesc('Hostname of the mail server.')
           .addText((text) => {
-            this.bind(text, 'imapHost');
+            this.bind({ propertyName: 'imapHost', valueComponent: text });
           });
       })
       .addSettingEx((setting) => {
@@ -138,7 +138,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setDesc('Port number for the mail server.')
           .addNumber((numberComponent) => {
             numberComponent.setMin(1);
-            this.bind(numberComponent, 'imapPort');
+            this.bind({ propertyName: 'imapPort', valueComponent: numberComponent });
           });
       })
       .addSettingEx((setting) => {
@@ -146,7 +146,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Use TLS')
           .setDesc('Use TLS/SSL for the connection.')
           .addToggle((toggle) => {
-            this.bind(toggle, 'imapTls');
+            this.bind({ propertyName: 'imapTls', valueComponent: toggle });
           });
       })
       .addSettingEx((setting) => {
@@ -154,7 +154,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Mailbox')
           .setDesc('Mailbox folder to check for emails.')
           .addText((text) => {
-            this.bind(text, 'imapMailbox');
+            this.bind({ propertyName: 'imapMailbox', valueComponent: text });
           });
       })
       .addSettingEx((setting) => {
@@ -163,7 +163,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Email address')
           .setDesc('Email address used as the login username.')
           .addEmail((emailComponent) => {
-            this.bind(emailComponent, 'emailAddress');
+            this.bind({ propertyName: 'emailAddress', valueComponent: emailComponent });
           });
       })
       .addSettingEx((setting) => {
@@ -190,7 +190,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Delete seen emails')
           .setDesc('Whether to delete emails from the mailbox after being saved as notes.')
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldDeleteSeenEmails');
+            this.bind({ propertyName: 'shouldDeleteSeenEmails', valueComponent: toggle });
           });
       });
   }
@@ -256,7 +256,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setDesc('Email address for the mail.tm mailbox.')
           .addEmail((emailComponent) => {
             emailComponent.setDisabled(isRegistered);
-            this.bind(emailComponent, 'emailAddress');
+            this.bind({ propertyName: 'emailAddress', valueComponent: emailComponent });
           })
           .addExtraButton((button) => {
             button
@@ -313,7 +313,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             f.appendText(' for details.');
           }))
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldDeleteSeenEmails');
+            this.bind({ propertyName: 'shouldDeleteSeenEmails', valueComponent: toggle });
           });
       });
   }
@@ -329,10 +329,12 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             dropdown
               .addOption(EmailProviderType.MailTm, 'Mail.tm')
               .addOption(EmailProviderType.Imap, 'IMAP');
-            this.bind(dropdown, 'emailProviderType', {
+            this.bind({
               onChanged: () => {
                 this.displayLegacy();
-              }
+              },
+              propertyName: 'emailProviderType',
+              valueComponent: dropdown
             });
           });
       });

@@ -88,7 +88,7 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
       return messages;
     }
 
-    await sleep(POLL_INTERVAL_IN_MILLISECONDS);
+    await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
   throw new Error(`Expected ${String(expectedCount)} messages but did not receive them within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
