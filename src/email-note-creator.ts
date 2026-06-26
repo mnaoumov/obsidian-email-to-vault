@@ -184,6 +184,19 @@ function extractBody(fullMessage: EmailMessageFull, options: SanitizeOptions): E
 
 const HTML_PARSE_ERROR_MESSAGE = 'ERROR: Could not parse email HTML. Rolling back to text mode';
 
+function checkIsDataTable(table: Element): boolean {
+  if (table.getAttribute('role') === 'presentation') {
+    return false;
+  }
+  if (!table.querySelector('th')) {
+    return false;
+  }
+  if (table.querySelector('table')) {
+    return false;
+  }
+  return true;
+}
+
 function extractEmailFromRfc822(emlContent: string): EmailData {
   const headerBodySeparator = /\r?\n\r?\n/;
   const separatorMatch = headerBodySeparator.exec(emlContent);
@@ -290,19 +303,31 @@ function sanitizeEmailHtml(html: string, options: SanitizeOptions): string {
     removeHiddenElements(doc);
   }
 
-  for (const table of doc.querySelectorAll('table')) {
-    if (table.querySelector('tr')) {
-      unwrapElement(table);
-    } else {
-      table.remove();
-    }
-  }
-
-  for (const element of doc.querySelectorAll('tbody, thead, tfoot, tr, td, th')) {
-    unwrapElement(element);
-  }
+  unwrapLayoutTables(doc);
 
   return doc.body.innerHTML;
+}
+
+function unwrapLayoutTable(table: Element): void {
+  for (const element of table.querySelectorAll('tbody, thead, tfoot, tr, td, th')) {
+    if (element.closest('table') === table) {
+      unwrapElement(element);
+    }
+  }
+  unwrapElement(table);
+}
+
+function unwrapLayoutTables(doc: Document): void {
+  for (const table of doc.querySelectorAll('table')) {
+    if (!table.querySelector('tr')) {
+      table.remove();
+      continue;
+    }
+    if (checkIsDataTable(table)) {
+      continue;
+    }
+    unwrapLayoutTable(table);
+  }
 }
 
 const HIDDEN_STYLE_PATTERN = /display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0/i;

@@ -42,7 +42,7 @@
 
 ### Known Limitations
 
-- **All HTML tables are unwrapped**: The plugin strips all `<table>` elements from email HTML before converting to markdown, because Obsidian's turndown cannot handle nested layout tables (produces garbage escaped pipes). If an email contains a legitimate data table (price list, schedule), its tabular structure will be lost. This is a trade-off — email layout tables are far more common than data tables in emails. Future improvement: detect and preserve data tables (e.g., flat tables with `<th>` headers, no nesting, no `role="presentation"`).
+- **Layout tables are unwrapped; only flat data tables survive**: Before converting to markdown, the plugin classifies each `<table>`. Layout tables (marked `role="presentation"`, lacking `<th>` header cells, or containing a nested `<table>`) are unwrapped — their cell content is preserved but the tabular structure is dropped — because Obsidian's turndown cannot handle nested layout tables (produces garbage escaped pipes). A table is only kept intact as a real markdown table when it is a genuine **data table**: not `role="presentation"`, has at least one `<th>`, and contains no nested `<table>`. A data table nested inside a layout table is preserved (the outer layout wrapper is unwrapped around it). Remaining limitation: a data table that itself contains a nested `<table>` is treated as a layout container and unwrapped, so its structure is lost.
 
 ## Current Task
 

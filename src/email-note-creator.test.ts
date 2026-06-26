@@ -383,6 +383,112 @@ describe('EmailNoteCreator', () => {
       expect(htmlToMarkdownMock).toHaveBeenCalledWith('<p>Hello</p><p>World</p>');
     });
 
+    it('should preserve data tables with header cells', async () => {
+      const dataTableHtml = '<table><thead><tr><th>Name</th><th>Price</th></tr></thead><tbody><tr><td>Apple</td><td>5</td></tr></tbody></table>';
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: [dataTableHtml],
+            id: 'msg1',
+            seen: false,
+
+            subject: 'Test',
+            text: 'Name Price Apple 5',
+            to: [{ address: 'me@mail.tm', name: '' }]
+          };
+        })
+      });
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith(dataTableHtml);
+    });
+
+    it('should unwrap layout tables that have no header cells', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<table><tbody><tr><td><p>A</p></td><td><p>B</p></td></tr></tbody></table>'],
+            id: 'msg1',
+            seen: false,
+
+            subject: 'Test',
+            text: 'A B',
+            to: [{ address: 'me@mail.tm', name: '' }]
+          };
+        })
+      });
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith('<p>A</p><p>B</p>');
+    });
+
+    it('should unwrap a layout table while preserving a nested data table', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+
+            from: { address: 'sender@example.com', name: '' },
+            hasAttachments: false,
+            html: ['<table><tbody><tr><td><table><thead><tr><th>H</th></tr></thead><tbody><tr><td>V</td></tr></tbody></table></td></tr></tbody></table>'],
+            id: 'msg1',
+            seen: false,
+
+            subject: 'Test',
+            text: 'H V',
+            to: [{ address: 'me@mail.tm', name: '' }]
+          };
+        })
+      });
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({ emailNoteTemplate: '{{body}}' });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(htmlToMarkdownMock).toHaveBeenCalledWith('<table><thead><tr><th>H</th></tr></thead><tbody><tr><td>V</td></tr></tbody></table>');
+    });
+
     it('should remove hidden elements from HTML before converting', async () => {
       const emailProvider = createMockEmailProvider({
         getMessage: vi.fn(async () => {
