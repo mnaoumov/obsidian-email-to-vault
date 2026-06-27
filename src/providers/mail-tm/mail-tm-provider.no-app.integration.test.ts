@@ -2,7 +2,6 @@ import type { z } from 'zod';
 
 import dedent from 'dedent';
 import { createTransport } from 'nodemailer';
-import { sleep } from 'obsidian-dev-utils/async';
 import {
   afterAll,
   beforeAll,
@@ -88,7 +87,7 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
       return messages;
     }
 
-    await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
+    await sleep(POLL_INTERVAL_IN_MILLISECONDS);
   }
 
   throw new Error(`Expected ${String(expectedCount)} messages but did not receive them within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
