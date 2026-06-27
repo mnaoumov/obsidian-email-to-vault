@@ -1,7 +1,6 @@
-import type { z } from 'zod';
-
 import dedent from 'dedent';
 import { createTransport } from 'nodemailer';
+import { sleep } from 'obsidian-dev-utils/async';
 import {
   afterAll,
   beforeAll,
@@ -9,19 +8,69 @@ import {
   expect,
   it
 } from 'vitest';
+import { z } from 'zod';
 
 import {
   generatePassword,
   generateUsername
 } from '../../string-generators.ts';
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
-import {
-  mailTmAccountResponseSchema,
-  mailTmDomainsResponseSchema,
-  mailTmMessageFullSchema,
-  mailTmMessagesResponseSchema,
-  mailTmTokenResponseSchema
-} from './mail-tm-schemas.ts';
+
+const mailTmAddressSchema = z.object({
+  address: z.string(),
+  name: z.string()
+});
+
+const mailTmDomainSchema = z.object({
+  domain: z.string(),
+  isActive: z.boolean()
+});
+
+const mailTmDomainsResponseSchema = z.object({
+  'hydra:member': z.array(mailTmDomainSchema)
+});
+
+const mailTmMessageSchema = z.object({
+  createdAt: z.string(),
+  downloadUrl: z.string(),
+  from: mailTmAddressSchema,
+  hasAttachments: z.boolean(),
+  id: z.string(),
+  seen: z.boolean(),
+  size: z.number(),
+  subject: z.string(),
+  to: z.array(mailTmAddressSchema),
+  updatedAt: z.string()
+});
+
+const mailTmAttachmentSchema = z.object({
+  contentType: z.string(),
+  filename: z.string(),
+  id: z.string()
+});
+
+const mailTmMessageFullSchema = mailTmMessageSchema.extend({
+  attachments: z.array(mailTmAttachmentSchema).optional().default([]),
+  cc: z.array(mailTmAddressSchema),
+  html: z.array(z.string()),
+  text: z.string()
+});
+
+const mailTmMessagesResponseSchema = z.object({
+  'hydra:member': z.array(mailTmMessageSchema)
+});
+
+const mailTmTokenResponseSchema = z.object({
+  token: z.string()
+});
+
+const mailTmAccountResponseSchema = z.object({
+  '@context': z.string(),
+  '@id': z.string(),
+  '@type': z.string(),
+  'address': z.string(),
+  'id': z.string()
+});
 
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;
@@ -87,7 +136,7 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
       return messages;
     }
 
-    await sleep(POLL_INTERVAL_IN_MILLISECONDS);
+    await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
   throw new Error(`Expected ${String(expectedCount)} messages but did not receive them within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
