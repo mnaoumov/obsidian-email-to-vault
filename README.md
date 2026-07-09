@@ -18,6 +18,7 @@ This is a plugin for [Obsidian](https://obsidian.md/) that syncs emails into you
 - **IMAP support** — connect to any IMAP-compatible email server such as Gmail, Outlook, or a self-hosted server (desktop only)
 - **Completely free** — no paid service, no self-hosted server, no external account needed
 - **Automatic sync** — the plugin periodically checks for new emails and saves them as notes
+- **Preserve read state** — optionally leave emails untouched on the server so they stay unread in your other email clients while still being archived
 - **Full metadata preservation** — From, To, CC, Subject, Body, and Attachments are all captured
 - **Works on desktop and mobile** (IMAP mode is desktop only)
 
@@ -39,6 +40,10 @@ This is a plugin for [Obsidian](https://obsidian.md/) that syncs emails into you
 > [!NOTE]
 >
 > IMAP mode is only available on desktop. On mobile devices, use Mail.tm instead.
+
+### Keeping emails unread
+
+By default the plugin flags each email as **seen** on the server once it has been saved as a note, so it is not imported again. If you also read your mail in another client (Gmail, Outlook, etc.) and want archived emails to stay **unread** there, disable **Mark emails as seen** in the plugin settings. In that mode the plugin leaves emails untouched on the server and tracks which ones it has already imported by date instead.
 
 ## Privacy & data handling
 
