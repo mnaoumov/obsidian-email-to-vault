@@ -90,8 +90,9 @@ interface TestAccount {
   token: string;
 }
 
-// eslint-disable-next-line no-restricted-globals -- Integration tests run in Node.js, not Obsidian. Using native fetch.
-const nativeFetch = fetch;
+// Integration tests run in Node.js (no window), so native fetch is reached through globalThis.
+// See scripts/eslint-config.ts, which turns off obsidianmd/no-global-this for no-app integration tests.
+const nativeFetch = globalThis.fetch;
 
 function addSuffix(address: string, suffix: string): string {
   return address.replace('@', `+${suffix}@`);
