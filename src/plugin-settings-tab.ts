@@ -110,6 +110,22 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .addToggle((toggle) => {
             this.bind({ propertyName: 'shouldStripHiddenElements', valueComponent: toggle });
           });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Mark emails as seen')
+          .setDesc(createFragment((f) => {
+            f.appendText('Whether to flag emails as seen on the server after they are saved as notes.');
+            f.createEl('br');
+            f.appendText('Disable to leave emails untouched on the server, so they stay unread in your other email clients.');
+            f.createEl('br');
+            f.appendText('When disabled, already-imported emails are tracked by date instead of the seen flag.');
+            f.createEl('br');
+            f.appendText('Ignored when "Delete seen emails" is enabled.');
+          }))
+          .addToggle((toggle) => {
+            this.bind({ propertyName: 'shouldMarkEmailsAsSeen', valueComponent: toggle });
+          });
       });
   }
 

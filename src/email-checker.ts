@@ -6,6 +6,7 @@ import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
+import type { EmailMessageSummary } from './providers/email-provider-types.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
 interface EmailCheckerComponentConstructorParams {
@@ -30,31 +31,36 @@ export class EmailCheckerComponent extends ComponentEx {
   }
 
   public async checkEmails(): Promise<void> {
-    const { emailAddress } = this.pluginSettingsComponent.settings;
-    if (!emailAddress) {
+    const settings = this.pluginSettingsComponent.settings;
+    if (!settings.emailAddress) {
       return;
     }
 
     this.pluginNoticeComponent.showNotice('Checking emails...');
 
     const messages = await this.emailProvider.getMessages();
-    const unseenMessages = messages.filter((m) => !m.seen);
+    const isTimestampMode = !settings.shouldMarkEmailsAsSeen && !settings.shouldDeleteSeenEmails;
+    const newMessages = this.selectNewMessages(messages, isTimestampMode);
 
-    if (unseenMessages.length === 0) {
-      this.pluginNoticeComponent.showNotice('No new emails');
-      return;
-    }
-
-    for (const message of unseenMessages) {
+    for (const message of newMessages) {
       await this.emailNoteCreator.saveEmailAsNote(message);
-      if (this.pluginSettingsComponent.settings.shouldDeleteSeenEmails) {
+      if (settings.shouldDeleteSeenEmails) {
         await this.emailProvider.deleteMessage(message.id);
-      } else {
+      } else if (settings.shouldMarkEmailsAsSeen) {
         await this.emailProvider.markMessageAsSeen(message.id);
       }
     }
 
-    this.pluginNoticeComponent.showNotice(`Saved ${String(unseenMessages.length)} new email(s)`);
+    if (isTimestampMode) {
+      await this.updateLastProcessedTimestamp(messages);
+    }
+
+    if (newMessages.length === 0) {
+      this.pluginNoticeComponent.showNotice('No new emails');
+      return;
+    }
+
+    this.pluginNoticeComponent.showNotice(`Saved ${String(newMessages.length)} new email(s)`);
   }
 
   public override onload(): void {
@@ -99,5 +105,31 @@ export class EmailCheckerComponent extends ComponentEx {
     this.intervalId = this.pluginSettingsComponent.registerInterval(
       window.setInterval(convertAsyncToSync(this.checkEmails.bind(this)), checkIntervalInMilliseconds)
     );
+  }
+
+  private selectNewMessages(messages: EmailMessageSummary[], isTimestampMode: boolean): EmailMessageSummary[] {
+    const { lastProcessedEmailTimestamp } = this.pluginSettingsComponent.settings;
+    if (isTimestampMode && lastProcessedEmailTimestamp) {
+      return messages.filter((m) => m.createdAt > lastProcessedEmailTimestamp);
+    }
+    return messages.filter((m) => !m.seen);
+  }
+
+  private async updateLastProcessedTimestamp(messages: EmailMessageSummary[]): Promise<void> {
+    const currentTimestamp = this.pluginSettingsComponent.settings.lastProcessedEmailTimestamp;
+    let newTimestamp = currentTimestamp;
+    for (const message of messages) {
+      if (message.createdAt > newTimestamp) {
+        newTimestamp = message.createdAt;
+      }
+    }
+
+    if (newTimestamp === currentTimestamp) {
+      return;
+    }
+
+    await this.pluginSettingsComponent.editAndSave((settings) => {
+      settings.lastProcessedEmailTimestamp = newTimestamp;
+    });
   }
 }

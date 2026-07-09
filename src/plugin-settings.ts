@@ -32,7 +32,9 @@ export class PluginSettings {
   public imapMailbox = 'INBOX';
   public imapPort = DEFAULT_IMAP_PORT;
   public imapTls = true;
+  public lastProcessedEmailTimestamp = '';
   public shouldDeleteSeenEmails = false;
   public shouldExtractForwardedEmail = true;
+  public shouldMarkEmailsAsSeen = true;
   public shouldStripHiddenElements = true;
 }

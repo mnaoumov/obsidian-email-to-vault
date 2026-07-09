@@ -42,7 +42,9 @@ interface MockEmailProviderOverrides {
 interface MockPluginSettingsComponentOverrides {
   emailAddress?: string;
   emailCheckIntervalInMinutes?: number;
+  lastProcessedEmailTimestamp?: string;
   shouldDeleteSeenEmails?: boolean;
+  shouldMarkEmailsAsSeen?: boolean;
 }
 
 type SaveSettingsCallback = (
@@ -71,7 +73,19 @@ function createMockNoteCreator(): EmailNoteCreator {
 function createMockPluginSettingsComponent(overrides?: MockPluginSettingsComponentOverrides): CreateMockPluginSettingsComponentResult {
   let saveSettingsCallback: null | SaveSettingsCallback = null;
 
+  const settings = castTo<PluginSettings>({
+    emailAddress: overrides?.emailAddress ?? 'test@mail.tm',
+    emailCheckIntervalInMinutes: overrides?.emailCheckIntervalInMinutes ?? 10,
+    lastProcessedEmailTimestamp: overrides?.lastProcessedEmailTimestamp ?? '',
+    shouldDeleteSeenEmails: overrides?.shouldDeleteSeenEmails ?? false,
+    shouldMarkEmailsAsSeen: overrides?.shouldMarkEmailsAsSeen ?? true
+  });
+
   const component = strictProxy<PluginSettingsComponent>({
+    editAndSave: vi.fn(async (editor: (settings: PluginSettings) => void) => {
+      editor(settings);
+      await noopAsync();
+    }),
     on: vi.fn((_name: string, callback: (...args: unknown[]) => unknown) => {
       saveSettingsCallback = castTo<SaveSettingsCallback>(callback);
       return strictProxy<AsyncEventRef>({
@@ -79,11 +93,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
       });
     }) as PluginSettingsComponent['on'],
     registerInterval: vi.fn((id: number) => id),
-    settings: {
-      emailAddress: overrides?.emailAddress ?? 'test@mail.tm',
-      emailCheckIntervalInMinutes: overrides?.emailCheckIntervalInMinutes ?? 10,
-      shouldDeleteSeenEmails: overrides?.shouldDeleteSeenEmails ?? false
-    }
+    settings
   });
 
   return {
@@ -260,6 +270,247 @@ describe('EmailChecker', () => {
 
       expect(emailProvider.deleteMessage).not.toHaveBeenCalled();
       expect(emailProvider.markMessageAsSeen).toHaveBeenCalledWith('msg1');
+    });
+
+    it('should neither mark as seen nor delete when shouldMarkEmailsAsSeen is disabled', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-02T00:00:00.000Z',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg2',
+              seen: false,
+              subject: 'New',
+              to: []
+            }
+          ];
+        })
+      });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+        lastProcessedEmailTimestamp: '2026-01-01T00:00:00.000Z',
+        shouldMarkEmailsAsSeen: false
+      });
+      const noteCreator = createMockNoteCreator();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await checker.checkEmails();
+
+      expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(1);
+      expect(emailProvider.markMessageAsSeen).not.toHaveBeenCalled();
+      expect(emailProvider.deleteMessage).not.toHaveBeenCalled();
+    });
+
+    it('should select messages strictly newer than the bookmark in timestamp mode', async () => {
+      const olderMessage = {
+        createdAt: '2026-01-01T00:00:00.000Z',
+        from: { address: 'a@b.com', name: '' },
+        hasAttachments: false,
+        id: 'older',
+        seen: false,
+        subject: 'Older',
+        to: []
+      };
+      const boundaryMessage = {
+        createdAt: '2026-01-02T00:00:00.000Z',
+        from: { address: 'a@b.com', name: '' },
+        hasAttachments: false,
+        id: 'boundary',
+        seen: false,
+        subject: 'Boundary',
+        to: []
+      };
+      const newerMessage = {
+        createdAt: '2026-01-03T00:00:00.000Z',
+        from: { address: 'a@b.com', name: '' },
+        hasAttachments: false,
+        id: 'newer',
+        seen: false,
+        subject: 'Newer',
+        to: []
+      };
+      const emailProvider = createMockEmailProvider({
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [olderMessage, boundaryMessage, newerMessage];
+        })
+      });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+        lastProcessedEmailTimestamp: '2026-01-02T00:00:00.000Z',
+        shouldMarkEmailsAsSeen: false
+      });
+      const noteCreator = createMockNoteCreator();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await checker.checkEmails();
+
+      expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(1);
+      expect(noteCreator.saveEmailAsNote).toHaveBeenCalledWith(newerMessage);
+      expect(pluginSettingsComponent.settings.lastProcessedEmailTimestamp).toBe('2026-01-03T00:00:00.000Z');
+    });
+
+    it('should fall back to unseen selection on first run in timestamp mode and initialize the bookmark', async () => {
+      const seenMessage = {
+        createdAt: '2026-01-05T00:00:00.000Z',
+        from: { address: 'a@b.com', name: '' },
+        hasAttachments: false,
+        id: 'seen',
+        seen: true,
+        subject: 'Already read',
+        to: []
+      };
+      const unseenMessage = {
+        createdAt: '2026-01-04T00:00:00.000Z',
+        from: { address: 'a@b.com', name: '' },
+        hasAttachments: false,
+        id: 'unseen',
+        seen: false,
+        subject: 'Unread',
+        to: []
+      };
+      const emailProvider = createMockEmailProvider({
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [seenMessage, unseenMessage];
+        })
+      });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+        lastProcessedEmailTimestamp: '',
+        shouldMarkEmailsAsSeen: false
+      });
+      const noteCreator = createMockNoteCreator();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await checker.checkEmails();
+
+      expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(1);
+      expect(noteCreator.saveEmailAsNote).toHaveBeenCalledWith(unseenMessage);
+      expect(pluginSettingsComponent.settings.lastProcessedEmailTimestamp).toBe('2026-01-05T00:00:00.000Z');
+    });
+
+    it('should initialize the bookmark even when there are no unseen messages on first run', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-06T00:00:00.000Z',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'seen',
+              seen: true,
+              subject: 'Already read',
+              to: []
+            }
+          ];
+        })
+      });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+        lastProcessedEmailTimestamp: '',
+        shouldMarkEmailsAsSeen: false
+      });
+      const noteCreator = createMockNoteCreator();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await checker.checkEmails();
+
+      expect(noteCreator.saveEmailAsNote).not.toHaveBeenCalled();
+      expect(mockShowNotice).toHaveBeenCalledWith('No new emails');
+      expect(pluginSettingsComponent.settings.lastProcessedEmailTimestamp).toBe('2026-01-06T00:00:00.000Z');
+    });
+
+    it('should not persist the bookmark when no message is newer in timestamp mode', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00.000Z',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'old',
+              seen: false,
+              subject: 'Old',
+              to: []
+            }
+          ];
+        })
+      });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+        lastProcessedEmailTimestamp: '2026-01-01T00:00:00.000Z',
+        shouldMarkEmailsAsSeen: false
+      });
+      const noteCreator = createMockNoteCreator();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await checker.checkEmails();
+
+      expect(noteCreator.saveEmailAsNote).not.toHaveBeenCalled();
+      expect(pluginSettingsComponent.editAndSave).not.toHaveBeenCalled();
+      expect(mockShowNotice).toHaveBeenCalledWith('No new emails');
+    });
+
+    it('should delete without marking as seen when both delete and mark-as-seen are configured accordingly', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessages: vi.fn(async () => {
+          await noopAsync();
+          return [
+            {
+              createdAt: '2026-01-01T00:00:00.000Z',
+              from: { address: 'a@b.com', name: '' },
+              hasAttachments: false,
+              id: 'msg1',
+              seen: false,
+              subject: 'Test',
+              to: []
+            }
+          ];
+        })
+      });
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+        shouldDeleteSeenEmails: true,
+        shouldMarkEmailsAsSeen: false
+      });
+      const noteCreator = createMockNoteCreator();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: noteCreator,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await checker.checkEmails();
+
+      expect(emailProvider.deleteMessage).toHaveBeenCalledWith('msg1');
+      expect(emailProvider.markMessageAsSeen).not.toHaveBeenCalled();
+      expect(pluginSettingsComponent.editAndSave).not.toHaveBeenCalled();
     });
   });
 

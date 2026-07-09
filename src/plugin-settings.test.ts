@@ -38,6 +38,9 @@ describe('PluginSettings', () => {
     expect(settings.imapMailbox).toBe('INBOX');
     expect(settings.imapPort).toBe(993);
     expect(settings.imapTls).toBe(true);
+    expect(settings.lastProcessedEmailTimestamp).toBe('');
+    expect(settings.shouldMarkEmailsAsSeen).toBe(true);
+    expect(settings.shouldStripHiddenElements).toBe(true);
   });
 });
 

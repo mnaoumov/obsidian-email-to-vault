@@ -16,6 +16,14 @@ export const configs: Linter.Config[] = defineEslintConfigs({
             }
           ]
         }
+      },
+      {
+        // No-app integration tests run in a plain Node.js environment (no Obsidian, no `window`).
+        // Native globals such as `fetch` are therefore reached through `globalThis`.
+        files: ['**/*.no-app.integration.test.ts'],
+        rules: {
+          'obsidianmd/no-global-this': 'off'
+        }
       }
     ]);
   }

@@ -323,6 +323,42 @@ describe('IMAP provider integration', () => {
       }
     });
   });
+
+  describe('reading without marking seen', () => {
+    let unseenEmailUid: number;
+
+    beforeAll(async () => {
+      const unseenEmailSubject = await sendTestEmail('unseen-preservation');
+      unseenEmailUid = await pollForMessage(unseenEmailSubject);
+    });
+
+    it('should leave the \\Seen flag unset after fetching a message the way the plugin does', async () => {
+      const client = createImapClient();
+      await client.connect();
+      const lock = await client.getMailboxLock('INBOX');
+
+      try {
+        // These fetch options mirror ImapProviderDesktopComponent.getMessage.
+        // Fetching the full source must not implicitly set \Seen (imapflow uses BODY.PEEK); otherwise the
+        // "Mark emails as seen" opt-out would be defeated merely by reading the message to create a note.
+        const msg = await client.fetchOne(
+          String(unseenEmailUid),
+          { bodyStructure: true, envelope: true, flags: true, source: true },
+          { uid: true }
+        );
+        expect(msg).toBeTruthy();
+
+        const afterFetch = await client.fetchOne(String(unseenEmailUid), { flags: true }, { uid: true });
+        expect(afterFetch).toBeTruthy();
+        if (afterFetch) {
+          expect(afterFetch.flags?.has('\\Seen')).toBe(false);
+        }
+      } finally {
+        lock.release();
+        await client.logout();
+      }
+    });
+  });
 });
 
 function findAttachmentPart(node: MessageStructureObject): string | undefined {
