@@ -257,6 +257,36 @@ async function getFullMessage(messageId: string): Promise<z.infer<typeof mailTmM
   return mailTmMessageFullSchema.parse(fullJson);
 }
 
+async function pollForSubject(token: string, subject: string): Promise<z.infer<typeof mailTmMessageSchema>> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < MAX_WAIT_IN_MILLISECONDS) {
+    const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = mailTmMessagesResponseSchema.parse(json);
+    const found = data['hydra:member'].find((m) => m.subject === subject);
+    if (found) {
+      return found;
+    }
+
+    await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
+  }
+
+  throw new Error(`Message with subject "${subject}" not received within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
+}
+
+async function sendSimpleEmail(baseAddress: string, subject: string): Promise<void> {
+  const transport = createSmtpTransport();
+
+  await transport.sendMail({
+    from: getRequiredEnv('SMTP_USER'),
+    subject,
+    text: 'Seen flag test body.',
+    to: baseAddress
+  });
+}
+
 describe('Mail.tm API', () => {
   beforeAll(async () => {
     const domainsJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/domains`);
@@ -490,6 +520,36 @@ describe('Mail.tm API', () => {
       const emlContent = await emlResponse.text();
       expect(emlContent).toContain('Subject: Original subject');
       expect(emlContent).toContain('This is the original forwarded email body.');
+    });
+  });
+
+  describe('seen flag', () => {
+    it('should keep a message unseen when only read, and mark it seen only on explicit PATCH', async () => {
+      const subject = 'Seen flag integration test';
+      await sendSimpleEmail(testAccount.address, subject);
+      const message = await pollForSubject(testAccount.token, subject);
+
+      // A newly received message starts unseen.
+      expect(message.seen).toBe(false);
+
+      // Reading the full message the way ImapProviderDesktopComponent's Mail.tm counterpart
+      // (MailTmProviderComponent.getMessage) does — a GET on /messages/{id} — must NOT flip `seen`,
+      // Otherwise the "Mark emails as seen" opt-out would be defeated just by building the note.
+      await getFullMessage(message.id);
+      const afterRead = await pollForSubject(testAccount.token, subject);
+      expect(afterRead.seen).toBe(false);
+
+      // MailTmProviderComponent.markMessageAsSeen issues a merge-patch with `{ seen: true }`.
+      await nativeFetch(`${MAIL_TM_API_BASE_URL}/messages/${message.id}`, {
+        body: JSON.stringify({ seen: true }),
+        headers: {
+          'Authorization': `Bearer ${testAccount.token}`,
+          'Content-Type': 'application/merge-patch+json'
+        },
+        method: 'PATCH'
+      });
+      const afterPatch = await pollForSubject(testAccount.token, subject);
+      expect(afterPatch.seen).toBe(true);
     });
   });
 });
