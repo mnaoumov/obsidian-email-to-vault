@@ -10,7 +10,10 @@ import type {
   EmailMessageFull,
   EmailMessageSummary
 } from '../email-provider-types.ts';
-import type { EmailProvider } from '../email-provider.ts';
+import type {
+  EmailProvider,
+  EmailProviderDownloadAttachmentParams
+} from '../email-provider.ts';
 
 interface ImapProviderComponentConstructorParams {
   readonly app: App;
@@ -39,8 +42,10 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
     await this.platformImapProvider.deleteMessage(messageId);
   }
 
-  public async downloadAttachment(messageId: string, attachmentId: string): Promise<ArrayBuffer> {
-    return this.platformImapProvider.downloadAttachment(messageId, attachmentId);
+  // eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
+  public async downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer> {
+    const { attachmentId, messageId } = params;
+    return this.platformImapProvider.downloadAttachment({ attachmentId, messageId });
   }
 
   public async getMessage(messageId: string): Promise<EmailMessageFull> {

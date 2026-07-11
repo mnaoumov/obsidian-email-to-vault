@@ -190,9 +190,9 @@ describe('ImapProvider', () => {
       });
       await provider.loadWithPromises();
 
-      await provider.downloadAttachment('42', '2');
+      await provider.downloadAttachment({ attachmentId: '2', messageId: '42' });
 
-      expect(mocks.mockDesktopProvider.downloadAttachment).toHaveBeenCalledWith('42', '2');
+      expect(mocks.mockDesktopProvider.downloadAttachment).toHaveBeenCalledWith({ attachmentId: '2', messageId: '42' });
     });
 
     it('should delegate markMessageAsSeen to platform provider', async () => {

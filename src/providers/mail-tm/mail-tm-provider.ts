@@ -8,7 +8,10 @@ import type {
   EmailMessageFull,
   EmailMessageSummary
 } from '../email-provider-types.ts';
-import type { EmailProvider } from '../email-provider.ts';
+import type {
+  EmailProvider,
+  EmailProviderDownloadAttachmentParams
+} from '../email-provider.ts';
 import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
 
 import {
@@ -58,6 +61,13 @@ interface MailTmMessagesResponse {
   'hydra:member': MailTmMessage[];
 }
 
+interface MailTmProviderComponentConstructorParams {
+  readonly app: App;
+  readonly mailTmDomainManager: MailTmDomainManager;
+  readonly pluginId: string;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
+}
+
 interface MailTmProviderComponentCreateAccountParams {
   readonly address: string;
   readonly password: string;
@@ -68,13 +78,17 @@ interface MailTmTokenResponse {
 }
 
 export class MailTmProviderComponent extends ComponentEx implements EmailProvider {
-  public constructor(
-    private readonly app: App,
-    private readonly pluginId: string,
-    private readonly pluginSettingsComponent: PluginSettingsComponent,
-    private readonly mailTmDomainManager: MailTmDomainManager
-  ) {
+  private readonly app: App;
+  private readonly mailTmDomainManager: MailTmDomainManager;
+  private readonly pluginId: string;
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
+
+  public constructor(params: MailTmProviderComponentConstructorParams) {
     super();
+    this.app = params.app;
+    this.mailTmDomainManager = params.mailTmDomainManager;
+    this.pluginId = params.pluginId;
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
   }
 
   public async deleteMessage(messageId: string): Promise<void> {
@@ -86,7 +100,9 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     });
   }
 
-  public async downloadAttachment(messageId: string, attachmentId: string): Promise<ArrayBuffer> {
+  // eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
+  public async downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer> {
+    const { attachmentId, messageId } = params;
     const token = await this.getToken();
     const response = await requestUrl({
       headers: { Authorization: `Bearer ${token}` },

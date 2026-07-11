@@ -5,8 +5,13 @@ import type {
 
 export interface EmailProvider {
   deleteMessage(messageId: string): Promise<void>;
-  downloadAttachment(messageId: string, attachmentId: string): Promise<ArrayBuffer>;
+  downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer>;
   getMessage(messageId: string): Promise<EmailMessageFull>;
   getMessages(): Promise<EmailMessageSummary[]>;
   markMessageAsSeen(messageId: string): Promise<void>;
+}
+
+export interface EmailProviderDownloadAttachmentParams {
+  readonly attachmentId: string;
+  readonly messageId: string;
 }

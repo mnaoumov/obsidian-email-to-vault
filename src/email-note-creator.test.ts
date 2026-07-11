@@ -1314,7 +1314,7 @@ describe('EmailNoteCreator', () => {
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'Fwd: Original Subject' }));
 
-      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
+      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith({ attachmentId: 'att1', messageId: 'msg1' });
       expect(app.vault.create).toHaveBeenCalledWith(
         expect.any(String),
         'original@test.com | dest@test.com | cc@test.com | Original Subject | Original body content'
@@ -1399,8 +1399,8 @@ describe('EmailNoteCreator', () => {
 
       await noteCreator.saveEmailAsNote(createMessage({ subject: 'With Attachments' }));
 
-      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith('msg1', 'att1');
-      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith('msg1', 'att2');
+      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith({ attachmentId: 'att1', messageId: 'msg1' });
+      expect(emailProvider.downloadAttachment).toHaveBeenCalledWith({ attachmentId: 'att2', messageId: 'msg1' });
       expect(app.vault.createBinary).toHaveBeenCalledTimes(2);
     });
 

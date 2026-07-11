@@ -51,7 +51,12 @@ interface MockResult {
 
 function createManager(overrides?: MockParams): MailTmProviderComponent {
   const { app, mailTmDomainManager, pluginSettingsComponent } = createMocks(overrides);
-  return new MailTmProviderComponent(app, overrides?.pluginId ?? 'email-to-vault', pluginSettingsComponent, mailTmDomainManager);
+  return new MailTmProviderComponent({
+    app,
+    mailTmDomainManager,
+    pluginId: overrides?.pluginId ?? 'email-to-vault',
+    pluginSettingsComponent
+  });
 }
 
 function createMocks(overrides?: MockParams): MockResult {
@@ -130,7 +135,7 @@ describe('MailTmProvider', () => {
           arrayBuffer: mockArrayBuffer
         }));
 
-      const result = await manager.downloadAttachment('msg1', 'att1');
+      const result = await manager.downloadAttachment({ attachmentId: 'att1', messageId: 'msg1' });
 
       expect(result).toBe(mockArrayBuffer);
       expect(mockRequestUrl).toHaveBeenCalledWith({

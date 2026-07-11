@@ -67,14 +67,14 @@ export class EmailNoteCreator {
   public async saveEmailAsNote(message: EmailMessageSummary): Promise<void> {
     const fullMessage = await this.emailProvider.getMessage(message.id);
     const emailData = await this.extractEmailData(fullMessage);
-    const basePath = fillTemplate(this.pluginSettingsComponent.settings.emailNotePathTemplate, emailData, true);
+    const basePath = fillTemplate({ emailData, isPathTemplate: true, template: this.pluginSettingsComponent.settings.emailNotePathTemplate });
     const filePath = this.app.vault.getAvailablePath(basePath, 'md');
 
     const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
     emailData.body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
     emailData.attachmentsStr = attachmentLinks;
 
-    const content = fillTemplate(this.pluginSettingsComponent.settings.emailNoteTemplate, emailData);
+    const content = fillTemplate({ emailData, template: this.pluginSettingsComponent.settings.emailNoteTemplate });
 
     await this.ensureFolderExists(filePath);
     await this.app.vault.create(filePath, content);
@@ -89,7 +89,7 @@ export class EmailNoteCreator {
     const links: string[] = [];
     const savedAttachments = new Map<string, string>();
     for (const attachment of attachments) {
-      const data = await this.emailProvider.downloadAttachment(fullMessage.id, attachment.id);
+      const data = await this.emailProvider.downloadAttachment({ attachmentId: attachment.id, messageId: fullMessage.id });
       const attachmentPath = await this.app.fileManager.getAvailablePathForAttachment(attachment.filename, notePath);
       await this.app.vault.createBinary(attachmentPath, data);
       const filename = extractFilename(attachmentPath);
@@ -134,7 +134,7 @@ export class EmailNoteCreator {
     if (this.pluginSettingsComponent.settings.shouldExtractForwardedEmail) {
       const rfc822Attachment = fullMessage.attachments.find((a) => a.contentType === 'message/rfc822');
       if (rfc822Attachment) {
-        const attachmentData = await this.emailProvider.downloadAttachment(fullMessage.id, rfc822Attachment.id);
+        const attachmentData = await this.emailProvider.downloadAttachment({ attachmentId: rfc822Attachment.id, messageId: fullMessage.id });
         const emlContent = new TextDecoder().decode(attachmentData);
         return extractEmailFromRfc822(emlContent);
       }
@@ -154,9 +154,9 @@ export class EmailNoteCreator {
 }
 
 function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
-  data.from = extractHeaderValue(headerBlock, HEADER_FROM_PATTERN, data.from);
-  data.to = extractHeaderValue(headerBlock, HEADER_TO_PATTERN, data.to);
-  data.subject = extractHeaderValue(headerBlock, HEADER_SUBJECT_PATTERN, data.subject);
+  data.from = extractHeaderValue({ fallback: data.from, pattern: HEADER_FROM_PATTERN, text: headerBlock });
+  data.to = extractHeaderValue({ fallback: data.to, pattern: HEADER_TO_PATTERN, text: headerBlock });
+  data.subject = extractHeaderValue({ fallback: data.subject, pattern: HEADER_SUBJECT_PATTERN, text: headerBlock });
 }
 
 const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:(?<attachId>[^)]+)\)/g;
@@ -183,6 +183,12 @@ function extractBody(fullMessage: EmailMessageFull, options: SanitizeOptions): E
 }
 
 const HTML_PARSE_ERROR_MESSAGE = 'ERROR: Could not parse email HTML. Rolling back to text mode';
+
+interface ExtractHeaderValueParams {
+  readonly fallback: string;
+  readonly pattern: RegExp;
+  readonly text: string;
+}
 
 function checkIsDataTable(table: Element): boolean {
   if (table.getAttribute('role') === 'presentation') {
@@ -247,7 +253,8 @@ function extractForwardedEmail(data: EmailData): EmailData {
   return result;
 }
 
-function extractHeaderValue(text: string, pattern: RegExp, fallback: string): string {
+function extractHeaderValue(params: ExtractHeaderValueParams): string {
+  const { fallback, pattern, text } = params;
   const raw = pattern.exec(text)?.groups?.['value'];
   if (raw === undefined) {
     return fallback;
@@ -373,7 +380,21 @@ const KNOWN_DATE_FORMATS = [
   'ddd, D MMM YYYY'
 ];
 
-function extractTokenValue(emailData: EmailData, token: string, format: string, isPathTemplate: boolean): string {
+interface ExtractTokenValueParams {
+  readonly emailData: EmailData;
+  readonly format: string;
+  readonly isPathTemplate: boolean;
+  readonly token: string;
+}
+
+interface FillTemplateParams {
+  readonly emailData: EmailData;
+  readonly isPathTemplate?: boolean;
+  readonly template: string;
+}
+
+function extractTokenValue(params: ExtractTokenValueParams): string {
+  const { emailData, format, isPathTemplate, token } = params;
   let value: string;
   switch (token) {
     case 'attachments':
@@ -427,12 +448,13 @@ function extractTokenValue(emailData: EmailData, token: string, format: string, 
   return isPathTemplate ? sanitizeFileName(value) : value;
 }
 
-function fillTemplate(template: string, emailData: EmailData, isPathTemplate = false): string {
+function fillTemplate(params: FillTemplateParams): string {
+  const { emailData, isPathTemplate = false, template } = params;
   const TOKEN_PATTERN = /\{\{(?<Token>\w+)(?::(?<Format>[^}]+))?\}\}/g;
 
   return replaceAll({
     replacer: ({ capturedGroupArgs: [token = '', format = ''] }) => {
-      return extractTokenValue(emailData, token, format, isPathTemplate);
+      return extractTokenValue({ emailData, format, isPathTemplate, token });
     },
     searchValue: TOKEN_PATTERN,
     str: template

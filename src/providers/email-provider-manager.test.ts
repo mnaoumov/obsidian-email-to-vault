@@ -251,9 +251,9 @@ describe('EmailProviderManager', () => {
       });
       manager.load();
 
-      await manager.downloadAttachment('msg-1', 'att-1');
+      await manager.downloadAttachment({ attachmentId: 'att-1', messageId: 'msg-1' });
 
-      expect(mocks.mockMailTmProviderInstance?.['downloadAttachment']).toHaveBeenCalledWith('msg-1', 'att-1');
+      expect(mocks.mockMailTmProviderInstance?.['downloadAttachment']).toHaveBeenCalledWith({ attachmentId: 'att-1', messageId: 'msg-1' });
     });
 
     it('should delegate getMessage to active provider', async () => {

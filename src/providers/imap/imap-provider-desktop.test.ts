@@ -501,7 +501,7 @@ describe('ImapProvider', () => {
     it('should download attachment content', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
 
-      const result = await provider.downloadAttachment('42', '2');
+      const result = await provider.downloadAttachment({ attachmentId: '2', messageId: '42' });
 
       expect(mocks.mockLatestClient?.['download']).toHaveBeenCalledWith('42', '2', { uid: true });
       expect(new Uint8Array(result)).toEqual(new Uint8Array(Buffer.from('attachment-data')));

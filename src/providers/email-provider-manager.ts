@@ -9,7 +9,10 @@ import type {
   EmailMessageFull,
   EmailMessageSummary
 } from './email-provider-types.ts';
-import type { EmailProvider } from './email-provider.ts';
+import type {
+  EmailProvider,
+  EmailProviderDownloadAttachmentParams
+} from './email-provider.ts';
 import type { MailTmDomainManager } from './mail-tm/mail-tm-domain-manager.ts';
 
 import { EmailProviderType } from './email-provider-type.ts';
@@ -45,8 +48,10 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
     return this.getActiveProvider().deleteMessage(messageId);
   }
 
-  public async downloadAttachment(messageId: string, attachmentId: string): Promise<ArrayBuffer> {
-    return this.getActiveProvider().downloadAttachment(messageId, attachmentId);
+  // eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
+  public async downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer> {
+    const { attachmentId, messageId } = params;
+    return this.getActiveProvider().downloadAttachment({ attachmentId, messageId });
   }
 
   public getMailTmProvider(): MailTmProviderComponent | null {
@@ -99,7 +104,12 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
         break;
       case EmailProviderType.MailTm:
         this.activeProvider = this.addChild(
-          new MailTmProviderComponent(this.app, this.pluginId, this.pluginSettingsComponent, this.mailTmDomainManager)
+          new MailTmProviderComponent({
+            app: this.app,
+            mailTmDomainManager: this.mailTmDomainManager,
+            pluginId: this.pluginId,
+            pluginSettingsComponent: this.pluginSettingsComponent
+          })
         );
         break;
       /* v8 ignore start -- Exhaustive check for future enum values. */
