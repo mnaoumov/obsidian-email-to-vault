@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.1.1
+
+- chore: update libs
+- chore: update obsidian-dev-utils to 85.0.0
+- refactor: pass params objects to email providers and note-creator helpers
+
 ## 2.1.0
 
 - feat: re #6
