@@ -5,6 +5,8 @@ import type {
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { castTo } from 'obsidian-dev-utils/object-utils';
+import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
+import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 import { App } from 'obsidian-test-mocks/obsidian';
@@ -55,28 +57,12 @@ async function loadableComponentStub(): Promise<ReturnType<typeof vi.fn>> {
   });
 }
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', async () => ({
-  CommandHandlerComponent: await loadableComponentStub()
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/components/menu-event-registrar-component', async () => ({
-  MenuEventRegistrarComponent: await loadableComponentStub()
-}));
-
 vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', async () => ({
   PluginSettingsTabComponent: await loadableComponentStub()
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler', () => ({
   OpenSettingsCommandHandler: vi.fn()
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/active-file-provider', () => ({
-  AppActiveFileProvider: vi.fn()
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/command-registrar', () => ({
-  PluginCommandRegistrar: vi.fn()
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/data-handler', () => ({
@@ -126,6 +112,10 @@ vi.mock('./command-handlers/redownload-recent-emails-command-handler.ts', () => 
 vi.mock('./plugin-settings-tab.ts', () => ({
   PluginSettingsTab: vi.fn()
 }));
+
+// The base pre-wires `commandHandlerComponent`; stub its `registerCommandHandlers` so the plugin's registration
+// Is asserted without exercising the mocked command handlers against a real registrar.
+vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockReturnValue(castTo<Disposable>({}));
 
 const MockPluginDataHandler = vi.mocked(PluginDataHandler);
 const MockPluginEventSourceImpl = vi.mocked(PluginEventSourceImpl);
@@ -291,6 +281,20 @@ describe('Plugin', () => {
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailProviderManager));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailChecker));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPrismComponent));
+    });
+
+    it('should register the command handlers on the pre-wired commandHandlerComponent', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
+
+      // The base separately auto-registers its own handler, so assert the plugin's own registration by its four
+      // Handlers rather than the total call count.
+      expect(CommandHandlerComponent.prototype.registerCommandHandlers).toHaveBeenCalledWith([
+        expect.any(CheckEmailsCommandHandler),
+        expect.any(OpenSettingsCommandHandler),
+        expect.any(RedownloadAllEmailsCommandHandler),
+        expect.any(RedownloadRecentEmailsCommandHandler)
+      ]);
     });
   });
 });

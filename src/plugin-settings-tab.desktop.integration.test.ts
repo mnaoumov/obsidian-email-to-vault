@@ -23,7 +23,7 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
   it('should render the toggle defaulting to on and persist shouldMarkEmailsAsSeen when toggled', async () => {
     const result = await evalInObsidian({
       args: { pluginId: PLUGIN_ID, settingName: SETTING_NAME },
-      async fn({ app, pluginId, settingName, waitUntil }): Promise<MarkEmailsAsSeenToggleResult> {
+      async fn({ app, lib: { waitUntil }, pluginId, settingName }): Promise<MarkEmailsAsSeenToggleResult> {
         const notFound: MarkEmailsAsSeenToggleResult = {
           afterOff: null,
           afterOn: null,
