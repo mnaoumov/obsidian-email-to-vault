@@ -62,10 +62,8 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
 
   public override async onloadAsync(): Promise<void> {
     if (Platform.isDesktop) {
-      // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
       this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktopComponent(this.app, this.pluginSettingsComponent);
     } else {
-      // eslint-disable-next-line no-restricted-syntax -- Need conditional import.
       this._platformImapProvider = new (await import('./imap-provider-mobile.ts')).ImapProviderMobileComponent(this.pluginNoticeComponent);
     }
   }

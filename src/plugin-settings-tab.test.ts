@@ -1,3 +1,4 @@
+import type { PrismModule } from '@obsidian-typings/obsidian-public-latest/implementations';
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { MockInstance } from 'vitest';
@@ -53,6 +54,14 @@ vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
     await noopAsync();
     return true;
   })
+}));
+
+// The obsidian-test-mocks package does not model Obsidian's `loadPrism`, so return a stub prism; otherwise the
+// Real `CodeHighlighterComponent`'s highlight-on-`setValue` (new in dev-utils 86.0.0) rejects when the settings
+// Tab binds its code-highlighter components.
+vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>(),
+  loadPrism: vi.fn((): Promise<PrismModule> => Promise.resolve(strictProxy<PrismModule>({ highlightElement: vi.fn() })))
 }));
 
 interface MockPluginSettingsComponentOverrides {
