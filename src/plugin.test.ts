@@ -7,6 +7,7 @@ import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/componen
 
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
+import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
@@ -61,6 +62,10 @@ async function loadableComponentStub(): Promise<ReturnType<typeof vi.fn>> {
 
 vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', async () => ({
   PluginSettingsTabComponent: await loadableComponentStub()
+}));
+
+vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler', () => ({
+  OpenDemoVaultCommandHandler: vi.fn()
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler', () => ({
@@ -289,10 +294,11 @@ describe('Plugin', () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
-      // The base separately auto-registers its own handler, so assert the plugin's own registration by its four
+      // The base separately auto-registers its own handler, so assert the plugin's own registration by its five
       // Handlers rather than the total call count.
       expect(CommandHandlerComponent.prototype.registerCommandHandlers).toHaveBeenCalledWith([
         expect.any(CheckEmailsCommandHandler),
+        expect.any(OpenDemoVaultCommandHandler),
         expect.any(OpenSettingsCommandHandler),
         expect.any(RedownloadAllEmailsCommandHandler),
         expect.any(RedownloadRecentEmailsCommandHandler)
