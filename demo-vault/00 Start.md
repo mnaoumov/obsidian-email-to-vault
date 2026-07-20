@@ -4,11 +4,7 @@ Welcome to the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-va
 >
 > Unlike most demo vaults, this feature cannot be pre-baked: it fetches real emails from a live mail service over the network. Nothing here sends or receives mail for you. The notes below walk you through the exact steps — creating or connecting an inbox, running a fetch command, and where the notes land — so you can configure **your own** account and try it. A network connection (and, for IMAP, your own email account) is required.
 
-Start with the notes under **Feature** below, in order.
-
-> [!TIP] Interactive buttons
->
-> The two setup notes have **Run** buttons, powered by [`CodeScript Toolkit`](https://github.com/mnaoumov/obsidian-codescript-toolkit/), which this vault installs for you automatically on first open (see [[06 CodeScript Toolkit prerequisite]]). The feature itself is driven from the plugin's settings tab and commands, so the feature notes have no buttons.
+Start with the notes under **Feature** below, in order. The feature is driven from the plugin's settings tab and commands.
 
 ## Feature
 
@@ -16,8 +12,3 @@ Start with the notes under **Feature** below, in order.
 - [[02 IMAP mode]]
 - [[03 Email notes and commands]]
 - [[04 Settings]]
-
-## Setup
-
-- [[05 Code buttons check]]
-- [[06 CodeScript Toolkit prerequisite]]
