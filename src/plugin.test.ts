@@ -2,6 +2,7 @@ import type {
   App as AppOriginal,
   PluginManifest
 } from 'obsidian';
+import type { DisposableEx } from 'obsidian-dev-utils/disposable';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { castTo } from 'obsidian-dev-utils/object-utils';
@@ -9,6 +10,7 @@ import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-han
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
+import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
@@ -115,7 +117,7 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 
 // The base pre-wires `commandHandlerComponent`; stub its `registerCommandHandlers` so the plugin's registration
 // Is asserted without exercising the mocked command handlers against a real registrar.
-vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockReturnValue(castTo<Disposable>({}));
+vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockReturnValue(strictProxy<DisposableEx>({}));
 
 const MockPluginDataHandler = vi.mocked(PluginDataHandler);
 const MockPluginEventSourceImpl = vi.mocked(PluginEventSourceImpl);
