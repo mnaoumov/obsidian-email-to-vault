@@ -1,9 +1,8 @@
-# Email to Vault demo vault
+This is an [Obsidian](https://obsidian.md/) vault demonstrating features of the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-vault) plugin.
 
-A small Obsidian vault that demonstrates the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-vault) plugin - it syncs emails into your vault as notes, either from a one-click disposable Mail.tm mailbox or from your own IMAP server.
+## Opening this vault
 
-Open [00 Start](<./00 Start.md>) and follow the notes. Because the feature fetches real emails from a live mail service, this demo cannot be pre-baked: the notes walk you through configuring **your own** mailbox (Mail.tm or IMAP), running a fetch command, and seeing where the resulting notes land. A network connection (and, for IMAP, your own email account) is required.
+- **If you already have the plugin installed**, run the **Email to Vault: Open demo vault** command — it downloads and opens the latest demo vault automatically.
+- **Otherwise**, download `email-to-vault.demo-vault.zip` from the [plugin releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases), unzip it, and in Obsidian choose `Manage vaults...` → `Open folder as vault` → select the unzipped folder.
 
-## First open
-
-The first time you open this vault, Obsidian treats it as **untrusted**, so the bundled plugins are listed but not loaded until you **Trust author and enable plugins** and reload. After that, the Demo Vault Helper opens the start note for you.
+On first open, Obsidian treats the vault as untrusted — choose **Trust author and enable plugins** (or enable Community plugins manually), then open [00 Start](<./00 Start.md>).
