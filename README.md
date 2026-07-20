@@ -67,6 +67,14 @@ By using this plugin, you acknowledge that any information you send — includin
 
 In IMAP mode, the plugin connects directly to your email server. No data is routed through third-party services beyond your own email provider. Your IMAP password is stored in Obsidian's built-in secret storage.
 
+## Demo vault
+
+A demo vault with usage examples ships with every release. You can access it via any of the following:
+
+1. Running the **Email to Vault: Open demo vault** command.
+2. Downloading `email-to-vault.demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases).
+3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
+
 ## Installation
 
 The plugin is available in [the official Community Plugins repository](https://community.obsidian.md/plugins/email-to-vault).
