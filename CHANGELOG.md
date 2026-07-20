@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2.1.2
+
+- docs: standardize demo-vault README
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by ODU harness)
+- Merge branch 'T98': create the Email to Vault demo vault (S2)
+- chore: update libs
+- docs: update
+- docs: migrate to AGENTS.md
+
 ## 2.1.1
 
 - chore: update libs
