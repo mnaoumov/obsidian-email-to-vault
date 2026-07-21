@@ -727,7 +727,7 @@ describe('EmailNoteCreator', () => {
             id: 'msg1',
             seen: false,
 
-            subject: 'Re: Test/File<Name>',
+            subject: 'Re: [Tag] #topic/File<Name>',
             text: '',
             to: []
           };
@@ -742,10 +742,48 @@ describe('EmailNoteCreator', () => {
         pluginSettingsComponent
       });
 
-      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Re: Test/File<Name>' }));
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Re: [Tag] #topic/File<Name>' }));
 
       expect(app.vault.create).toHaveBeenCalledWith(
-        expect.stringContaining('Re_ Test_File_Name_'),
+        expect.stringContaining('Re_ _Tag_ _topic_File_Name_'),
+        expect.any(String)
+      );
+    });
+
+    it('should strip Obsidian-unsafe characters from filename', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [],
+            createdAt: '2026-01-01T00:00:00+00:00',
+
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+
+            subject: 'Report #1 ^ref [draft]',
+            text: '',
+            to: []
+          };
+        })
+      });
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject: 'Report #1 ^ref [draft]' }));
+
+      expect(app.vault.create).toHaveBeenCalledWith(
+        expect.stringContaining('Report _1 _ref _draft_'),
         expect.any(String)
       );
     });

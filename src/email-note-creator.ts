@@ -6,6 +6,7 @@ import {
   moment as momentLib
 } from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
+import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
 import { replaceAll } from 'obsidian-dev-utils/string';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
@@ -475,5 +476,5 @@ function normalizeWhitespace(str: string): string {
 }
 
 function sanitizeFileName(name: string): string {
-  return replaceAll({ replacer: '_', searchValue: /[\\/:*?"<>|]/g, str: name }).trim();
+  return replaceAll({ replacer: '_', searchValue: getOsAndObsidianUnsafePathCharsRegExp(true), str: name }).trim();
 }
