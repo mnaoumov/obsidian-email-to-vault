@@ -72,7 +72,7 @@ In IMAP mode, the plugin connects directly to your email server. No data is rout
 A demo vault with usage examples ships with every release. You can access it via any of the following:
 
 1. Running the **Email to Vault: Open demo vault** command.
-2. Downloading `email-to-vault.demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases).
+2. Downloading `email-to-vault-demo-vault-<version>.zip` (`<version>` is the release version) from the [Releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases).
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
 
 ## Installation
