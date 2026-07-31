@@ -7,5 +7,5 @@
   "isDesktopOnly": false,
   "name": "Email to Vault",
   "version": "2.2.1",
-  "minAppVersion": "1.12.7"
+  "minAppVersion": "1.13.4"
 }

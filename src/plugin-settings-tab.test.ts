@@ -1,16 +1,17 @@
 import type { PrismModule } from '@obsidian-typings/obsidian-public-latest/implementations';
+import type {
+  SettingDefinition,
+  SettingGroup
+} from 'obsidian';
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { MockInstance } from 'vitest';
 
-import {
-  noop,
-  noopAsync
-} from 'obsidian-dev-utils/function';
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { castTo } from 'obsidian-dev-utils/object-utils';
 import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
 import { PasswordComponent } from 'obsidian-dev-utils/obsidian/setting-components/password-component';
-import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
+import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   ensureGenericObject,
@@ -75,16 +76,15 @@ interface ProviderDropdownBindOptions {
   onChanged?(newValue: EmailProviderType, oldValue: EmailProviderType): unknown;
 }
 
-// Real components are rendered by the real `SettingGroupEx`; these prototype spies capture the real
+// Real components are rendered by the real `SettingEx`; these prototype spies capture the real
 // Component instances/handlers as they are created so the tests can drive them.
 //
 // `bind` is the one real base method that cannot run here: it duck-types each component via property
 // Access (e.g. `component.setPlaceholderValue`), which the test-mocks strict proxy rejects for
 // Non-text components (dropdown/toggle). It is neutralized to a no-op (returning the component) — the
-// Real `PluginSettingsTabBase`/`SettingGroupEx`/components are otherwise used unmocked. The tab's own
+// Real `PluginSettingsTabBase`/`SettingEx`/components are otherwise used unmocked. The tab's own
 // Binding intent is asserted via the recorded `bind` calls instead.
 let bindSpy: MockInstance<PluginSettingsTab['bind']>;
-let setHeadingSpy: MockInstance<SettingGroupEx['setHeading']>;
 let buttonOnClickSpy: MockInstance<ButtonComponent['onClick']>;
 let extraButtonOnClickSpy: MockInstance<ExtraButtonComponent['onClick']>;
 let dropdownAddOptionSpy: MockInstance<DropdownComponent['addOption']>;
@@ -156,11 +156,45 @@ function createTab(overrides?: MockPluginSettingsComponentOverrides, mailTmProvi
   });
 }
 
+/**
+ * Reads the headings of the declared groups.
+ *
+ * @param tab - The settings tab.
+ * @returns The headings.
+ */
+function getHeadings(tab: PluginSettingsTab): string[] {
+  return tab.getSettingDefinitions().map((item) => 'heading' in item ? item.heading : '');
+}
+
+/**
+ * Renders the declared rows the way Obsidian does when the tab is opened: it applies the name and the
+ * description, then runs the row's `render` callback.
+ *
+ * @param tab - The settings tab.
+ */
+function renderRows(tab: PluginSettingsTab): void {
+  for (const item of tab.getSettingDefinitions()) {
+    const rows = 'items' in item ? castTo<SettingDefinition[]>(item.items ?? []) : [castTo<SettingDefinition>(item)];
+    for (const row of rows) {
+      if (!('render' in row)) {
+        continue;
+      }
+
+      const setting = new SettingEx(tab.containerEl);
+      setting.setName(row.name);
+      if (row.desc) {
+        setting.setDesc(row.desc);
+      }
+
+      row.render(setting, castTo<SettingGroup>(null));
+    }
+  }
+}
+
 describe('PluginSettingsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     bindSpy = vi.spyOn(PluginSettingsTab.prototype, 'bind').mockImplementation((params) => params.valueComponent);
-    setHeadingSpy = vi.spyOn(SettingGroupEx.prototype, 'setHeading');
     buttonOnClickSpy = vi.spyOn(ButtonComponent.prototype, 'onClick');
     extraButtonOnClickSpy = vi.spyOn(ExtraButtonComponent.prototype, 'onClick');
     dropdownAddOptionSpy = vi.spyOn(DropdownComponent.prototype, 'addOption');
@@ -178,9 +212,9 @@ describe('PluginSettingsTab', () => {
     it('should create three setting groups with correct headings when Mail.tm is selected', () => {
       const tab = createTab();
 
-      tab.displayLegacy();
+      renderRows(tab);
 
-      expect(setHeadingSpy.mock.calls.map((call) => call[0])).toEqual(['Provider', 'Mail.tm', 'Main']);
+      expect(getHeadings(tab)).toEqual(['Provider', 'Mail.tm', 'Main']);
     });
 
     it('should create three setting groups with IMAP heading when IMAP is selected', () => {
@@ -194,9 +228,9 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
       });
 
-      tab.displayLegacy();
+      renderRows(tab);
 
-      expect(setHeadingSpy.mock.calls.map((call) => call[0])).toEqual(['Provider', 'IMAP', 'Main']);
+      expect(getHeadings(tab)).toEqual(['Provider', 'IMAP', 'Main']);
     });
 
     it('should skip Mail.tm section when provider is MailTm but getMailTmProvider returns null', () => {
@@ -210,49 +244,48 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.MailTm })
       });
 
-      tab.displayLegacy();
+      renderRows(tab);
 
-      expect(setHeadingSpy.mock.calls.map((call) => call[0])).toEqual(['Provider', 'Main']);
+      expect(getHeadings(tab)).toEqual(['Provider', 'Main']);
     });
 
     it('should bind provider dropdown with onChanged that re-renders display', () => {
       const tab = createTab();
-      tab.displayLegacy();
+      renderRows(tab);
 
       const bindCall = ensureNonNullable(bindSpy.mock.calls.find((call) => call[0].propertyName === 'emailProviderType'));
       const options = ensureGenericObject<ProviderDropdownBindOptions>(bindCall[0]);
       const onChanged = ensureNonNullable(options.onChanged);
       expect(onChanged).toBeTypeOf('function');
 
-      const displaySpy = vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
+      const refreshSpy = vi.fn();
+      tab.refresh = refreshSpy;
       onChanged(EmailProviderType.Imap, EmailProviderType.MailTm);
 
-      expect(displaySpy).toHaveBeenCalledOnce();
+      expect(refreshSpy).toHaveBeenCalledOnce();
     });
 
     it('should not set a separate onChange on provider dropdown that overwrites bind', () => {
       const tab = createTab();
 
-      tab.displayLegacy();
+      renderRows(tab);
 
       // The source must delegate dropdown change handling to `bind` (via its `onChanged` option),
       // Not register its own `onChange` that would overwrite the binding.
       expect(dropdownOnChangeSpy).not.toHaveBeenCalled();
     });
 
-    it('should render setting groups under the tab containerEl', () => {
+    it('should declare the provider and main groups', () => {
       const tab = createTab();
 
-      tab.displayLegacy();
-
-      expect(tab.containerEl.textContent).toContain('Provider');
-      expect(tab.containerEl.textContent).toContain('Main');
+      expect(getHeadings(tab)).toContain('Provider');
+      expect(getHeadings(tab)).toContain('Main');
     });
 
     it('should render provider dropdown with all options', () => {
       const tab = createTab();
 
-      tab.displayLegacy();
+      renderRows(tab);
 
       expect(dropdownAddOptionSpy).toHaveBeenCalledWith('mail-tm', 'Mail.tm');
       expect(dropdownAddOptionSpy).toHaveBeenCalledWith('imap', 'IMAP');
@@ -261,8 +294,8 @@ describe('PluginSettingsTab', () => {
     it('should call registerRandomEmailAddress on button click when no address exists', async () => {
       const mailTmProvider = createMockMailTmProvider();
       const tab = createTab(undefined, mailTmProvider);
-      tab.displayLegacy();
-      vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
+      renderRows(tab);
+      tab.refresh = vi.fn();
 
       const onClick = ensureNonNullable(buttonOnClickSpy.mock.calls[0])[0];
       await onClick(new MouseEvent('click'));
@@ -272,21 +305,22 @@ describe('PluginSettingsTab', () => {
 
     it('should refresh display after registering new email address', async () => {
       const tab = createTab();
-      tab.displayLegacy();
-      const displaySpy = vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
+      renderRows(tab);
+      const refreshSpy = vi.fn();
+      tab.refresh = refreshSpy;
 
       const onClick = ensureNonNullable(buttonOnClickSpy.mock.calls[0])[0];
       await onClick(new MouseEvent('click'));
 
-      expect(displaySpy).toHaveBeenCalledOnce();
+      expect(refreshSpy).toHaveBeenCalledOnce();
     });
 
     it('should unregister email when user confirms', async () => {
       vi.mocked(confirm).mockResolvedValue(true);
       const mailTmProvider = createMockMailTmProvider();
       const tab = createTab({ emailAddress: 'old@mail.tm' }, mailTmProvider);
-      tab.displayLegacy();
-      vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
+      renderRows(tab);
+      tab.refresh = vi.fn();
 
       const onClick = ensureNonNullable(buttonOnClickSpy.mock.calls[0])[0];
       await onClick(new MouseEvent('click'));
@@ -298,8 +332,8 @@ describe('PluginSettingsTab', () => {
       vi.mocked(confirm).mockResolvedValue(false);
       const mailTmProvider = createMockMailTmProvider();
       const tab = createTab({ emailAddress: 'old@mail.tm' }, mailTmProvider);
-      tab.displayLegacy();
-      vi.spyOn(tab, 'displayLegacy').mockImplementation(noop);
+      renderRows(tab);
+      tab.refresh = vi.fn();
 
       const onClick = ensureNonNullable(buttonOnClickSpy.mock.calls[0])[0];
       await onClick(new MouseEvent('click'));
@@ -311,7 +345,7 @@ describe('PluginSettingsTab', () => {
       const writeTextFn = vi.fn(async () => noopAsync());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const tab = createTab({ emailAddress: 'test@mail.tm' });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onClick = ensureNonNullable(extraButtonOnClickSpy.mock.calls[0])[0];
       await onClick();
@@ -323,7 +357,7 @@ describe('PluginSettingsTab', () => {
       const writeTextFn = vi.fn(async () => noopAsync());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
       const tab = createTab({ emailAddress: 'test@mail.tm' });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onClick = ensureNonNullable(extraButtonOnClickSpy.mock.calls[1])[0];
       await onClick();
@@ -341,7 +375,7 @@ describe('PluginSettingsTab', () => {
         pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('new-password');
@@ -365,7 +399,7 @@ describe('PluginSettingsTab', () => {
         pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('manual-password');
@@ -386,7 +420,7 @@ describe('PluginSettingsTab', () => {
         pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent
       });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('another-password');
@@ -406,7 +440,7 @@ describe('PluginSettingsTab', () => {
         pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' })
       });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onClick = ensureNonNullable(extraButtonOnClickSpy.mock.calls[1])[0];
       await onClick();
@@ -428,7 +462,7 @@ describe('PluginSettingsTab', () => {
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
       });
 
-      tab.displayLegacy();
+      renderRows(tab);
 
       expect(passwordSetValueSpy).toHaveBeenCalledWith('');
     });
@@ -444,7 +478,7 @@ describe('PluginSettingsTab', () => {
         pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
         pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
       });
-      tab.displayLegacy();
+      renderRows(tab);
 
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('imap-password');
