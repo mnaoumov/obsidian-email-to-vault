@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.3.0
+
+- fix: unblock the release gate
+- refactor(settings): move the settings tab onto the declarative settings API
+- chore: update libs and clear the npm audit
+- docs: fix the demo vault download instructions
+
 ## 2.2.1
 
 - chore: update libs
