@@ -6,8 +6,6 @@ import {
   it
 } from 'vitest';
 
-import type { PluginSettingsTab } from './plugin-settings-tab.ts';
-
 interface MarkEmailsAsSeenToggleResult {
   readonly afterOff: boolean | null;
   readonly afterOn: boolean | null;
@@ -44,7 +42,6 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
 
         app.setting.open();
         app.setting.openTabById(plugin.manifest.id);
-        (settingTab as PluginSettingsTab).displayLegacy();
 
         const settingItems = Array.from(settingTab.containerEl.querySelectorAll('.setting-item'));
         const item = settingItems.find((el) => el.querySelector('.setting-item-name')?.textContent === settingName);
