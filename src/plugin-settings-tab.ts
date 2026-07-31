@@ -188,7 +188,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               if (isRegistered) {
                 button
                   .setButtonText('Unregister email address')
-                  .setWarning()
+                  .setDestructive()
                   .onClick(convertAsyncToSync(async () => {
                     const result = await confirm({
                       app: this.app,
