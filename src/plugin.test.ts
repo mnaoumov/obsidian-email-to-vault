@@ -30,9 +30,9 @@ import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 import { Plugin } from './plugin.ts';
-import { PrismComponent } from './prism-component.ts';
 import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
+import { TokenizedStringLanguageComponent } from './tokenized-string-language-component.ts';
 
 // The real `PluginBase.onload()` loads dev-utils' own notice/context/debug components, which read a
 // Shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
@@ -80,8 +80,8 @@ vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-event-source', () => ({
   PluginEventSourceImpl: vi.fn()
 }));
 
-vi.mock('./prism-component.ts', async () => ({
-  PrismComponent: await loadableComponentStub()
+vi.mock('./tokenized-string-language-component.ts', async () => ({
+  TokenizedStringLanguageComponent: await loadableComponentStub()
 }));
 
 vi.mock('./plugin-settings-component.ts', async () => ({
@@ -133,7 +133,7 @@ const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
 const MockEmailProviderManager = vi.mocked(EmailProviderManagerComponent);
 const MockPluginSettingsComponent = vi.mocked(PluginSettingsComponent);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
-const MockPrismComponent = vi.mocked(PrismComponent);
+const MockTokenizedStringLanguageComponent = vi.mocked(TokenizedStringLanguageComponent);
 const MockRedownloadAllEmailsCommandHandler = vi.mocked(RedownloadAllEmailsCommandHandler);
 const MockRedownloadRecentEmailsCommandHandler = vi.mocked(RedownloadRecentEmailsCommandHandler);
 
@@ -244,11 +244,11 @@ describe('Plugin', () => {
       });
     });
 
-    it('should create PrismComponent', async () => {
+    it('should create TokenizedStringLanguageComponent', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
-      expect(MockPrismComponent).toHaveBeenCalledOnce();
+      expect(MockTokenizedStringLanguageComponent).toHaveBeenCalledOnce();
     });
 
     it('should create CheckEmailsCommandHandler with emailChecker', async () => {
@@ -287,7 +287,7 @@ describe('Plugin', () => {
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPluginSettingsComponent));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailProviderManager));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailChecker));
-      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPrismComponent));
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockTokenizedStringLanguageComponent));
     });
 
     it('should register the command handlers on the pre-wired commandHandlerComponent', async () => {

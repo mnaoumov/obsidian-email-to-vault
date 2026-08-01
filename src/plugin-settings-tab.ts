@@ -13,8 +13,8 @@ import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin
 import type { PluginSettings } from './plugin-settings.ts';
 import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 
-import { TOKENIZED_STRING_LANGUAGE } from './prism-component.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
+import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language-component.ts';
 
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
   readonly emailProviderManager: EmailProviderManagerComponent;

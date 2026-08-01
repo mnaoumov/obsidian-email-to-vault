@@ -13,9 +13,9 @@ import { EmailNoteCreator } from './email-note-creator.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
-import { PrismComponent } from './prism-component.ts';
 import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
+import { TokenizedStringLanguageComponent } from './tokenized-string-language-component.ts';
 
 export class Plugin extends PluginBase {
   protected override onloadImpl(): void {
@@ -66,7 +66,7 @@ export class Plugin extends PluginBase {
         pluginSettingsTab
       })
     );
-    this.addChild(new PrismComponent());
+    this.addChild(new TokenizedStringLanguageComponent());
     this.commandHandlerComponent.registerCommandHandlers([
       new CheckEmailsCommandHandler(emailChecker),
       new OpenDemoVaultCommandHandler({
