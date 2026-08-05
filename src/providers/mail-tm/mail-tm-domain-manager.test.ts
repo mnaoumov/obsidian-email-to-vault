@@ -59,9 +59,9 @@ describe('MailTmDomainManager', () => {
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
       }));
 
-      const result = await manager.validateEmailDomain('user@mail.tm');
+      const isResult = await manager.validateEmailDomain('user@mail.tm');
 
-      expect(result).toBe(true);
+      expect(isResult).toBe(true);
     });
 
     it('should return false for inactive domain', async () => {
@@ -71,9 +71,9 @@ describe('MailTmDomainManager', () => {
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: false }] }
       }));
 
-      const result = await manager.validateEmailDomain('user@mail.tm');
+      const isResult = await manager.validateEmailDomain('user@mail.tm');
 
-      expect(result).toBe(false);
+      expect(isResult).toBe(false);
     });
 
     it('should return false for unknown domain', async () => {
@@ -83,17 +83,17 @@ describe('MailTmDomainManager', () => {
         json: { 'hydra:member': [{ domain: 'mail.tm', isActive: true }] }
       }));
 
-      const result = await manager.validateEmailDomain('user@other.com');
+      const isResult = await manager.validateEmailDomain('user@other.com');
 
-      expect(result).toBe(false);
+      expect(isResult).toBe(false);
     });
 
     it('should return false for address without domain', async () => {
       const manager = new MailTmDomainManager();
 
-      const result = await manager.validateEmailDomain('nodomain');
+      const isResult = await manager.validateEmailDomain('nodomain');
 
-      expect(result).toBe(false);
+      expect(isResult).toBe(false);
     });
   });
 });

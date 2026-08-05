@@ -38,9 +38,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     const items: SettingDefinitionItem[] = [this.buildProviderSelectionGroup()];
 
     switch (this.pluginSettingsComponent.settings.emailProviderType) {
-      case EmailProviderType.Imap:
+      case EmailProviderType.Imap: {
         items.push(this.buildImapGroup());
         break;
+      }
       case EmailProviderType.MailTm: {
         const mailTmGroup = this.buildMailTmGroup();
         if (mailTmGroup) {
@@ -50,8 +51,9 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
         break;
       }
       /* v8 ignore start -- exhaustive switch guard for future enum values. */
-      default:
+      default: {
         break;
+      }
         /* v8 ignore stop */
     }
 
@@ -190,14 +192,14 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                   .setButtonText('Unregister email address')
                   .setDestructive()
                   .onClick(convertAsyncToSync(async () => {
-                    const result = await confirm({
+                    const isResult = await confirm({
                       app: this.app,
                       cancelButtonText: 'No',
                       message: 'Are you sure you want to unregister your email address? You will not have access to it anymore.',
                       okButtonText: 'Yes',
                       title: 'Unregister email address?'
                     });
-                    if (!result) {
+                    if (!isResult) {
                       return;
                     }
 

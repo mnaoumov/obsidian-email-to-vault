@@ -67,7 +67,7 @@ export class Plugin extends PluginBase {
       })
     );
     this.addChild(new TokenizedStringLanguageComponent());
-    this.commandHandlerComponent.registerCommandHandlers([
+    this.commandHandlerComponent.registerCommandHandlers(() => [
       new CheckEmailsCommandHandler(emailChecker),
       new OpenDemoVaultCommandHandler({
         app: this.app,

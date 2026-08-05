@@ -86,7 +86,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
       editor(settings);
       await noopAsync();
     }),
-    on: vi.fn((_name: string, callback: (...args: unknown[]) => unknown) => {
+    on: vi.fn((_name: string, callback: (...$arguments: unknown[]) => unknown) => {
       saveSettingsCallback = castTo<SaveSettingsCallback>(callback);
       return strictProxy<AsyncEventRef>({
         callback: vi.fn()

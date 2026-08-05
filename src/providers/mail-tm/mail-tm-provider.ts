@@ -20,6 +20,9 @@ import {
 } from '../../string-generators.ts';
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
+// A JWT is `header.payload.signature`; only the first two parts are needed, and the limit keeps a
+// Signature containing `.` from producing extra segments.
+const JWT_HEADER_AND_PAYLOAD_PART_COUNT = 2;
 const HTTP_STATUS_CREATED = 201;
 
 interface JwtPayload {
@@ -131,7 +134,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
       url: `${MAIL_TM_API_BASE_URL}/messages`
     });
     const data = response.json as MailTmMessagesResponse;
-    return data['hydra:member'].map(mapMailTmMessage);
+    return data['hydra:member'].map((message) => mapMailTmMessage(message));
   }
 
   public async markMessageAsSeen(messageId: string): Promise<void> {
@@ -221,35 +224,35 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
 }
 
 function extractAccountIdFromToken(token: string): string {
-  const [, encodedPayload = ''] = token.split('.');
+  const [, encodedPayload = ''] = token.split('.', JWT_HEADER_AND_PAYLOAD_PART_COUNT);
   const payload = JSON.parse(atob(encodedPayload)) as JwtPayload;
   return payload.id;
 }
 
-function mapMailTmMessage(msg: MailTmMessage): EmailMessageSummary {
+function mapMailTmMessage(message: MailTmMessage): EmailMessageSummary {
   return {
-    createdAt: msg.createdAt,
-    from: msg.from,
-    hasAttachments: msg.hasAttachments,
-    id: msg.id,
-    seen: msg.seen,
-    subject: msg.subject,
-    to: msg.to
+    createdAt: message.createdAt,
+    from: message.from,
+    hasAttachments: message.hasAttachments,
+    id: message.id,
+    seen: message.seen,
+    subject: message.subject,
+    to: message.to
   };
 }
 
-function mapMailTmMessageFull(msg: MailTmMessageFull): EmailMessageFull {
+function mapMailTmMessageFull(message: MailTmMessageFull): EmailMessageFull {
   return {
-    attachments: msg.attachments ?? [],
-    cc: msg.cc,
-    createdAt: msg.createdAt,
-    from: msg.from,
-    hasAttachments: msg.hasAttachments,
-    html: msg.html,
-    id: msg.id,
-    seen: msg.seen,
-    subject: msg.subject,
-    text: msg.text,
-    to: msg.to
+    attachments: message.attachments ?? [],
+    cc: message.cc,
+    createdAt: message.createdAt,
+    from: message.from,
+    hasAttachments: message.hasAttachments,
+    html: message.html,
+    id: message.id,
+    seen: message.seen,
+    subject: message.subject,
+    text: message.text,
+    to: message.to
   };
 }

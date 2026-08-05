@@ -62,9 +62,11 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
 
   public override async onloadAsync(): Promise<void> {
     if (Platform.isDesktop) {
-      this._platformImapProvider = new (await import('./imap-provider-desktop.ts')).ImapProviderDesktopComponent(this.app, this.pluginSettingsComponent);
+      const desktopModule = await import('./imap-provider-desktop.ts');
+      this._platformImapProvider = new desktopModule.ImapProviderDesktopComponent(this.app, this.pluginSettingsComponent);
     } else {
-      this._platformImapProvider = new (await import('./imap-provider-mobile.ts')).ImapProviderMobileComponent(this.pluginNoticeComponent);
+      const mobileModule = await import('./imap-provider-mobile.ts');
+      this._platformImapProvider = new mobileModule.ImapProviderMobileComponent(this.pluginNoticeComponent);
     }
   }
 }

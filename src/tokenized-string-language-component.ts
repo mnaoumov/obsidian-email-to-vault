@@ -12,7 +12,7 @@ export const TOKENIZED_STRING_LANGUAGE = 'email-to-vault-template';
  */
 export class TokenizedStringLanguageComponent extends SyntaxHighlightingComponent {
   public override async onloadAsync(): Promise<void> {
-    await this.registerPrismLanguageAsync({
+    await this.registerPrismLanguage({
       grammar: {
         expression: {
           greedy: true,

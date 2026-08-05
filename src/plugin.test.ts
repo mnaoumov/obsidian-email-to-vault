@@ -3,6 +3,7 @@ import type {
   PluginManifest
 } from 'obsidian';
 import type { DisposableEx } from 'obsidian-dev-utils/disposable';
+import type { CommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
 import { castTo } from 'obsidian-dev-utils/object-utils';
@@ -167,8 +168,8 @@ describe('Plugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const appMock = App.createConfigured__();
-    appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
-      cb();
+    appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
+      callback();
     });
     app = appMock.asOriginalType__();
   });
@@ -254,6 +255,7 @@ describe('Plugin', () => {
     it('should create CheckEmailsCommandHandler with emailChecker', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
+      buildPluginCommandHandlers();
 
       expect(MockCheckEmailsCommandHandler).toHaveBeenCalledWith(
         instanceOf(MockEmailChecker)
@@ -263,6 +265,7 @@ describe('Plugin', () => {
     it('should create RedownloadAllEmailsCommandHandler with emailChecker', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
+      buildPluginCommandHandlers();
 
       expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith(
         instanceOf(MockEmailChecker)
@@ -272,6 +275,7 @@ describe('Plugin', () => {
     it('should create RedownloadRecentEmailsCommandHandler with app and emailChecker', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
+      buildPluginCommandHandlers();
 
       expect(MockRedownloadRecentEmailsCommandHandler).toHaveBeenCalledWith({
         app,
@@ -296,7 +300,7 @@ describe('Plugin', () => {
 
       // The base separately auto-registers its own handler, so assert the plugin's own registration by its five
       // Handlers rather than the total call count.
-      expect(CommandHandlerComponent.prototype.registerCommandHandlers).toHaveBeenCalledWith([
+      expect(buildPluginCommandHandlers()).toStrictEqual([
         expect.any(CheckEmailsCommandHandler),
         expect.any(OpenDemoVaultCommandHandler),
         expect.any(OpenSettingsCommandHandler),
@@ -306,3 +310,15 @@ describe('Plugin', () => {
     });
   });
 });
+
+// `registerCommandHandlers` takes a factory since obsidian-dev-utils 89.0.0, and the base registers its
+// Own handlers through the same spy — so pick the plugin's own factory by what it builds.
+function buildPluginCommandHandlers(): CommandHandler[] {
+  const commandHandlerBatches = vi.mocked(CommandHandlerComponent.prototype.registerCommandHandlers).mock.calls
+    .map(([commandHandlerFactory]) => commandHandlerFactory());
+  const pluginCommandHandlers = commandHandlerBatches.find((commandHandlers) => commandHandlers.some((commandHandler) => commandHandler instanceof CheckEmailsCommandHandler));
+  if (!pluginCommandHandlers) {
+    throw new Error('The plugin did not register its own command handlers.');
+  }
+  return pluginCommandHandlers;
+}

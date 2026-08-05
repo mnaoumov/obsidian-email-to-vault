@@ -93,7 +93,7 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
     }
 
     switch (type) {
-      case EmailProviderType.Imap:
+      case EmailProviderType.Imap: {
         this.activeProvider = this.addChild(
           new ImapProviderComponent({
             app: this.app,
@@ -102,7 +102,8 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
           })
         );
         break;
-      case EmailProviderType.MailTm:
+      }
+      case EmailProviderType.MailTm: {
         this.activeProvider = this.addChild(
           new MailTmProviderComponent({
             app: this.app,
@@ -112,9 +113,11 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
           })
         );
         break;
+      }
       /* v8 ignore start -- Exhaustive check for future enum values. */
-      default:
+      default: {
         throw new Error(`Unknown provider type: ${String(type)}`);
+      }
         /* v8 ignore stop */
     }
   }

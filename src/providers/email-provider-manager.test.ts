@@ -92,7 +92,7 @@ function createMockPluginSettingsComponent(providerType: EmailProviderType = Ema
   let saveSettingsCallback: null | SaveSettingsCallback = null;
 
   const pluginSettingsComponent = strictProxy<PluginSettingsComponent>({
-    on: vi.fn((_name: string, callback: (...args: unknown[]) => unknown) => {
+    on: vi.fn((_name: string, callback: (...$arguments: unknown[]) => unknown) => {
       saveSettingsCallback = castTo<SaveSettingsCallback>(callback);
       return strictProxy<AsyncEventRef>({
         asyncEventSource: {},
