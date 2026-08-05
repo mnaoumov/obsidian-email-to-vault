@@ -40,7 +40,7 @@ interface MockParams {
   readonly pluginId?: string;
   secretStorageGetSecret?(key: string): null | string;
   secretStorageSetSecret?(key: string, value: string): void;
-  settingsComponentEditAndSave?(cb: (settings: PluginSettings) => void): Promise<void>;
+  settingsComponentEditAndSave?(callback: (settings: PluginSettings) => void): Promise<void>;
 }
 
 interface MockResult {
@@ -72,9 +72,9 @@ function createMocks(overrides?: MockParams): MockResult {
   });
 
   const pluginSettingsComponent = strictProxy<PluginSettingsComponent>({
-    editAndSave: overrides?.settingsComponentEditAndSave ?? (async (cb: (s: PluginSettings) => void): Promise<void> => {
+    editAndSave: overrides?.settingsComponentEditAndSave ?? (async (callback: (s: PluginSettings) => void): Promise<void> => {
       await noopAsync();
-      cb(settings);
+      callback(settings);
     }),
     settings
   });
@@ -174,14 +174,14 @@ describe('MailTmProvider', () => {
 
   describe('registerRandomEmailAddress', () => {
     it('should create account and save credentials', async () => {
-      const setSecretFn = vi.fn();
-      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+      const setSecretFunction = vi.fn();
+      const editAndSaveFunction = vi.fn(async (callback: (s: PluginSettings) => void): Promise<void> => {
         await noopAsync();
-        cb(new PluginSettings());
+        callback(new PluginSettings());
       });
       const manager = createManager({
-        secretStorageSetSecret: setSecretFn,
-        settingsComponentEditAndSave: editAndSaveFn
+        secretStorageSetSecret: setSecretFunction,
+        settingsComponentEditAndSave: editAndSaveFunction
       });
 
       mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
@@ -190,8 +190,8 @@ describe('MailTmProvider', () => {
 
       await manager.registerRandomEmailAddress();
 
-      expect(setSecretFn).toHaveBeenCalledOnce();
-      expect(editAndSaveFn).toHaveBeenCalledOnce();
+      expect(setSecretFunction).toHaveBeenCalledOnce();
+      expect(editAndSaveFunction).toHaveBeenCalledOnce();
     });
 
     it('should throw when no active domains available', async () => {
@@ -218,17 +218,17 @@ describe('MailTmProvider', () => {
 
   describe('unregisterEmailAddress', () => {
     it('should delete account without clearing secret when key is empty', async () => {
-      const setSecretFn = vi.fn();
-      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+      const setSecretFunction = vi.fn();
+      const editAndSaveFunction = vi.fn(async (callback: (s: PluginSettings) => void): Promise<void> => {
         await noopAsync();
-        cb(new PluginSettings());
+        callback(new PluginSettings());
       });
       const manager = createManager({
         emailAddress: 'test@mail.tm',
         emailPasswordSecretKey: '',
         secretStorageGetSecret: () => 'password123',
-        secretStorageSetSecret: setSecretFn,
-        settingsComponentEditAndSave: editAndSaveFn
+        secretStorageSetSecret: setSecretFunction,
+        settingsComponentEditAndSave: editAndSaveFunction
       });
 
       const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-456' }))}.sig`;
@@ -240,22 +240,22 @@ describe('MailTmProvider', () => {
 
       await manager.unregisterEmailAddress();
 
-      expect(setSecretFn).not.toHaveBeenCalled();
-      expect(editAndSaveFn).toHaveBeenCalledOnce();
+      expect(setSecretFunction).not.toHaveBeenCalled();
+      expect(editAndSaveFunction).toHaveBeenCalledOnce();
     });
 
     it('should delete account, clear secret, and reset settings', async () => {
-      const setSecretFn = vi.fn();
-      const editAndSaveFn = vi.fn(async (cb: (s: PluginSettings) => void): Promise<void> => {
+      const setSecretFunction = vi.fn();
+      const editAndSaveFunction = vi.fn(async (callback: (s: PluginSettings) => void): Promise<void> => {
         await noopAsync();
-        cb(new PluginSettings());
+        callback(new PluginSettings());
       });
       const manager = createManager({
         emailAddress: 'test@mail.tm',
         emailPasswordSecretKey: 'test-password-key',
         secretStorageGetSecret: () => 'password123',
-        secretStorageSetSecret: setSecretFn,
-        settingsComponentEditAndSave: editAndSaveFn
+        secretStorageSetSecret: setSecretFunction,
+        settingsComponentEditAndSave: editAndSaveFunction
       });
 
       const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-123' }))}.sig`;
@@ -271,8 +271,8 @@ describe('MailTmProvider', () => {
         method: 'DELETE',
         url: 'https://api.mail.tm/accounts/account-uuid-123'
       }));
-      expect(setSecretFn).toHaveBeenCalledWith('test-password-key', '');
-      expect(editAndSaveFn).toHaveBeenCalledOnce();
+      expect(setSecretFunction).toHaveBeenCalledWith('test-password-key', '');
+      expect(editAndSaveFunction).toHaveBeenCalledOnce();
     });
   });
 

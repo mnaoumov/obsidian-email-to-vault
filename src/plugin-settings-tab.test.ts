@@ -47,7 +47,7 @@ const mockShowNotice = vi.fn();
 // Sanctioned exception for making fire-and-forget async awaitable in a unit test.
 vi.mock('obsidian-dev-utils/async', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/async')>(),
-  convertAsyncToSync: vi.fn((fn: (...args: unknown[]) => unknown) => fn)
+  convertAsyncToSync: vi.fn(($function: (...$arguments: unknown[]) => unknown) => $function)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
@@ -342,27 +342,27 @@ describe('PluginSettingsTab', () => {
     });
 
     it('should copy email address to clipboard', async () => {
-      const writeTextFn = vi.fn(async () => noopAsync());
-      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
+      const writeTextFunction = vi.fn(async () => noopAsync());
+      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFunction } });
       const tab = createTab({ emailAddress: 'test@mail.tm' });
       renderRows(tab);
 
       const onClick = ensureNonNullable(extraButtonOnClickSpy.mock.calls[0])[0];
       await onClick();
 
-      expect(writeTextFn).toHaveBeenCalledWith('test@mail.tm');
+      expect(writeTextFunction).toHaveBeenCalledWith('test@mail.tm');
     });
 
     it('should copy password to clipboard', async () => {
-      const writeTextFn = vi.fn(async () => noopAsync());
-      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
+      const writeTextFunction = vi.fn(async () => noopAsync());
+      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFunction } });
       const tab = createTab({ emailAddress: 'test@mail.tm' });
       renderRows(tab);
 
       const onClick = ensureNonNullable(extraButtonOnClickSpy.mock.calls[1])[0];
       await onClick();
 
-      expect(writeTextFn).toHaveBeenCalledWith('test-password');
+      expect(writeTextFunction).toHaveBeenCalledWith('test-password');
     });
 
     it('should save password to secret storage on manual entry when unregistered', async () => {
@@ -384,12 +384,12 @@ describe('PluginSettingsTab', () => {
     });
 
     it('should create password secret key if missing on manual entry', async () => {
-      const editAndSaveFn = vi.fn(async (cb: (settings: PluginSettings) => void): Promise<void> => {
+      const editAndSaveFunction = vi.fn(async (callback: (settings: PluginSettings) => void): Promise<void> => {
         await noopAsync();
-        cb(pluginSettingsComponent.settings);
+        callback(pluginSettingsComponent.settings);
       });
       const pluginSettingsComponent = createMockPluginSettingsComponent({
-        editAndSave: editAndSaveFn,
+        editAndSave: editAndSaveFunction,
         emailPasswordSecretKey: ''
       });
       const tab = new PluginSettingsTab({
@@ -404,14 +404,14 @@ describe('PluginSettingsTab', () => {
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('manual-password');
 
-      expect(editAndSaveFn).toHaveBeenCalledOnce();
+      expect(editAndSaveFunction).toHaveBeenCalledOnce();
       expect(pluginSettingsComponent.settings.emailPasswordSecretKey).toBe('email-to-vault-password');
     });
 
     it('should not recreate password secret key if already set', async () => {
-      const editAndSaveFn = vi.fn();
+      const editAndSaveFunction = vi.fn();
       const pluginSettingsComponent = createMockPluginSettingsComponent({
-        editAndSave: editAndSaveFn
+        editAndSave: editAndSaveFunction
       });
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
@@ -425,12 +425,12 @@ describe('PluginSettingsTab', () => {
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('another-password');
 
-      expect(editAndSaveFn).not.toHaveBeenCalled();
+      expect(editAndSaveFunction).not.toHaveBeenCalled();
     });
 
     it('should show notice when no password found for copy', async () => {
-      const writeTextFn = vi.fn(async () => noopAsync());
-      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFn } });
+      const writeTextFunction = vi.fn(async () => noopAsync());
+      vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFunction } });
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
       const tab = new PluginSettingsTab({
@@ -446,7 +446,7 @@ describe('PluginSettingsTab', () => {
       await onClick();
 
       expect(mockShowNotice).toHaveBeenCalledWith('No email password found');
-      expect(writeTextFn).not.toHaveBeenCalled();
+      expect(writeTextFunction).not.toHaveBeenCalled();
     });
 
     it('should show empty password when secret storage returns null for IMAP', () => {

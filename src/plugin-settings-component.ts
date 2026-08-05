@@ -40,7 +40,7 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
         return;
       }
       const MIN_PORT = 1;
-      const MAX_PORT = 65535;
+      const MAX_PORT = 65_535;
       if (settings.imapPort < MIN_PORT || settings.imapPort > MAX_PORT) {
         return `IMAP port must be between ${String(MIN_PORT)} and ${String(MAX_PORT)}`;
       }

@@ -122,7 +122,7 @@ describe('IMAP provider integration', () => {
           filename: 'test-file.txt'
         },
         {
-          content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+          content: Buffer.from([0x89, 0x50, 0x4E, 0x47]),
           contentType: 'image/png',
           filename: 'test-image.png'
         }
@@ -173,13 +173,13 @@ describe('IMAP provider integration', () => {
 
       try {
         const messages = [];
-        for await (const msg of client.fetch('1:*', { envelope: true, flags: true, uid: true })) {
-          messages.push(msg);
+        for await (const message of client.fetch('1:*', { envelope: true, flags: true, uid: true })) {
+          messages.push(message);
         }
 
         expect(messages.length).toBeGreaterThanOrEqual(1);
-        const testMsg = messages.find((m) => m.envelope?.subject === normalEmailSubject);
-        expect(testMsg).toBeDefined();
+        const testMessage = messages.find((m) => m.envelope?.subject === normalEmailSubject);
+        expect(testMessage).toBeDefined();
       } finally {
         lock.release();
         await client.logout();
@@ -192,15 +192,15 @@ describe('IMAP provider integration', () => {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        const msg = await client.fetchOne(String(normalEmailUid), { envelope: true, flags: true }, { uid: true });
+        const message = await client.fetchOne(String(normalEmailUid), { envelope: true, flags: true }, { uid: true });
 
-        expect(msg).toBeTruthy();
-        if (msg) {
-          expect(msg.envelope?.subject).toBe(normalEmailSubject);
-          expect(msg.envelope?.from?.[0]?.address).toBe(getRequiredEnv('SMTP_USER'));
-          expect(msg.envelope?.to?.[0]?.address).toBe(getRequiredEnv('IMAP_USER'));
-          expect(msg.envelope?.date).toBeInstanceOf(Date);
-          expect(msg.uid).toBe(normalEmailUid);
+        expect(message).toBeTruthy();
+        if (message) {
+          expect(message.envelope?.subject).toBe(normalEmailSubject);
+          expect(message.envelope?.from?.[0]?.address).toBe(getRequiredEnv('SMTP_USER'));
+          expect(message.envelope?.to?.[0]?.address).toBe(getRequiredEnv('IMAP_USER'));
+          expect(message.envelope?.date).toBeInstanceOf(Date);
+          expect(message.uid).toBe(normalEmailUid);
         }
       } finally {
         lock.release();
@@ -216,12 +216,12 @@ describe('IMAP provider integration', () => {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        const msg = await client.fetchOne(String(normalEmailUid), { source: true }, { uid: true });
+        const message = await client.fetchOne(String(normalEmailUid), { source: true }, { uid: true });
 
-        expect(msg).toBeTruthy();
-        if (msg) {
-          expect(msg.source).toBeDefined();
-          const parsed = await simpleParser(msg.source ?? Buffer.alloc(0));
+        expect(message).toBeTruthy();
+        if (message) {
+          expect(message.source).toBeDefined();
+          const parsed = await simpleParser(message.source ?? Buffer.alloc(0));
           expect(parsed.text?.trim()).toBe('Test email body.');
         }
       } finally {
@@ -238,11 +238,11 @@ describe('IMAP provider integration', () => {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        const msg = await client.fetchOne(String(attachmentEmailUid), { bodyStructure: true }, { uid: true });
+        const message = await client.fetchOne(String(attachmentEmailUid), { bodyStructure: true }, { uid: true });
 
-        expect(msg).toBeTruthy();
-        if (msg && msg.bodyStructure) {
-          const hasAttachment = JSON.stringify(msg.bodyStructure).includes('attachment');
+        expect(message).toBeTruthy();
+        if (message && message.bodyStructure) {
+          const hasAttachment = JSON.stringify(message.bodyStructure).includes('attachment');
           expect(hasAttachment).toBe(true);
         }
       } finally {
@@ -257,11 +257,11 @@ describe('IMAP provider integration', () => {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        const msg = await client.fetchOne(String(attachmentEmailUid), { bodyStructure: true }, { uid: true });
-        expect(msg).toBeTruthy();
+        const message = await client.fetchOne(String(attachmentEmailUid), { bodyStructure: true }, { uid: true });
+        expect(message).toBeTruthy();
 
-        if (msg && msg.bodyStructure) {
-          const attachmentPart = findAttachmentPart(msg.bodyStructure);
+        if (message && message.bodyStructure) {
+          const attachmentPart = findAttachmentPart(message.bodyStructure);
           expect(attachmentPart).toBeDefined();
 
           if (attachmentPart) {
@@ -288,13 +288,13 @@ describe('IMAP provider integration', () => {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        const msg = await client.fetchOne(String(attachmentEmailUid), { envelope: true }, { uid: true });
+        const message = await client.fetchOne(String(attachmentEmailUid), { envelope: true }, { uid: true });
 
-        expect(msg).toBeTruthy();
-        if (msg) {
-          expect(msg.envelope?.cc).toBeDefined();
-          expect(msg.envelope?.cc?.length).toBeGreaterThanOrEqual(1);
-          expect(msg.envelope?.cc?.[0]?.address).toBe(getRequiredEnv('IMAP_USER'));
+        expect(message).toBeTruthy();
+        if (message) {
+          expect(message.envelope?.cc).toBeDefined();
+          expect(message.envelope?.cc?.length).toBeGreaterThanOrEqual(1);
+          expect(message.envelope?.cc?.[0]?.address).toBe(getRequiredEnv('IMAP_USER'));
         }
       } finally {
         lock.release();
@@ -310,12 +310,12 @@ describe('IMAP provider integration', () => {
       const lock = await client.getMailboxLock('INBOX');
 
       try {
-        await client.messageFlagsAdd(String(normalEmailUid), ['\\Seen'], { uid: true });
+        await client.messageFlagsAdd(String(normalEmailUid), [String.raw`\Seen`], { uid: true });
 
-        const msg = await client.fetchOne(String(normalEmailUid), { flags: true }, { uid: true });
-        expect(msg).toBeTruthy();
-        if (msg) {
-          expect(msg.flags?.has('\\Seen')).toBe(true);
+        const message = await client.fetchOne(String(normalEmailUid), { flags: true }, { uid: true });
+        expect(message).toBeTruthy();
+        if (message) {
+          expect(message.flags?.has(String.raw`\Seen`)).toBe(true);
         }
       } finally {
         lock.release();
@@ -332,7 +332,7 @@ describe('IMAP provider integration', () => {
       unseenEmailUid = await pollForMessage(unseenEmailSubject);
     });
 
-    it('should leave the \\Seen flag unset after fetching a message the way the plugin does', async () => {
+    it(String.raw`should leave the \Seen flag unset after fetching a message the way the plugin does`, async () => {
       const client = createImapClient();
       await client.connect();
       const lock = await client.getMailboxLock('INBOX');
@@ -341,17 +341,17 @@ describe('IMAP provider integration', () => {
         // These fetch options mirror ImapProviderDesktopComponent.getMessage.
         // Fetching the full source must not implicitly set \Seen (imapflow uses BODY.PEEK); otherwise the
         // "Mark emails as seen" opt-out would be defeated merely by reading the message to create a note.
-        const msg = await client.fetchOne(
+        const message = await client.fetchOne(
           String(unseenEmailUid),
           { bodyStructure: true, envelope: true, flags: true, source: true },
           { uid: true }
         );
-        expect(msg).toBeTruthy();
+        expect(message).toBeTruthy();
 
         const afterFetch = await client.fetchOne(String(unseenEmailUid), { flags: true }, { uid: true });
         expect(afterFetch).toBeTruthy();
         if (afterFetch) {
-          expect(afterFetch.flags?.has('\\Seen')).toBe(false);
+          expect(afterFetch.flags?.has(String.raw`\Seen`)).toBe(false);
         }
       } finally {
         lock.release();

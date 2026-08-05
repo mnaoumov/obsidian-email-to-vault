@@ -36,10 +36,10 @@ interface DownloadAttachmentsResult {
 }
 
 interface EmailData {
-  attachmentsStr: string;
+  attachmentsString: string;
   body: string;
   cc: string;
-  dateStr: string;
+  dateString: string;
   from: string;
   subject: string;
   to: string;
@@ -73,7 +73,7 @@ export class EmailNoteCreator {
 
     const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
     emailData.body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
-    emailData.attachmentsStr = attachmentLinks;
+    emailData.attachmentsString = attachmentLinks;
 
     const content = fillTemplate({ emailData, template: this.pluginSettingsComponent.settings.emailNoteTemplate });
 
@@ -123,10 +123,10 @@ export class EmailNoteCreator {
     });
 
     const data: EmailData = {
-      attachmentsStr: '',
+      attachmentsString: '',
       body,
       cc: ccFormatted,
-      dateStr: momentFn(fullMessage.createdAt).format(),
+      dateString: momentFunction(fullMessage.createdAt).format(),
       from: fromFormatted,
       subject: fullMessage.subject,
       to: toFormatted
@@ -212,10 +212,10 @@ function extractEmailFromRfc822(emlContent: string): EmailData {
   const body = separatorMatch ? emlContent.slice(separatorMatch.index + separatorMatch[0].length) : '';
 
   return {
-    attachmentsStr: '',
+    attachmentsString: '',
     body,
     cc: HEADER_CC_PATTERN.exec(headers)?.groups?.['value'] ?? '',
-    dateStr: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
+    dateString: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
     from: HEADER_FROM_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     subject: HEADER_SUBJECT_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     to: HEADER_TO_PATTERN.exec(headers)?.groups?.['value'] ?? ''
@@ -230,13 +230,13 @@ function extractFilename(path: string): string {
 function extractForwardedEmail(data: EmailData): EmailData {
   const result = { ...data };
 
-  result.subject = replaceAll({ replacer: '', searchValue: FORWARD_PREFIX_PATTERN, str: result.subject });
+  result.subject = replaceAll({ $string: result.subject, replacer: '', searchValue: FORWARD_PREFIX_PATTERN });
 
   const gmailMatch = GMAIL_FORWARD_HEADER_PATTERN.exec(result.body);
   if (gmailMatch) {
     const headerBlock = gmailMatch[0];
     applyHeaderOverrides(result, headerBlock);
-    result.dateStr = normalizeDate((HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.dateStr).trim());
+    result.dateString = normalizeDate((HEADER_DATE_PATTERN.exec(headerBlock)?.groups?.['value'] ?? result.dateString).trim());
 
     result.body = result.body.slice(gmailMatch.index + headerBlock.length);
     return result;
@@ -296,15 +296,15 @@ function removeHiddenElements(doc: Document): void {
 
 function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string, string>): string {
   return replaceAll({
-    replacer: ({ capturedGroupArgs: [alt = '', attachId = ''] }) => {
+    $string: body,
+    replacer: ({ capturedGroupArguments: [alt = '', attachId = ''] }) => {
       const savedFilename = savedAttachments.get(attachId);
       if (savedFilename) {
         return `![[${savedFilename}]]`;
       }
       return `![[${alt || 'attachment'}]]`;
     },
-    searchValue: INLINE_ATTACHMENT_PATTERN,
-    str: body
+    searchValue: INLINE_ATTACHMENT_PATTERN
   });
 }
 
@@ -350,14 +350,14 @@ function checkHiddenByStyle(style: string): boolean {
 
 function stripMarkdownFormatting(text: string): string {
   const withoutBold = replaceAll({
-    replacer: ({ capturedGroupArgs: [content] }) => ensureNonNullable(content),
-    searchValue: /\*\*(?<content>[^*]+)\*\*/g,
-    str: text
+    $string: text,
+    replacer: ({ capturedGroupArguments: [content] }) => ensureNonNullable(content),
+    searchValue: /\*\*(?<content>[^*]+)\*\*/g
   });
   return replaceAll({
-    replacer: ({ capturedGroupArgs: [label] }) => ensureNonNullable(label),
-    searchValue: /\[(?<label>[^\]]+)\]\([^)]+\)/g,
-    str: withoutBold
+    $string: withoutBold,
+    replacer: ({ capturedGroupArguments: [label] }) => ensureNonNullable(label),
+    searchValue: /\[(?<label>[^\]]+)\]\([^)]+\)/g
   });
 }
 
@@ -374,7 +374,7 @@ function unwrapElement(element: Element): void {
   parent.removeChild(element);
 }
 
-const momentFn = extractDefaultExportInterop(momentLib);
+const momentFunction = extractDefaultExportInterop(momentLib);
 
 const KNOWN_DATE_FORMATS = [
   'ddd, MMM D, YYYY [at] h:mm A',
@@ -398,16 +398,17 @@ function extractTokenValue(params: ExtractTokenValueParams): string {
   const { emailData, format, isPathTemplate, token } = params;
   let value: string;
   switch (token) {
-    case 'attachments':
+    case 'attachments': {
       if (format) {
         throw new Error(`Attachments token does not support format: ${format}`);
       }
       if (isPathTemplate) {
         throw new Error('Attachments token is not supported in path template');
       }
-      value = emailData.attachmentsStr;
+      value = emailData.attachmentsString;
       break;
-    case 'body':
+    }
+    case 'body': {
       if (format) {
         throw new Error(`Body token does not support format: ${format}`);
       }
@@ -416,35 +417,42 @@ function extractTokenValue(params: ExtractTokenValueParams): string {
       }
       value = emailData.body;
       break;
-    case 'cc':
+    }
+    case 'cc': {
       if (format) {
         throw new Error(`CC token does not support format: ${format}`);
       }
       value = emailData.cc;
       break;
-    case 'date':
-      value = momentFn(emailData.dateStr).format(format);
+    }
+    case 'date': {
+      value = momentFunction(emailData.dateString).format(format);
       break;
-    case 'from':
+    }
+    case 'from': {
       if (format) {
         throw new Error(`From token does not support format: ${format}`);
       }
       value = emailData.from;
       break;
-    case 'subject':
+    }
+    case 'subject': {
       if (format) {
         throw new Error(`Subject token does not support format: ${format}`);
       }
       value = emailData.subject || (isPathTemplate ? 'Untitled' : '');
       break;
-    case 'to':
+    }
+    case 'to': {
       if (format) {
         throw new Error(`To token does not support format: ${format}`);
       }
       value = emailData.to;
       break;
-    default:
+    }
+    default: {
       throw new Error(`Unknown token: ${token}`);
+    }
   }
   return isPathTemplate ? sanitizeFileName(value) : value;
 }
@@ -454,27 +462,27 @@ function fillTemplate(params: FillTemplateParams): string {
   const TOKEN_PATTERN = /\{\{(?<Token>\w+)(?::(?<Format>[^}]+))?\}\}/g;
 
   return replaceAll({
-    replacer: ({ capturedGroupArgs: [token = '', format = ''] }) => {
+    $string: template,
+    replacer: ({ capturedGroupArguments: [token = '', format = ''] }) => {
       return extractTokenValue({ emailData, format, isPathTemplate, token });
     },
-    searchValue: TOKEN_PATTERN,
-    str: template
+    searchValue: TOKEN_PATTERN
   });
 }
 
-function normalizeDate(dateStr: string): string {
-  const normalized = normalizeWhitespace(dateStr);
-  const parsed = momentFn(normalized, KNOWN_DATE_FORMATS, true);
+function normalizeDate(dateString: string): string {
+  const normalized = normalizeWhitespace(dateString);
+  const parsed = momentFunction(normalized, KNOWN_DATE_FORMATS, true);
   if (parsed.isValid()) {
     return parsed.format();
   }
-  return dateStr;
+  return dateString;
 }
 
-function normalizeWhitespace(str: string): string {
-  return replaceAll({ replacer: ' ', searchValue: /\s/g, str });
+function normalizeWhitespace($string: string): string {
+  return replaceAll({ $string, replacer: ' ', searchValue: /\s/g });
 }
 
 function sanitizeFileName(name: string): string {
-  return replaceAll({ replacer: '_', searchValue: getOsAndObsidianUnsafePathCharsRegExp(true), str: name }).trim();
+  return replaceAll({ $string: name, replacer: '_', searchValue: getOsAndObsidianUnsafePathCharsRegExp(true) }).trim();
 }

@@ -33,8 +33,8 @@ const MOCK_UTC_OFFSET_MINUTES = 300;
 const htmlToMarkdownMock = vi.hoisted(() =>
   vi.fn((html: string) => {
     let result = html;
-    result = result.replace(/<img\s+src="(?<src>[^"]+)"\s+alt="(?<alt>[^"]*)"[^>]*>/g, '![$<alt>]($<src>)');
-    result = result.replace(/<\/?[^>]+>/g, '');
+    result = result.replaceAll(/<img\s+src="(?<src>[^"]+)"\s+alt="(?<alt>[^"]*)"[^>]*>/g, '![$<alt>]($<src>)');
+    result = result.replaceAll(/<\/?[^>]+>/g, '');
     return result.trim();
   })
 );
@@ -42,8 +42,8 @@ const htmlToMarkdownMock = vi.hoisted(() =>
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
   const realMoment = extractDefaultExportInterop(original.moment);
-  function wrappedMoment(...args: Parameters<typeof realMoment>): ReturnType<typeof realMoment> {
-    return realMoment(...args).utcOffset(MOCK_UTC_OFFSET_MINUTES);
+  function wrappedMoment(...$arguments: Parameters<typeof realMoment>): ReturnType<typeof realMoment> {
+    return realMoment(...$arguments).utcOffset(MOCK_UTC_OFFSET_MINUTES);
   }
   Object.assign(wrappedMoment, original.moment);
   return {
@@ -121,7 +121,7 @@ function createMockApp(): ObsidianApp {
       create: vi.fn(),
       createBinary: vi.fn(),
       createFolder: vi.fn(),
-      getAvailablePath: vi.fn((path: string, ext: string) => `${path}.${ext}`),
+      getAvailablePath: vi.fn((path: string, extension: string) => `${path}.${extension}`),
       getFolderByPath: vi.fn(() => null)
     }
   });
@@ -1578,7 +1578,7 @@ describe('EmailNoteCreator', () => {
             seen: false,
 
             subject: 'Fwd: Original Subject',
-            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
+            text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u{202F}AM\nSubject: Original Subject\nTo: dest@test.com\n\nBody content',
             to: [{ address: 'me@mail.tm', name: '' }]
           };
         })

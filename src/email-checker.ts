@@ -98,12 +98,12 @@ export class EmailCheckerComponent extends ComponentEx {
       this.intervalId = null;
     }
 
-    const checkIntervalInMilliseconds = this.getCheckIntervalInMilliseconds();
-    if (checkIntervalInMilliseconds === 0) {
+    const intervalInMilliseconds = this.getCheckIntervalInMilliseconds();
+    if (intervalInMilliseconds === 0) {
       return;
     }
     this.intervalId = this.pluginSettingsComponent.registerInterval(
-      window.setInterval(convertAsyncToSync(this.checkEmails.bind(this)), checkIntervalInMilliseconds)
+      window.setInterval(convertAsyncToSync(this.checkEmails.bind(this)), intervalInMilliseconds)
     );
   }
 

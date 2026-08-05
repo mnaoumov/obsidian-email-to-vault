@@ -207,12 +207,12 @@ function createSampleFetchMessageWithAttachment(): FetchMessageObject {
 }
 
 function createSampleFetchMessageWithoutBodyStructure(source?: Buffer): FetchMessageObject {
-  const msg = createSampleFetchMessage();
-  delete msg.bodyStructure;
+  const message = createSampleFetchMessage();
+  delete message.bodyStructure;
   if (source) {
-    msg.source = source;
+    message.source = source;
   }
-  return msg;
+  return message;
 }
 
 describe('ImapProvider', () => {
@@ -252,9 +252,9 @@ describe('ImapProvider', () => {
 
     it('should return mapped message summaries', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage();
+      const message = createSampleFetchMessage();
 
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
 
       const result = await provider.getMessages();
 
@@ -272,9 +272,9 @@ describe('ImapProvider', () => {
 
     it('should detect attachments in body structure', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithAttachment();
+      const message = createSampleFetchMessageWithAttachment();
 
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
 
       const result = await provider.getMessages();
 
@@ -283,9 +283,9 @@ describe('ImapProvider', () => {
 
     it('should detect seen flag', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ flags: new Set(['\\Seen']) });
+      const message = createSampleFetchMessage({ flags: new Set([String.raw`\Seen`]) });
 
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
 
       const result = await provider.getMessages();
 
@@ -294,13 +294,13 @@ describe('ImapProvider', () => {
 
     it('should handle message with missing envelope fields', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({
+      const message = createSampleFetchMessage({
         envelope: {
           from: [{ address: '', name: '' }]
         }
       });
 
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
 
       const result = await provider.getMessages();
 
@@ -317,14 +317,14 @@ describe('ImapProvider', () => {
 
     it('should fallback to empty strings when address fields are undefined', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({
+      const message = createSampleFetchMessage({
         envelope: {
           from: [castTo<MessageAddressObject>({})],
           to: [castTo<MessageAddressObject>({})]
         }
       });
 
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
 
       const result = await provider.getMessages();
 
@@ -334,9 +334,9 @@ describe('ImapProvider', () => {
 
     it('should handle messages without bodyStructure', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithoutBodyStructure();
+      const message = createSampleFetchMessageWithoutBodyStructure();
 
-      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([msg]));
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
 
       const result = await provider.getMessages();
 
@@ -345,15 +345,15 @@ describe('ImapProvider', () => {
 
     it('should release lock even on error', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const releaseFn = vi.fn();
-      mocks.mockClientDefaults.getMailboxLock.mockResolvedValue({ path: 'INBOX', release: releaseFn });
+      const releaseFunction = vi.fn();
+      mocks.mockClientDefaults.getMailboxLock.mockResolvedValue({ path: 'INBOX', release: releaseFunction });
       mocks.mockClientDefaults.fetch.mockImplementation(() => {
         throw new Error('Fetch failed');
       });
 
       await expect(provider.getMessages()).rejects.toThrow('Fetch failed');
 
-      expect(releaseFn).toHaveBeenCalledOnce();
+      expect(releaseFunction).toHaveBeenCalledOnce();
     });
 
     it('should logout even on error', async () => {
@@ -369,8 +369,8 @@ describe('ImapProvider', () => {
   describe('getMessage', () => {
     it('should fetch and parse a full message', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw email') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      const message = createSampleFetchMessage({ source: Buffer.from('raw email') });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -398,9 +398,9 @@ describe('ImapProvider', () => {
 
     it('should collect attachments from body structure', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithAttachment();
-      msg.source = Buffer.from('raw');
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      const message = createSampleFetchMessageWithAttachment();
+      message.source = Buffer.from('raw');
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -414,8 +414,8 @@ describe('ImapProvider', () => {
 
     it('should handle message without bodyStructure', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessageWithoutBodyStructure(Buffer.from('raw'));
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      const message = createSampleFetchMessageWithoutBodyStructure(Buffer.from('raw'));
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -435,8 +435,8 @@ describe('ImapProvider', () => {
         ],
         type: 'multipart/mixed'
       };
-      const msg = createSampleFetchMessage({ bodyStructure, source: Buffer.from('raw') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      const message = createSampleFetchMessage({ bodyStructure, source: Buffer.from('raw') });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -455,8 +455,8 @@ describe('ImapProvider', () => {
         ],
         type: 'multipart/mixed'
       };
-      const msg = createSampleFetchMessage({ bodyStructure, source: Buffer.from('raw') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      const message = createSampleFetchMessage({ bodyStructure, source: Buffer.from('raw') });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -466,12 +466,12 @@ describe('ImapProvider', () => {
     it('should handle message with missing source and envelope fields', async () => {
       mocks.mockSimpleParser.mockResolvedValue({ html: false, text: undefined });
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({
+      const message = createSampleFetchMessage({
         envelope: {
           from: [{ address: '', name: '' }]
         }
       });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -487,8 +487,8 @@ describe('ImapProvider', () => {
     it('should handle empty html in parsed result', async () => {
       mocks.mockSimpleParser.mockResolvedValue({ html: false, text: 'Plain text' });
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
-      const msg = createSampleFetchMessage({ source: Buffer.from('raw') });
-      mocks.mockClientDefaults.fetchOne.mockResolvedValue(msg);
+      const message = createSampleFetchMessage({ source: Buffer.from('raw') });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
 
       const result = await provider.getMessage('42');
 
@@ -509,12 +509,12 @@ describe('ImapProvider', () => {
   });
 
   describe('markMessageAsSeen', () => {
-    it('should add \\Seen flag', async () => {
+    it(String.raw`should add \Seen flag`, async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
 
       await provider.markMessageAsSeen('42');
 
-      expect(mocks.mockLatestClient?.['messageFlagsAdd']).toHaveBeenCalledWith('42', ['\\Seen'], { uid: true });
+      expect(mocks.mockLatestClient?.['messageFlagsAdd']).toHaveBeenCalledWith('42', [String.raw`\Seen`], { uid: true });
     });
   });
 

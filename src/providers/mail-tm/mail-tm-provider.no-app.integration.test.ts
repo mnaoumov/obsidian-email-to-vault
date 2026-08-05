@@ -92,10 +92,10 @@ interface TestAccount {
 
 // Integration tests run in Node.js (no window), so native fetch is reached through globalThis.
 // See scripts/eslint-config.ts, which turns off obsidianmd/no-global-this for no-app integration tests.
-const nativeFetch = globalThis.fetch;
+const nativeFetch = fetch;
 
 function addSuffix(address: string, suffix: string): string {
-  return address.replace('@', `+${suffix}@`);
+  return address.replace('@', () => `+${suffix}@`);
 }
 
 function createSmtpTransport(): ReturnType<typeof createTransport> {
@@ -184,7 +184,7 @@ async function sendGmailForwardedEmail(baseAddress: string): Promise<void> {
       </div>
     `,
     subject: 'Fwd: Test Forward Subject',
-    text: 'Regards,\nTest User\n\n\n---------- Forwarded message ---------\nFrom: Original Sender <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u202FAM\nSubject: Test Forward Subject\nTo: dest@test.com\n\nForwarded body content',
+    text: 'Regards,\nTest User\n\n\n---------- Forwarded message ---------\nFrom: Original Sender <orig@test.com>\nDate: Tue, Apr 14, 2026 at 5:16\u{202F}AM\nSubject: Test Forward Subject\nTo: dest@test.com\n\nForwarded body content',
     to: baseAddress
   });
 }
@@ -197,7 +197,7 @@ async function sendInlineImageEmail(baseAddress: string): Promise<void> {
     attachments: [
       {
         cid: 'test-image-cid',
-        content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        content: Buffer.from([0x89, 0x50, 0x4E, 0x47]),
         contentType: 'image/png',
         filename: 'inline-test.png'
       }
@@ -222,7 +222,7 @@ async function sendNormalEmail(baseAddress: string): Promise<void> {
         filename: 'test-file-1.txt'
       },
       {
-        content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        content: Buffer.from([0x89, 0x50, 0x4E, 0x47]),
         contentType: 'image/png',
         filename: 'test-image.png'
       },
@@ -433,7 +433,7 @@ describe('Mail.tm API', () => {
       expect(await textResponse.text()).toBe('Hello from attachment 1');
 
       const imageResponse = await fetchAttachmentContent(fullMessage.id, fullMessage.attachments[1]?.id ?? '');
-      expect(Buffer.from(await imageResponse.arrayBuffer())).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      expect(Buffer.from(await imageResponse.arrayBuffer())).toEqual(Buffer.from([0x89, 0x50, 0x4E, 0x47]));
 
       const htmlResponse = await fetchAttachmentContent(fullMessage.id, fullMessage.attachments[2]?.id ?? '');
       expect(await htmlResponse.text()).toBe('<h1>Hello</h1>');

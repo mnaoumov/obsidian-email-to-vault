@@ -20,7 +20,9 @@ const SETTING_NAME = 'Mark emails as seen';
 describe('PluginSettingsTab "Mark emails as seen"', () => {
   it('should render the toggle defaulting to on and persist shouldMarkEmailsAsSeen when toggled', async () => {
     const result = await evalInObsidian({
+      // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
       args: { pluginId: PLUGIN_ID, settingName: SETTING_NAME },
+      // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
       async fn({ app, lib: { waitUntil }, pluginId, settingName }): Promise<MarkEmailsAsSeenToggleResult> {
         const notFound: MarkEmailsAsSeenToggleResult = {
           afterOff: null,
@@ -43,7 +45,7 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
         app.setting.open();
         app.setting.openTabById(plugin.manifest.id);
 
-        const settingItems = Array.from(settingTab.containerEl.querySelectorAll('.setting-item'));
+        const settingItems = [...settingTab.containerEl.querySelectorAll('.setting-item')];
         const item = settingItems.find((el) => el.querySelector('.setting-item-name')?.textContent === settingName);
         const toggle = item?.querySelector<HTMLElement>('.checkbox-container');
         if (!toggle) {
@@ -51,7 +53,7 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
           return { ...notFound, error: 'Toggle not found' };
         }
 
-        const initialEnabled = toggle.classList.contains('is-enabled');
+        const isInitialEnabled = toggle.classList.contains('is-enabled');
 
         toggle.click();
         await waitUntil({
@@ -73,7 +75,7 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
           afterOff,
           afterOn,
           error: null,
-          initialEnabled,
+          initialEnabled: isInitialEnabled,
           toggleFound: true
         };
 

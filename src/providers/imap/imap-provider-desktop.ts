@@ -59,24 +59,24 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     return this.withConnection(async (client) => {
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
-        const msg = await client.fetchOne(messageId, { bodyStructure: true, envelope: true, flags: true, source: true }, { uid: true });
-        if (!msg) {
+        const message = await client.fetchOne(messageId, { bodyStructure: true, envelope: true, flags: true, source: true }, { uid: true });
+        if (!message) {
           throw new Error(`Message ${messageId} not found`);
         }
-        const parsed = await simpleParser(msg.source ?? Buffer.alloc(0));
-        const attachments = collectAttachments(msg.bodyStructure);
+        const parsed = await simpleParser(message.source ?? Buffer.alloc(0));
+        const attachments = collectAttachments(message.bodyStructure);
         return {
           attachments,
-          cc: mapAddresses(msg.envelope?.cc),
-          createdAt: msg.envelope?.date?.toISOString() ?? '',
-          from: mapAddress(msg.envelope?.from?.[0]),
+          cc: mapAddresses(message.envelope?.cc),
+          createdAt: message.envelope?.date?.toISOString() ?? '',
+          from: mapAddress(message.envelope?.from?.[0]),
           hasAttachments: attachments.length > 0,
           html: parsed.html ? [parsed.html] : [],
-          id: String(msg.uid),
-          seen: msg.flags?.has('\\Seen') ?? false,
-          subject: msg.envelope?.subject ?? '',
+          id: String(message.uid),
+          seen: message.flags?.has(String.raw`\Seen`) ?? false,
+          subject: message.envelope?.subject ?? '',
           text: parsed.text ?? '',
-          to: mapAddresses(msg.envelope?.to)
+          to: mapAddresses(message.envelope?.to)
         };
       } finally {
         lock.release();
@@ -89,8 +89,8 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
         const messages: EmailMessageSummary[] = [];
-        for await (const msg of client.fetch('1:*', { bodyStructure: true, envelope: true, flags: true, uid: true })) {
-          messages.push(mapFetchToSummary(msg));
+        for await (const message of client.fetch('1:*', { bodyStructure: true, envelope: true, flags: true, uid: true })) {
+          messages.push(mapFetchToSummary(message));
         }
         return messages;
       } finally {
@@ -103,7 +103,7 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     await this.withConnection(async (client) => {
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
-        await client.messageFlagsAdd(messageId, ['\\Seen'], { uid: true });
+        await client.messageFlagsAdd(messageId, [String.raw`\Seen`], { uid: true });
       } finally {
         lock.release();
       }
@@ -172,16 +172,16 @@ function mapAddresses(addresses?: MessageAddressObject[]): EmailAddress[] {
   return addresses?.map((a) => mapAddress(a)) ?? [];
 }
 
-function mapFetchToSummary(msg: FetchMessageObject): EmailMessageSummary {
-  const hasAttachments = checkHasAttachments(msg.bodyStructure);
+function mapFetchToSummary(message: FetchMessageObject): EmailMessageSummary {
+  const hasAttachments = checkHasAttachments(message.bodyStructure);
   return {
-    createdAt: msg.envelope?.date?.toISOString() ?? '',
-    from: mapAddress(msg.envelope?.from?.[0]),
+    createdAt: message.envelope?.date?.toISOString() ?? '',
+    from: mapAddress(message.envelope?.from?.[0]),
     hasAttachments,
-    id: String(msg.uid),
-    seen: msg.flags?.has('\\Seen') ?? false,
-    subject: msg.envelope?.subject ?? '',
-    to: mapAddresses(msg.envelope?.to)
+    id: String(message.uid),
+    seen: message.flags?.has(String.raw`\Seen`) ?? false,
+    subject: message.envelope?.subject ?? '',
+    to: mapAddresses(message.envelope?.to)
   };
 }
 
