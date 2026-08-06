@@ -10,6 +10,7 @@ import { castTo } from 'obsidian-dev-utils/object-utils';
 import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
 import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
+import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -50,6 +51,15 @@ interface ObsidianComponentModule {
   Component: new () => object;
 }
 
+// The settings component is awaited (`loadWithPromises`) by `onloadImpl`, which a plain `Component` does
+// Not have — so its stub returns a `ComponentEx`.
+function loadableComponentExStub(): ReturnType<typeof vi.fn> {
+  // eslint-disable-next-line prefer-arrow-callback -- Same reason as loadableComponentStub below.
+  return vi.fn(function componentExStub() {
+    return new ComponentEx();
+  });
+}
+
 async function loadableComponentStub(): Promise<ReturnType<typeof vi.fn>> {
   const { Component } = await vi.importActual<ObsidianComponentModule>('obsidian');
   // Vitest requires a non-arrow function for a mock invoked with `new`; it must return a fresh real
@@ -85,8 +95,8 @@ vi.mock('./tokenized-string-language-component.ts', async () => ({
   TokenizedStringLanguageComponent: await loadableComponentStub()
 }));
 
-vi.mock('./plugin-settings-component.ts', async () => ({
-  PluginSettingsComponent: await loadableComponentStub()
+vi.mock('./plugin-settings-component.ts', () => ({
+  PluginSettingsComponent: loadableComponentExStub()
 }));
 
 vi.mock('./providers/email-provider-manager.ts', async () => ({
