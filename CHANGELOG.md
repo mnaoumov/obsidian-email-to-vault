@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.3.2
+
+- fix: await the settings load before the email provider manager
+
 ## 2.3.1
 
 - chore: update libs
