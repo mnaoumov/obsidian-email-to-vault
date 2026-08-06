@@ -18,7 +18,7 @@ import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.
 import { TokenizedStringLanguageComponent } from './tokenized-string-language-component.ts';
 
 export class Plugin extends PluginBase {
-  protected override onloadImpl(): void {
+  protected override async onloadImpl(): Promise<void> {
     const mailTmDomainManager = new MailTmDomainManager();
     const pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
@@ -67,7 +67,7 @@ export class Plugin extends PluginBase {
       })
     );
     this.addChild(new TokenizedStringLanguageComponent());
-    this.commandHandlerComponent.registerCommandHandlers(() => [
+    await this.commandHandlerComponent.registerCommandHandlers(() => [
       new CheckEmailsCommandHandler(emailChecker),
       new OpenDemoVaultCommandHandler({
         app: this.app,
