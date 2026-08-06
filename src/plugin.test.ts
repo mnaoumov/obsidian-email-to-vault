@@ -123,7 +123,7 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 
 // The base pre-wires `commandHandlerComponent`; stub its `registerCommandHandlers` so the plugin's registration
 // Is asserted without exercising the mocked command handlers against a real registrar.
-vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockReturnValue(strictProxy<DisposableEx>({}));
+vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockResolvedValue(strictProxy<DisposableEx>({}));
 
 const MockPluginDataHandler = vi.mocked(PluginDataHandler);
 const MockPluginEventSourceImpl = vi.mocked(PluginEventSourceImpl);
