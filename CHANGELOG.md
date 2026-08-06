@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.3.1
+
+- chore: update libs
+- chore: update libs
+- chore(vitest): adopt the shared Obsidian plugin vitest configuration
+- refactor(prism): register the template language through ODU's SyntaxHighlightingComponent
+
 ## 2.3.0
 
 - fix: unblock the release gate
