@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.3.3
+
+- chore: update libs and adopt obsidian-integration-testing 10
+
 ## 2.3.2
 
 - fix: await the settings load before the email provider manager
