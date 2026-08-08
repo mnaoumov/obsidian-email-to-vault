@@ -1,5 +1,5 @@
 import { evalInObsidian } from 'obsidian-integration-testing';
-import { getTempVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
+import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
   expect,
@@ -20,10 +20,7 @@ const SETTING_NAME = 'Mark emails as seen';
 describe('PluginSettingsTab "Mark emails as seen"', () => {
   it('should render the toggle defaulting to on and persist shouldMarkEmailsAsSeen when toggled', async () => {
     const result = await evalInObsidian({
-      // eslint-disable-next-line unicorn/name-replacements -- `args` is an `obsidian-integration-testing` parameter name.
-      args: { pluginId: PLUGIN_ID, settingName: SETTING_NAME },
-      // eslint-disable-next-line unicorn/name-replacements -- `fn` is an `obsidian-integration-testing` parameter name.
-      async fn({ app, lib: { waitUntil }, pluginId, settingName }): Promise<MarkEmailsAsSeenToggleResult> {
+      async callback({ app, lib: { waitUntil }, pluginId, settingName }): Promise<MarkEmailsAsSeenToggleResult> {
         const notFound: MarkEmailsAsSeenToggleResult = {
           afterOff: null,
           afterOn: null,
@@ -87,7 +84,8 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
           return null;
         }
       },
-      vaultPath: getTempVault().path
+      input: { pluginId: PLUGIN_ID, settingName: SETTING_NAME },
+      vaultPath: getTemporaryVault().path
     });
 
     expect(result.error).toBeNull();
