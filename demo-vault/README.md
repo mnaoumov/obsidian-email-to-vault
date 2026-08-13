@@ -1,3 +1,5 @@
+# Email to Vault demo vault
+
 This is an [Obsidian](https://obsidian.md/) vault demonstrating features of the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-vault) plugin.
 
 ## Opening this vault

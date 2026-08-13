@@ -1,12 +1,10 @@
-[Docs](https://github.com/mnaoumov/obsidian-email-to-vault/)
-
 # Email notes and commands
 
-Once a mailbox is configured (via [[01 Create a mailbox]] or [[02 IMAP mode]]), Email to Vault turns each fetched message into a note. This note explains when fetching happens, the commands you can run, and where notes land.
+Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.md>) or [02 IMAP mode](<./02 IMAP mode.md>)), Email to Vault turns each fetched message into a note. This note explains when fetching happens, the commands you can run, and where notes land.
 
 ## When emails are fetched
 
-- **Automatically** — the plugin checks for new mail on a timer. The interval is controlled by the `emailCheckIntervalInMinutes` setting (default 10 minutes; set it to 0 to disable automatic checking). See [[04 Settings]].
+- **Automatically** — the plugin checks for new mail on a timer. The interval is controlled by the `emailCheckIntervalInMinutes` setting (default 10 minutes; set it to 0 to disable automatic checking). See [04 Settings](<./04 Settings.md>).
 - **On demand** — run one of the commands below from the Command Palette (`Ctrl/Cmd+P`).
 
 ## Commands
@@ -26,4 +24,4 @@ Once a mailbox is configured (via [[01 Create a mailbox]] or [[02 IMAP mode]]), 
 
 1. Configure a mailbox and send yourself a test email.
 2. Run **Email to Vault: Check emails**.
-3. Open the `Emails/` folder — your message is now a note. Tweak the templates in [[04 Settings]] and fetch again to see the format change.
+3. Open the `Emails/` folder — your message is now a note. Tweak the templates in [04 Settings](<./04 Settings.md>) and fetch again to see the format change.

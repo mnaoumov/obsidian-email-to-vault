@@ -1,12 +1,10 @@
-[Docs](https://github.com/mnaoumov/obsidian-email-to-vault/)
-
 # Settings
 
 Open **Settings -> Community plugins -> Email to Vault** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`. Which groups are visible depends on the selected provider (Mail.tm or IMAP).
 
 ## Provider
 
-- `emailProviderType` - which provider to use: `Mail.tm` (disposable mailbox, desktop and mobile) or `IMAP` (your own server, desktop only). See [[01 Create a mailbox]] and [[02 IMAP mode]].
+- `emailProviderType` - which provider to use: `Mail.tm` (disposable mailbox, desktop and mobile) or `IMAP` (your own server, desktop only). See [01 Create a mailbox](<./01 Create a mailbox.md>) and [02 IMAP mode](<./02 IMAP mode.md>).
 
 ## Account
 
@@ -22,7 +20,7 @@ Open **Settings -> Community plugins -> Email to Vault** to configure the plugin
 
 ## Fetching
 
-- `emailCheckIntervalInMinutes` - how often the plugin checks for new mail, in minutes. Set to `0` to disable automatic checking and fetch only via the commands (see [[03 Email notes and commands]]).
+- `emailCheckIntervalInMinutes` - how often the plugin checks for new mail, in minutes. Set to `0` to disable automatic checking and fetch only via the commands (see [03 Email notes and commands](<./03 Email notes and commands.md>)).
 - `shouldMarkEmailsAsSeen` - flag each email as seen on the server after it is saved, so it is not imported again. Disable to leave mail untouched and track imported messages by date instead.
 - `lastProcessedEmailTimestamp` - internal bookmark of the most recent email already imported (used when `shouldMarkEmailsAsSeen` is off).
 - `shouldDeleteSeenEmails` - delete each email from the mailbox once it has been saved as a note.
