@@ -4,7 +4,9 @@ The quickest way to try Email to Vault is the built-in **Mail.tm** provider: a f
 
 > [!WARNING] Mail.tm is a third-party service
 >
-> Messages are routed through [mail.tm](https://mail.tm/) and retained there for up to 7 days. **Do not send sensitive information.** See the plugin's [Privacy & data handling](https://github.com/mnaoumov/obsidian-email-to-vault#privacy--data-handling) section for details.
+> Messages are routed through [mail.tm](https://mail.tm/) and retained there for up to 7 days. **Do not send sensitive information.** See the plugin's [05 Privacy and data handling](<./05 Privacy and data handling.md>) for details.
+
+![The plugin's settings, with the Mail.tm provider selected](<./_assets/images/settings.png>)
 
 ## Try it
 

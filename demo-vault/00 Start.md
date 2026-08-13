@@ -6,11 +6,25 @@ Welcome to the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-va
 >
 > Unlike most demo vaults, this feature cannot be pre-baked: it fetches real emails from a live mail service over the network. Nothing here sends or receives mail for you. The notes below walk you through the exact steps — creating or connecting an inbox, running a fetch command, and where the notes land — so you can configure **your own** account and try it. A network connection (and, for IMAP, your own email account) is required.
 
-Start with the notes under **Feature** below, in order. The feature is driven from the plugin's settings tab and commands.
+## Your first five minutes
 
-## Feature
+The quickest route to a real email in this vault, with no account of your own:
+
+1. Open `Settings -> Community plugins -> Email to Vault` and click **Create Mailbox**. You get a
+   disposable address instantly — no signup.
+2. Send an email to that address from anywhere.
+3. Run the **Email to Vault: Check emails** command.
+4. A note appears carrying the From, To, CC, Subject, Body and any attachments.
+
+That is the whole loop. [01 Create a mailbox](<./01 Create a mailbox.md>) walks it in detail; before
+you point it at anything you care about, read
+[05 Privacy and data handling](<./05 Privacy and data handling.md>) — the disposable mailbox routes your
+mail through a third party, and your own IMAP server does not.
+
+## Features
 
 - [01 Create a mailbox](<./01 Create a mailbox.md>)
 - [02 IMAP mode](<./02 IMAP mode.md>)
 - [03 Email notes and commands](<./03 Email notes and commands.md>)
 - [04 Settings](<./04 Settings.md>)
+- [05 Privacy and data handling](<./05 Privacy and data handling.md>)
