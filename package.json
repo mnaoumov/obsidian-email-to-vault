@@ -1,6 +1,6 @@
 {
   "name": "email-to-vault",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Sends emails to your vault as notes. Create a free mailbox with one click — no backend or paid service required.",
   "keywords": [],
   "homepage": "https://github.com/mnaoumov/obsidian-email-to-vault#readme",
