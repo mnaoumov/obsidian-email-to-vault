@@ -5,75 +5,59 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-email-to-vault/total)](https://github.com/mnaoumov/obsidian-email-to-vault/releases)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-email-to-vault)
 
-This is a plugin for [Obsidian](https://obsidian.md/) that syncs emails into your vault as notes. Create a free disposable mailbox with one click, or connect your own IMAP server (Gmail, Outlook, etc.). No backend or paid service required. Inspired by [`Save emails into Evernote`](<https://help.evernote.com/hc/en-us/articles/209005347-Save-emails-into-Evernote>) feature.
+Things worth keeping arrive by email — a receipt, a confirmation, a thread you want to think about —
+and getting them into [Obsidian](https://obsidian.md/) means copying, pasting and re-saving the
+attachments by hand. This plugin makes an email address the way into your vault: send or forward mail
+to it and each message becomes a note, with From, To, CC, Subject, Body and attachments preserved.
 
-![settings](<./images/settings.png>)
-
-![note](<./images/note.png>)
-
-## Features
-
-- **Two email modes** — use the built-in disposable mailbox (Mail.tm) or connect your own IMAP server
-- **One-click mailbox creation** — get a dedicated email address instantly from the plugin settings (Mail.tm mode)
-- **IMAP support** — connect to any IMAP-compatible email server such as Gmail, Outlook, or a self-hosted server (desktop only)
-- **Completely free** — no paid service, no self-hosted server, no external account needed
-- **Automatic sync** — the plugin periodically checks for new emails and saves them as notes
-- **Preserve read state** — optionally leave emails untouched on the server so they stay unread in your other email clients while still being archived
-- **Full metadata preservation** — From, To, CC, Subject, Body, and Attachments are all captured
-- **Works on desktop and mobile** (IMAP mode is desktop only)
-
-## How it works
-
-### Mail.tm mode (default)
-
-1. Open the plugin settings and click **Create Mailbox** to generate your unique email address
-2. Forward or send emails to that address
-3. The plugin automatically fetches new emails and creates notes in your vault
-
-### IMAP mode
-
-1. Open the plugin settings and select **IMAP** as the email provider
-2. Enter your IMAP server details (host, port, TLS) and credentials
-   - For Gmail with 2FA, use an [App Password](https://myaccount.google.com/apppasswords)
-3. The plugin connects to your mailbox, fetches new emails, and creates notes in your vault
-
-> [!NOTE]
->
-> IMAP mode is only available on desktop. On mobile devices, use Mail.tm instead.
-
-### Keeping emails unread
-
-By default the plugin flags each email as **seen** on the server once it has been saved as a note, so it is not imported again. If you also read your mail in another client (Gmail, Outlook, etc.) and want archived emails to stay **unread** there, disable **Mark emails as seen** in the plugin settings. In that mode the plugin leaves emails untouched on the server and tracks which ones it has already imported by date instead.
-
-## Privacy & data handling
-
-### Mail.tm mode
-
-> [!WARNING]
->
-> Emails are routed through a third-party server [mail.tm].
->
-> **Do not send sensitive information — use at your own risk.**
-
-This plugin uses [mail.tm] as the email provider. Message contents, sender addresses, and attachments are processed on third-party infrastructure before reaching your vault. Known properties of the provider (according to their [FAQ](https://mail.tm/en/faq/)):
-
-- Messages are retained for **up to 7 days** on [mail.tm] servers.
-- [mail.tm] claims it does not store IP addresses, but does not publish its jurisdiction, governing law, or corporate location.
-- No GDPR/CCPA compliance claim is made by the provider.
-
-By using this plugin, you acknowledge that any information you send — including sensitive or private data — is transmitted at your own risk. The plugin author makes no warranties regarding the confidentiality, integrity, or availability of data handled by mail.tm.
-
-### IMAP mode
-
-In IMAP mode, the plugin connects directly to your email server. No data is routed through third-party services beyond your own email provider. Your IMAP password is stored in Obsidian's built-in secret storage.
+Use the built-in disposable mailbox (Mail.tm) for a one-click address that needs no account, or connect
+your own IMAP server — Gmail, Outlook, self-hosted — and keep everything on infrastructure you already
+trust. No backend and no paid service either way. Inspired by
+[`Save emails into Evernote`](<https://help.evernote.com/hc/en-us/articles/209005347-Save-emails-into-Evernote>).
 
 ## Demo vault
 
-A demo vault with usage examples ships with every release. You can access it via any of the following:
+**The documentation is a demo vault.** Every feature has a note explaining what it does and why you
+would want it, and walking you through it.
+
+**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on GitHub with
+nothing installed.
+
+A copy of the vault ships with every release. You can access it via any of the following:
 
 1. Running the **Email to Vault: Open demo vault** command.
 2. Downloading `email-to-vault-demo-vault-<version>.zip` (`<version>` is the release version) from the [Releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases).
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
+
+> [!NOTE]
+>
+> Unlike most demo vaults, this one cannot pre-bake its feature: it fetches real mail from a live
+> service over the network. The notes walk you through configuring **your own** inbox instead.
+
+## What it does
+
+- **Two email modes** — a disposable Mail.tm mailbox created in one click, or your own IMAP server.
+  IMAP is desktop only; Mail.tm works everywhere.
+  [01 Create a mailbox](<./demo-vault/01 Create a mailbox.md>) ·
+  [02 IMAP mode](<./demo-vault/02 IMAP mode.md>)
+- **Automatic sync** — the plugin checks for new mail periodically and saves each message as a note,
+  with full metadata and attachments.
+  [03 Email notes and commands](<./demo-vault/03 Email notes and commands.md>)
+- **Notes shaped the way you want** — path and body come from templates, so an email can land anywhere
+  under any name with whatever frontmatter you choose.
+  [04 Settings](<./demo-vault/04 Settings.md>)
+- **Preserve read state** — optionally leave messages untouched on the server, so they stay unread in
+  your other email clients while still being archived here.
+  [04 Settings](<./demo-vault/04 Settings.md>)
+- **Know where your mail goes.** Mail.tm routes messages through a third party; IMAP does not. The
+  difference is spelled out rather than buried.
+  [05 Privacy and data handling](<./demo-vault/05 Privacy and data handling.md>)
+
+> [!WARNING]
+>
+> In Mail.tm mode, emails are routed through the third-party service [mail.tm](https://mail.tm/) and
+> retained there for up to 7 days. **Do not send sensitive information — use at your own risk.** See
+> [05 Privacy and data handling](<./demo-vault/05 Privacy and data handling.md>).
 
 ## Installation
 
@@ -99,6 +83,14 @@ window.DEBUG.enable('email-to-vault');
 
 For more details, refer to the [documentation](https://mnaoumov.dev/obsidian-dev-utils/guides/debugging/).
 
+## Changelog
+
+All notable changes to this project will be documented in the [CHANGELOG](./CHANGELOG.md).
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set up.
+
 ## Support
 
 <!-- markdownlint-disable MD033 -->
@@ -114,5 +106,3 @@ For more details, refer to the [documentation](https://mnaoumov.dev/obsidian-dev
 ## License
 
 © [Michael Naumov](https://github.com/mnaoumov/)
-
-[mail.tm]: https://mail.tm/

@@ -11,12 +11,18 @@ Instead of the disposable Mail.tm mailbox, you can connect Email to Vault direct
 1. Open **Settings -> Community plugins -> Email to Vault**.
 2. Under **Provider**, set **Email provider** to **IMAP**.
 3. Fill in the **IMAP** group with your server details:
-   - **Server host** — e.g. `imap.gmail.com`.
-   - **Server port** — usually `993`.
-   - **Use TLS** — leave enabled for a secure connection.
-   - **Mailbox** — the folder to read, e.g. `INBOX`.
-   - **Email address** — your login username.
-   - **Email password** — your password. For Gmail with 2FA, create an [App password](https://myaccount.google.com/apppasswords) rather than using your account password.
+   - **Server host**
+     - e.g. `imap.gmail.com`.
+   - **Server port**
+     - usually `993`.
+   - **Use TLS**
+     - leave enabled for a secure connection.
+   - **Mailbox**
+     - the folder to read, e.g. `INBOX`.
+   - **Email address**
+     - your login username.
+   - **Email password**
+     - your password. For Gmail with 2FA, create an [App password](https://myaccount.google.com/apppasswords) rather than using your account password.
 4. Optionally enable **Delete seen emails** to remove each message from the server once it has been saved.
 5. Run a fetch command (see [03 Email notes and commands](<./03 Email notes and commands.md>)) or wait for the automatic check. Matching emails become notes in your vault.
 
