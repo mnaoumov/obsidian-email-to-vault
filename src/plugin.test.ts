@@ -44,11 +44,20 @@ vi.mock('obsidian-dev-utils/obsidian/app', async (importOriginal) => ({
   getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
+// The subset of `App` the dev-utils Notebook Navigator bridge reads on layout-ready.
+interface AppWithPlugins {
+  plugins: PluginRegistryLike;
+}
+
 // A dev-utils/own component that is added via `addChild` must be loadable, so its stub returns a
 // Real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
 // Not the discarded `this` (`mock.instances[0]`).
 interface ObsidianComponentModule {
   Component: new () => object;
+}
+
+interface PluginRegistryLike {
+  getPlugin(this: void, id: string): unknown;
 }
 
 // The settings component is awaited (`loadWithPromises`) by `onloadImpl`, which a plain `Component` does
@@ -83,14 +92,9 @@ vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-hand
   OpenSettingsCommandHandler: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/data-handler', () => ({
-  PluginDataHandler: vi.fn()
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-event-source', () => ({
-  PluginEventSourceImpl: vi.fn()
-}));
-
+// `PluginDataHandler` and `PluginEventSourceImpl` are NOT stubbed: since obsidian-dev-utils 93.2 the base
+// Builds its own settings component out of them during `onload`, and that component really calls
+// `pluginEventSource.on`, so a bare `vi.fn()` double makes the base throw before `onloadImpl` runs (G49).
 vi.mock('./tokenized-string-language-component.ts', async () => ({
   TokenizedStringLanguageComponent: await loadableComponentStub()
 }));
@@ -135,8 +139,6 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 // Is asserted without exercising the mocked command handlers against a real registrar.
 vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockResolvedValue(strictProxy<DisposableEx>({}));
 
-const MockPluginDataHandler = vi.mocked(PluginDataHandler);
-const MockPluginEventSourceImpl = vi.mocked(PluginEventSourceImpl);
 const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailCheckerComponent);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
@@ -181,6 +183,9 @@ describe('Plugin', () => {
     appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
       callback();
     });
+    // Since obsidian-dev-utils 89.0.0 the base bridges its command handlers into Notebook Navigator's
+    // Menus, which looks the plugin up on layout-ready -- so `plugins` has to answer on the strict mock.
+    castTo<AppWithPlugins>(appMock).plugins = { getPlugin: vi.fn().mockReturnValue(null) };
     app = appMock.asOriginalType__();
   });
 
@@ -196,10 +201,11 @@ describe('Plugin', () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
-      expect(MockPluginSettingsComponent).toHaveBeenCalledWith({
-        dataHandler: MockPluginDataHandler.mock.instances[0],
+      const params = MockPluginSettingsComponent.mock.calls[0]?.[0];
+      expect(params?.dataHandler).toBeInstanceOf(PluginDataHandler);
+      expect(params?.pluginEventSource).toBeInstanceOf(PluginEventSourceImpl);
+      expect(params).toMatchObject({
         mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
-        pluginEventSource: MockPluginEventSourceImpl.mock.instances[0],
         pluginId: 'email-to-vault',
         pluginSettingsClass: PluginSettings
       });
