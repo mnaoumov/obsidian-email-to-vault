@@ -30,6 +30,43 @@ Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.m
 
 ## Try it
 
-1. Configure a mailbox and send yourself a test email.
-2. Run **Email to Vault: Check emails**.
-3. Open the `Emails/` folder — your message is now a note. Tweak the templates in [04 Settings](<./04 Settings.md>) and fetch again to see the format change.
+1. Configure a mailbox and send yourself a test email. This part is genuinely yours - the plugin
+   fetches real mail from a live service, so nothing here can stand in for it.
+
+   ```code-button
+   ---
+   caption: Open the plugin's settings (where Create Mailbox lives)
+   ---
+   require('/demoSetup.ts').openPluginSettings(app);
+   ```
+
+2. Fetch:
+
+   ```code-button
+   ---
+   caption: Check emails
+   ---
+   require('/demoSetup.ts').checkEmails(app);
+   ```
+
+   Manual equivalent: **Email to Vault: Check emails** in the Command Palette.
+
+3. Open the `Emails/` folder — your message is now a note.
+
+Then change the note template and fetch again. Typing a multi-line template into a settings text area is the awkward part, so both of these are one press:
+
+```code-button
+---
+caption: Use a short, readable note template
+---
+await require('/demoSetup.ts').useMinimalNoteTemplate(app);
+```
+
+```code-button
+---
+caption: Restore the shipped templates
+---
+await require('/demoSetup.ts').restoreDefaultTemplates(app);
+```
+
+Manual equivalent: edit **Email note template** and **Email note path template** in [04 Settings](<./04 Settings.md>).
