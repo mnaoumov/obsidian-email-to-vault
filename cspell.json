@@ -39,7 +39,9 @@
     "sendername",
     "tsbuildinfo",
     "unstub",
-    "urlpattern"
+    "unvalidated",
+    "urlpattern",
+    "wdio"
   ],
   "ignoreWords": [],
   "import": [],
