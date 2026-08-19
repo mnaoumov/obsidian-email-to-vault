@@ -10,27 +10,29 @@ Welcome to the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-va
 
 The quickest route to a real email in this vault, with no account of your own:
 
-1. Open the plugin's settings and click **Create Mailbox**. You get a disposable address instantly —
-   no signup.
+**Step 1 — get an address.** Open the plugin's settings and click **Create Mailbox**. You get a
+disposable address instantly — no signup.
 
-   ```code-button
-   ---
-   caption: Open the plugin's settings
-   ---
-   require('/demoSetup.ts').openPluginSettings(app);
-   ```
+```code-button
+---
+caption: Open the plugin's settings
+---
+require('/demoSetup.ts').openPluginSettings(app);
+```
 
-2. Send an email to that address from anywhere. **This step is yours** — see the note above.
-3. Fetch it:
+**Step 2 — send it something.** Email that address from anywhere. **This step is yours** — see the
+note above.
 
-   ```code-button
-   ---
-   caption: Check emails
-   ---
-   require('/demoSetup.ts').checkEmails(app);
-   ```
+**Step 3 — fetch it.**
 
-4. A note appears carrying the From, To, CC, Subject, Body and any attachments.
+```code-button
+---
+caption: Check emails
+---
+require('/demoSetup.ts').checkEmails(app);
+```
+
+**Step 4.** A note appears carrying the From, To, CC, Subject, Body and any attachments.
 
 That is the whole loop. [01 Create a mailbox](<./01 Create a mailbox.md>) walks it in detail; before
 you point it at anything you care about, read
