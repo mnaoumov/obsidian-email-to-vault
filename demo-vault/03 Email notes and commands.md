@@ -30,28 +30,28 @@ Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.m
 
 ## Try it
 
-1. Configure a mailbox and send yourself a test email. This part is genuinely yours - the plugin
-   fetches real mail from a live service, so nothing here can stand in for it.
+**Step 1 — get some mail.** Configure a mailbox and send yourself a test email. This part is genuinely
+yours - the plugin fetches real mail from a live service, so nothing here can stand in for it.
 
-   ```code-button
-   ---
-   caption: Open the plugin's settings (where Create Mailbox lives)
-   ---
-   require('/demoSetup.ts').openPluginSettings(app);
-   ```
+```code-button
+---
+caption: Open the plugin's settings (where Create Mailbox lives)
+---
+require('/demoSetup.ts').openPluginSettings(app);
+```
 
-2. Fetch:
+**Step 2 — fetch.**
 
-   ```code-button
-   ---
-   caption: Check emails
-   ---
-   require('/demoSetup.ts').checkEmails(app);
-   ```
+```code-button
+---
+caption: Check emails
+---
+require('/demoSetup.ts').checkEmails(app);
+```
 
-   Manual equivalent: **Email to Vault: Check emails** in the Command Palette.
+Manual equivalent: **Email to Vault: Check emails** in the Command Palette.
 
-3. Open the `Emails/` folder — your message is now a note.
+**Step 3.** Open the `Emails/` folder — your message is now a note.
 
 Then change the note template and fetch again. Typing a multi-line template into a settings text area is the awkward part, so both of these are one press:
 
