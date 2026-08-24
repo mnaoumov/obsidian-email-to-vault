@@ -37,6 +37,7 @@
     "Promisable",
     "Redownloaded",
     "sendername",
+    "STARTTLS",
     "tsbuildinfo",
     "unstub",
     "unvalidated",

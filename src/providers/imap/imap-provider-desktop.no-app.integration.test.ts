@@ -2,7 +2,9 @@ import type { MessageStructureObject } from 'imapflow';
 
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
+import { lookup } from 'node:dns/promises';
 import { createTransport } from 'nodemailer';
+import { sleep } from 'obsidian-dev-utils/async';
 import {
   afterAll,
   beforeAll,
@@ -13,6 +15,9 @@ import {
 
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;
+const SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS = 15_000;
+const SMTP_GREETING_TIMEOUT_IN_MILLISECONDS = 10_000;
+const SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS = 30_000;
 const TEST_SUBJECT_PREFIX = `imap-integration-test-${String(Date.now())}`;
 
 interface SendTestEmailOptions {
@@ -41,15 +46,33 @@ function createImapClient(): ImapFlow {
   });
 }
 
-function createSmtpTransport(): ReturnType<typeof createTransport> {
+/**
+ * Builds the SMTP transport the suite sends its test mail through.
+ *
+ * The host is resolved here, with `dns.lookup`, rather than being handed to nodemailer as a name.
+ * Nodemailer resolves names through `dns.Resolver` (c-ares), and only falls back to `dns.lookup`
+ * once `resolve4` AND `resolve6` have both exhausted their retries — so on a machine whose
+ * configured nameservers are unreachable (a VPN's, say) every send stalls for minutes before a
+ * socket is ever opened, which is why none of the timeouts below can rescue it. Passing an address
+ * short-circuits all of that: nodemailer returns immediately for a `net.isIP` host. `tls.servername`
+ * keeps SNI and the STARTTLS certificate check pointed at the real hostname rather than the address.
+ */
+async function createSmtpTransport(): Promise<ReturnType<typeof createTransport>> {
+  const host = getRequiredEnv('SMTP_HOST');
+  const { address } = await lookup(host);
+
   return createTransport({
     auth: {
       pass: getRequiredEnv('SMTP_PASS'),
       user: getRequiredEnv('SMTP_USER')
     },
-    host: getRequiredEnv('SMTP_HOST'),
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS,
+    greetingTimeout: SMTP_GREETING_TIMEOUT_IN_MILLISECONDS,
+    host: address,
     port: Number(getRequiredEnv('SMTP_PORT')),
-    secure: getRequiredEnv('SMTP_SECURE') === 'true'
+    secure: getRequiredEnv('SMTP_SECURE') === 'true',
+    socketTimeout: SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS,
+    tls: { servername: host }
   });
 }
 
@@ -75,7 +98,7 @@ async function pollForMessage(subject: string): Promise<number> {
           return foundUidList[0] ?? 0;
         }
 
-        await sleep(POLL_INTERVAL_IN_MILLISECONDS);
+        await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
       }
     } finally {
       lock.release();
@@ -88,7 +111,7 @@ async function pollForMessage(subject: string): Promise<number> {
 }
 
 async function sendTestEmail(subjectSuffix: string, options?: SendTestEmailOptions): Promise<string> {
-  const transport = createSmtpTransport();
+  const transport = await createSmtpTransport();
   const subject = `${TEST_SUBJECT_PREFIX} ${subjectSuffix}`;
   const imapUser = getRequiredEnv('IMAP_USER');
 

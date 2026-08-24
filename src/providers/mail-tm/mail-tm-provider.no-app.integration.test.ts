@@ -1,4 +1,5 @@
 import dedent from 'dedent';
+import { lookup } from 'node:dns/promises';
 import { createTransport } from 'nodemailer';
 import { sleep } from 'obsidian-dev-utils/async';
 import {
@@ -74,6 +75,9 @@ const mailTmAccountResponseSchema = z.object({
 
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 const MAX_WAIT_IN_MILLISECONDS = 60_000;
+const SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS = 15_000;
+const SMTP_GREETING_TIMEOUT_IN_MILLISECONDS = 10_000;
+const SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS = 30_000;
 const FORWARDED_EMAIL_RFC822 = dedent`
   From: original-sender@example.com
   To: original-recipient@example.com
@@ -98,15 +102,33 @@ function addSuffix(address: string, suffix: string): string {
   return address.replace('@', () => `+${suffix}@`);
 }
 
-function createSmtpTransport(): ReturnType<typeof createTransport> {
+/**
+ * Builds the SMTP transport the suite sends its test mail through.
+ *
+ * The host is resolved here, with `dns.lookup`, rather than being handed to nodemailer as a name.
+ * Nodemailer resolves names through `dns.Resolver` (c-ares), and only falls back to `dns.lookup`
+ * once `resolve4` AND `resolve6` have both exhausted their retries — so on a machine whose
+ * configured nameservers are unreachable (a VPN's, say) every send stalls for minutes before a
+ * socket is ever opened, which is why none of the timeouts below can rescue it. Passing an address
+ * short-circuits all of that: nodemailer returns immediately for a `net.isIP` host. `tls.servername`
+ * keeps SNI and the STARTTLS certificate check pointed at the real hostname rather than the address.
+ */
+async function createSmtpTransport(): Promise<ReturnType<typeof createTransport>> {
+  const host = getRequiredEnv('SMTP_HOST');
+  const { address } = await lookup(host);
+
   return createTransport({
     auth: {
       pass: getRequiredEnv('SMTP_PASS'),
       user: getRequiredEnv('SMTP_USER')
     },
-    host: getRequiredEnv('SMTP_HOST'),
+    connectionTimeout: SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS,
+    greetingTimeout: SMTP_GREETING_TIMEOUT_IN_MILLISECONDS,
+    host: address,
     port: Number(getRequiredEnv('SMTP_PORT')),
-    secure: getRequiredEnv('SMTP_SECURE') === 'true'
+    secure: getRequiredEnv('SMTP_SECURE') === 'true',
+    socketTimeout: SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS,
+    tls: { servername: host }
   });
 }
 
@@ -145,7 +167,7 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
 
 async function sendForwardedEmail(baseAddress: string): Promise<void> {
   const smtpUser = getRequiredEnv('SMTP_USER');
-  const transport = createSmtpTransport();
+  const transport = await createSmtpTransport();
 
   await transport.sendMail({
     attachments: [
@@ -164,7 +186,7 @@ async function sendForwardedEmail(baseAddress: string): Promise<void> {
 
 async function sendGmailForwardedEmail(baseAddress: string): Promise<void> {
   const smtpUser = getRequiredEnv('SMTP_USER');
-  const transport = createSmtpTransport();
+  const transport = await createSmtpTransport();
 
   await transport.sendMail({
     from: smtpUser,
@@ -191,7 +213,7 @@ async function sendGmailForwardedEmail(baseAddress: string): Promise<void> {
 
 async function sendInlineImageEmail(baseAddress: string): Promise<void> {
   const smtpUser = getRequiredEnv('SMTP_USER');
-  const transport = createSmtpTransport();
+  const transport = await createSmtpTransport();
 
   await transport.sendMail({
     attachments: [
@@ -212,7 +234,7 @@ async function sendInlineImageEmail(baseAddress: string): Promise<void> {
 
 async function sendNormalEmail(baseAddress: string): Promise<void> {
   const smtpUser = getRequiredEnv('SMTP_USER');
-  const transport = createSmtpTransport();
+  const transport = await createSmtpTransport();
 
   await transport.sendMail({
     attachments: [
@@ -277,7 +299,7 @@ async function pollForSubject(token: string, subject: string): Promise<z.infer<t
 }
 
 async function sendSimpleEmail(baseAddress: string, subject: string): Promise<void> {
-  const transport = createSmtpTransport();
+  const transport = await createSmtpTransport();
 
   await transport.sendMail({
     from: getRequiredEnv('SMTP_USER'),
