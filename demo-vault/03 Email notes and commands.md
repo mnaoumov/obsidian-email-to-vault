@@ -30,8 +30,7 @@ Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.m
 
 ## Try it
 
-**Step 1 — get some mail.** Configure a mailbox and send yourself a test email. This part is genuinely
-yours - the plugin fetches real mail from a live service, so nothing here can stand in for it.
+**Step 1 — get some mail.** Configure a mailbox and send yourself a test email. This part is genuinely yours - the plugin fetches real mail from a live service, so nothing here can stand in for it.
 
 ```code-button
 ---
