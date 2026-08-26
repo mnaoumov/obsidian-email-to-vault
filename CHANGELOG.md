@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2.3.5
+
+- docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
+- docs(readme): render the same in Obsidian's plugin page as on GitHub
+- chore: update libs
+- test: unblock the no-app integration suite by bypassing nodemailer's c-ares DNS
+- chore: update obsidian-dev-utils to 94.6.1
+- chore: update obsidian-dev-utils to 94.6.0
+- fix: override deepmerge-ts to clear GHSA-ggr8-5vv4-36mx
+- test: gate the demo vault by clicking every code button
+- chore: teach cspell the advisory wording
+- chore: update libs
+- docs(demo-vault): give the demo vault its code buttons
+- docs: add store screenshots and surface them in the README
+
 ## 2.3.4
 
 - docs: make the demo vault the documentation, in the standard layout
