@@ -423,6 +423,8 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
       // A previous shot may have left the command palette on top of the note.
+      // Dispatched rather than pressed, permanently: `pressKey` goes through
+      // Electron's `sendInputEvent`, and there is no `window.electron` on a phone.
       const prompt = document.querySelector('.prompt');
       if (prompt) {
         document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
