@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.3.6
+
+- test(email-to-vault): dismiss a leftover palette with a trusted Escape on desktop
+
 ## 2.3.5
 
 - docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
