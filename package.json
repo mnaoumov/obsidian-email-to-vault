@@ -41,18 +41,18 @@
   "overrides": {
     "@puppeteer/browsers": "^3.2.1",
     "deepmerge-ts": "^8.0.2",
-    "js-yaml": "^5.3.0",
-    "markdown-it": "^15.0.0"
+    "js-yaml": "^5.4.1",
+    "markdown-it": "^15.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@commitlint/types": "^21.2.0",
-    "@obsidian-typings/obsidian-public-latest": "^6.34.0",
+    "@obsidian-typings/obsidian-public-latest": "^6.36.0",
     "@total-typescript/ts-reset": "^0.6.1",
     "@tsconfig/strictest": "^2.0.8",
     "@types/mailparser": "^3.4.6",
-    "@types/node": "^26.3.0",
+    "@types/node": "^26.4.0",
     "@types/nodemailer": "^8.0.1",
     "@vitest/coverage-v8": "^4.1.11",
     "better-typescript-lib": "^2.12.0",
@@ -63,15 +63,15 @@
     "imapflow": "^1.7.6",
     "jiti": "^2.7.0",
     "jsdom": "^30.0.1",
-    "mailparser": "^3.9.16",
+    "mailparser": "^3.9.18",
     "nano-staged": "^1.0.2",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^9.1.0",
     "obsidian": "^1.13.1",
     "obsidian-dev-utils": "^96.5.2",
     "obsidian-integration-testing": "^11.0.0",
-    "obsidian-test-mocks": "^4.2.0",
-    "sharp": "^0.35.3",
+    "obsidian-test-mocks": "^4.2.1",
+    "sharp": "^0.35.4",
     "vitest": "^4.1.11",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   }
 }
