@@ -400,7 +400,7 @@ async function openNote(notePath: string, mode: string): Promise<string> {
       const prompt = document.querySelector('.prompt');
       if (prompt) {
         // A trusted Escape, so the dismissal is the key press a user makes.
-        pressKey({ key: 'Escape' });
+        await pressKey({ key: 'Escape' });
         await sleep(SETTLE_DELAY_IN_MILLISECONDS);
       }
 

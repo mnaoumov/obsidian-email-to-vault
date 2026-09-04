@@ -44,20 +44,11 @@ vi.mock('obsidian-dev-utils/obsidian/app', async (importOriginal) => ({
   getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
-// The subset of `App` the dev-utils Notebook Navigator bridge reads on layout-ready.
-interface AppWithPlugins {
-  plugins: PluginRegistryLike;
-}
-
 // A dev-utils/own component that is added via `addChild` must be loadable, so its stub returns a
 // Real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
 // Not the discarded `this` (`mock.instances[0]`).
 interface ObsidianComponentModule {
   Component: new () => object;
-}
-
-interface PluginRegistryLike {
-  getPlugin(this: void, id: string): unknown;
 }
 
 // The settings component is awaited (`loadWithPromises`) by `onloadImpl`, which a plain `Component` does
@@ -183,9 +174,6 @@ describe('Plugin', () => {
     appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
       callback();
     });
-    // Since obsidian-dev-utils 89.0.0 the base bridges its command handlers into Notebook Navigator's
-    // Menus, which looks the plugin up on layout-ready -- so `plugins` has to answer on the strict mock.
-    castTo<AppWithPlugins>(appMock).plugins = { getPlugin: vi.fn().mockReturnValue(null) };
     app = appMock.asOriginalType__();
   });
 
