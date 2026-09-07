@@ -38,7 +38,7 @@ Use the built-in disposable mailbox (Mail.tm) for a one-click address that needs
 A copy of the vault ships with every release. You can access it via any of the following:
 
 1. Running the **Email to Vault: Open demo vault** command.
-2. Downloading `email-to-vault-demo-vault-<version>.zip` (`<version>` is the release version) from the [Releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases).
+2. Downloading `email-to-vault-demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-email-to-vault/releases). It unzips into a single `email-to-vault-demo-vault-<version>` folder.
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
 
 > [!NOTE]
