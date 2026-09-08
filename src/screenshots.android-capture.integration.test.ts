@@ -413,7 +413,7 @@ async function openCommandPalette(query: string): Promise<string[]> {
  */
 async function openNote(notePath: string, mode: string, shouldShowTree = false): Promise<string> {
   return await evalInObsidian({
-    async callback({ app, lib: { waitUntil }, mode: viewMode, notePath: path, shouldShowTree: isTreeWanted }) {
+    async callback({ app, lib: { pressKey, waitUntil }, mode: viewMode, notePath: path, shouldShowTree: isTreeWanted }) {
       const RENDER_TIMEOUT_IN_MILLISECONDS = 20_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1500;
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
@@ -423,11 +423,9 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
       // A previous shot may have left the command palette on top of the note.
-      // Dispatched rather than pressed, permanently: `pressKey` goes through
-      // Electron's `sendInputEvent`, and there is no `window.electron` on a phone.
       const prompt = document.querySelector('.prompt');
       if (prompt) {
-        document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
+        await pressKey({ key: 'Escape' });
         await sleep(SETTLE_DELAY_IN_MILLISECONDS);
       }
 
