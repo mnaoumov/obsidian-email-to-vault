@@ -14,7 +14,7 @@ import type { PluginSettings } from './plugin-settings.ts';
 import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 
 import { EmailProviderType } from './providers/email-provider-type.ts';
-import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language-component.ts';
+import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
   readonly emailProviderManager: EmailProviderManagerComponent;

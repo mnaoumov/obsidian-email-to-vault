@@ -11,6 +11,7 @@ import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-han
 import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
+import { TemplatesLanguageComponent } from 'obsidian-dev-utils/obsidian/components/templates-language-component';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
@@ -34,7 +35,7 @@ import { PluginSettings } from './plugin-settings.ts';
 import { Plugin } from './plugin.ts';
 import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
-import { TokenizedStringLanguageComponent } from './tokenized-string-language-component.ts';
+import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 
 // The real `PluginBase.onload()` loads dev-utils' own notice/context/debug components, which read a
 // Shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
@@ -86,8 +87,8 @@ vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-hand
 // `PluginDataHandler` and `PluginEventSourceImpl` are NOT stubbed: since obsidian-dev-utils 93.2 the base
 // Builds its own settings component out of them during `onload`, and that component really calls
 // `pluginEventSource.on`, so a bare `vi.fn()` double makes the base throw before `onloadImpl` runs (G49).
-vi.mock('./tokenized-string-language-component.ts', async () => ({
-  TokenizedStringLanguageComponent: await loadableComponentStub()
+vi.mock('obsidian-dev-utils/obsidian/components/templates-language-component', async () => ({
+  TemplatesLanguageComponent: await loadableComponentStub()
 }));
 
 vi.mock('./plugin-settings-component.ts', () => ({
@@ -137,7 +138,7 @@ const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
 const MockEmailProviderManager = vi.mocked(EmailProviderManagerComponent);
 const MockPluginSettingsComponent = vi.mocked(PluginSettingsComponent);
 const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
-const MockTokenizedStringLanguageComponent = vi.mocked(TokenizedStringLanguageComponent);
+const MockTemplatesLanguageComponent = vi.mocked(TemplatesLanguageComponent);
 const MockRedownloadAllEmailsCommandHandler = vi.mocked(RedownloadAllEmailsCommandHandler);
 const MockRedownloadRecentEmailsCommandHandler = vi.mocked(RedownloadRecentEmailsCommandHandler);
 
@@ -249,11 +250,12 @@ describe('Plugin', () => {
       });
     });
 
-    it('should create TokenizedStringLanguageComponent', async () => {
+    it('should create TemplatesLanguageComponent for the plugin language', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
-      expect(MockTokenizedStringLanguageComponent).toHaveBeenCalledOnce();
+      expect(MockTemplatesLanguageComponent).toHaveBeenCalledOnce();
+      expect(MockTemplatesLanguageComponent).toHaveBeenCalledWith({ language: TOKENIZED_STRING_LANGUAGE });
     });
 
     it('should create CheckEmailsCommandHandler with emailChecker', async () => {
@@ -295,7 +297,7 @@ describe('Plugin', () => {
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPluginSettingsComponent));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailProviderManager));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailChecker));
-      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockTokenizedStringLanguageComponent));
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockTemplatesLanguageComponent));
     });
 
     it('should register the command handlers on the pre-wired commandHandlerComponent', async () => {
