@@ -1,6 +1,7 @@
 import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
 import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
 import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
+import { TemplatesLanguageComponent } from 'obsidian-dev-utils/obsidian/components/templates-language-component';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
@@ -15,7 +16,7 @@ import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
-import { TokenizedStringLanguageComponent } from './tokenized-string-language-component.ts';
+import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 
 export class Plugin extends PluginBase {
   protected override async onloadImpl(): Promise<void> {
@@ -74,7 +75,7 @@ export class Plugin extends PluginBase {
         pluginSettingsTab
       })
     );
-    this.addChild(new TokenizedStringLanguageComponent());
+    this.addChild(new TemplatesLanguageComponent({ language: TOKENIZED_STRING_LANGUAGE }));
     await this.commandHandlerComponent.registerCommandHandlers(() => [
       new CheckEmailsCommandHandler(emailChecker),
       new OpenDemoVaultCommandHandler({
