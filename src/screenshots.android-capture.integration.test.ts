@@ -413,9 +413,15 @@ async function openCommandPalette(query: string): Promise<string[]> {
  */
 async function openNote(notePath: string, mode: string, shouldShowTree = false): Promise<string> {
   return await evalInObsidian({
-    // eslint-disable-next-line obsidian-dev-utils/no-over-cap-wait-in-eval-in-obsidian -- Knowingly over the cap and not convertible in place: this closure is an imperative drive sequence (open the note, set the view state, expand the tree, coax the drawer out), not a wait on one condition, so it has no `poll` / `until` pair to split into. Moving its waiting to Node means restructuring the Android screenshot driver, which the fleet-wide per-eval-cap sweep owns. The declared budget is a ceiling that is rarely approached, which is why the suite passes today.
     async callback({ app, lib: { pressKey, waitUntil }, mode: viewMode, notePath: path, shouldShowTree: isTreeWanted }) {
-      const RENDER_TIMEOUT_IN_MILLISECONDS = 20_000;
+      /*
+       * Under the transport's ~30s per-closure cap, not at it.
+       * This wait shares its budget with 10.5s of settles, so at 20_000 the closure declared 30.5s.
+       * The eval is killed at the cap first and reported as a bare transport timeout.
+       * That names the harness rather than the wait that overran.
+       * The note rendering lands in well under a second, so the smaller ceiling costs nothing.
+       */
+      const RENDER_TIMEOUT_IN_MILLISECONDS = 12_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1500;
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
 
