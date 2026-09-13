@@ -14,7 +14,7 @@
  *
  * That makes the suite dependent on two live services. It is the only honest
  * option: this plugin's whole subject is mail arriving from outside, and its own
- * demo vault says as much — it is the one vault in the fleet that cannot pre-bake
+ * demo vault says as much — it is the author's one demo vault that cannot pre-bake
  * its feature.
  *
  * The sender address is whatever `SMTP_USER` is in `.env`, so it appears in the
