@@ -39,6 +39,7 @@ import {
   captureObsidianScreenshot,
   evalInObsidian,
   labelScreenshot,
+  pollInObsidian,
   raiseSoftKeyboard,
   readPngDimensions,
   resolveEmulatorDeviceId,
@@ -59,6 +60,19 @@ import {
 interface CollapsibleFileItem {
   collapsed?: boolean;
   setCollapsed?(this: void, isCollapsed: boolean): Promise<void>;
+}
+
+/**
+ * What one drawer attempt saw.
+ *
+ * `isOpen` is what the Node-side `until` accepts on; the other two are the facts
+ * the failure message is built from, carried out of Obsidian on every attempt so
+ * the LAST of them is still in hand when the budget runs out.
+ */
+interface DrawerAttempt {
+  collapsed: boolean;
+  display: string;
+  isOpen: boolean;
 }
 
 /**
@@ -434,14 +448,17 @@ async function openCommandPalette(query: string): Promise<string[]> {
  * @returns The note's Markdown.
  */
 async function openNote(notePath: string, mode: string, shouldShowTree = false): Promise<string> {
-  return await evalInObsidian({
-    async callback({ app, lib: { pressKey, waitUntil }, mode: viewMode, notePath: path, shouldShowTree: isTreeWanted }) {
+  await evalInObsidian({
+    async callback({ app, lib: { pressKey, waitUntil }, mode: viewMode, notePath: path }) {
       /*
        * Under the transport's ~30s per-closure cap, not at it.
-       * This wait shares its budget with 10.5s of settles, so at 20_000 the closure declared 30.5s.
-       * The eval is killed at the cap first and reported as a bare transport timeout.
-       * That names the harness rather than the wait that overran.
-       * The note rendering lands in well under a second, so the smaller ceiling costs nothing.
+       * This wait shares its budget with 3.5s of settles, which is what the ceiling was cut to
+       * 12_000 for: the drawer retry used to sit in this closure too, and at 20_000 the whole
+       * thing declared 50.5s, so the eval was killed at the cap and reported as a bare
+       * transport timeout naming the harness rather than the wait that overran.
+       * The retry is in Node now, so the shared budget is no longer the binding constraint —
+       * the ceiling stays where it is because the note rendering lands in well under a second
+       * and the smaller number costs nothing.
        */
       const RENDER_TIMEOUT_IN_MILLISECONDS = 12_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1500;
@@ -487,58 +504,141 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
           }
         }
       }
+    },
+    input: { mode, notePath },
+    vaultPath: vaultPath()
+  });
 
-      // The tree lives in the left DRAWER on a phone, and it covers most of the
-      // Screen — so it is opened only where the claim is about WHERE notes land,
-      // And left shut for the shots that are about a note's own content.
-      //
-      // Three tricks, each of which looks like the others from outside: the
-      // Split's `collapsed` flag reads false while the element is still
-      // `display: none` (so collapse first, then expand); `revealLeaf` must come
-      // AFTER the drawer is out or the rows lay out at zero width; and the drawer
-      // Slides, so a frame taken too early is a black panel.
-      if (isTreeWanted) {
-        const DRAWER_ATTEMPTS = 6;
-        const DRAWER_SETTLE_DELAY_IN_MILLISECONDS = 2500;
-        const TOGGLE_DELAY_IN_MILLISECONDS = 500;
+  /*
+   * The tree lives in the left DRAWER on a phone, and it covers most of the screen — so it is
+   * opened only where the claim is about WHERE notes land, and left shut for the shots that are
+   * about a note's own content.
+   *
+   * Three tricks, each of which looks like the others from outside: the split's `collapsed`
+   * flag reads false while the element is still `display: none` (so collapse first, then
+   * expand); `revealLeaf` must come AFTER the drawer is out or the rows lay out at zero width;
+   * and the drawer slides, so a frame taken too early is a black panel.
+   *
+   * The retry runs from NODE, one attempt per transport call. Every sleep in an attempt is
+   * unconditional, so an attempt really costs the toggle plus both settles — 5 500 ms — and six
+   * of them is 33 000 ms, past the ~30 000 ms a single transport call is capped at. Run inside
+   * one closure, as this was, the sixth attempt crossed the cap and the `Error` below could
+   * never be thrown: an exhausted retry died instead as a bare `WebDriverError: script timeout`
+   * naming only `AppiumTransport.evaluate` — the one failure the retry anticipated was the one
+   * failure it could not report.
+   */
+  if (shouldShowTree) {
+    const DRAWER_ATTEMPTS = 6;
+    const DRAWER_SETTLE_DELAY_IN_MILLISECONDS = 2500;
+    const TOGGLE_DELAY_IN_MILLISECONDS = 500;
+    const POLL_INTERVAL_IN_MILLISECONDS = 500;
+    const DRAWER_ATTEMPT_COST_IN_MILLISECONDS = TOGGLE_DELAY_IN_MILLISECONDS + 2 * DRAWER_SETTLE_DELAY_IN_MILLISECONDS;
 
-        function isDrawerOpen(): boolean {
-          return [...document.querySelectorAll('.nav-files-container .tree-item-self')]
-            .map((row) => row.getBoundingClientRect())
-            .some((rect) => rect.width > 0 && rect.left >= 0);
-        }
+    /*
+     * A Node-side budget, where the cap does not apply, rather than an attempt count: the
+     * deadline is checked after an unsatisfied attempt RETURNS, so 33 000 ms admits exactly six
+     * of them — the fifth ends at 29 500 ms and the sixth at 35 500 ms.
+     */
+    const DRAWER_BUDGET_IN_MILLISECONDS = DRAWER_ATTEMPTS * DRAWER_ATTEMPT_COST_IN_MILLISECONDS;
 
-        let isOpen = false;
-        for (let attempt = 0; attempt < DRAWER_ATTEMPTS && !isOpen; attempt++) {
+    let lastAttempt: DrawerAttempt | undefined;
+
+    try {
+      await pollInObsidian({
+        /*
+         * The delays travel as `input` rather than as literals inside the closure so the
+         * attempt cost above and the sleeps below are the same three numbers — and the
+         * `no-over-cap-wait-in-eval-in-obsidian` lint rule follows a destructured parameter
+         * back through `input`, so the closure is still sized at 5 500 ms rather than read as
+         * unbounded.
+         */
+        input: {
+          drawerSettleDelayInMilliseconds: DRAWER_SETTLE_DELAY_IN_MILLISECONDS,
+          toggleDelayInMilliseconds: TOGGLE_DELAY_IN_MILLISECONDS
+        },
+        intervalInMilliseconds: POLL_INTERVAL_IN_MILLISECONDS,
+        async poll({ app, drawerSettleDelayInMilliseconds, toggleDelayInMilliseconds }): Promise<DrawerAttempt> {
+          function isDrawerOpen(): boolean {
+            return [...document.querySelectorAll('.nav-files-container .tree-item-self')]
+              .map((row) => row.getBoundingClientRect())
+              .some((rect) => rect.width > 0 && rect.left >= 0);
+          }
+
+          // ONE collapse/expand pair per attempt, never two: calling `expand()`
+          // Again on a drawer that is already sliding open toggles it back, so an
+          // Eager retry flips it open and shut forever and never satisfies its own
+          // Predicate. The poll interval is what keeps the next attempt from
+          // Landing mid-slide.
           app.workspace.leftSplit.collapse();
-          await sleep(TOGGLE_DELAY_IN_MILLISECONDS);
+          await sleep(toggleDelayInMilliseconds);
           app.workspace.leftSplit.expand();
-          await sleep(DRAWER_SETTLE_DELAY_IN_MILLISECONDS);
+          await sleep(drawerSettleDelayInMilliseconds);
 
+          const fileExplorerLeaf = app.workspace.getLeavesOfType('file-explorer')[0];
           if (fileExplorerLeaf) {
             await app.workspace.revealLeaf(fileExplorerLeaf);
           }
 
-          await sleep(DRAWER_SETTLE_DELAY_IN_MILLISECONDS);
-          isOpen = isDrawerOpen();
-        }
+          await sleep(drawerSettleDelayInMilliseconds);
 
-        if (!isOpen) {
+          // The two facts that told the story when this failed: the split's own
+          // Flag, and whether the drawer element is actually displayed. They
+          // Disagree, and that disagreement IS the bug this retry works around.
           const drawer = document.querySelector('.workspace-drawer.mod-left');
-          const display = drawer ? window.getComputedStyle(drawer).display : 'no-drawer';
-          throw new Error(
-            `The file drawer never finished opening. collapsed=${String(app.workspace.leftSplit.collapsed)} display=${display}`
-          );
-        }
-      } else {
+
+          return {
+            collapsed: app.workspace.leftSplit.collapsed,
+            display: drawer ? window.getComputedStyle(drawer).display : 'no-drawer',
+            isOpen: isDrawerOpen()
+          };
+        },
+        timeoutInMilliseconds: DRAWER_BUDGET_IN_MILLISECONDS,
+        timeoutMessage: 'the file drawer to finish opening',
+        until(attempt: DrawerAttempt): boolean {
+          // Remembered in NODE, because the attempt that fails is no longer the one
+          // That reports: the diagnostic below is thrown out here rather than
+          // Inside Obsidian.
+          lastAttempt = attempt;
+          return attempt.isOpen;
+        },
+        vaultPath: vaultPath()
+      });
+    } catch (error) {
+      // Only a drawer that was actually polled and never opened gets the drawer's
+      // Own message; anything that failed before the first attempt returned — a
+      // Missing note, a dead transport — is reported as itself.
+      if (!lastAttempt) {
+        throw error;
+      }
+
+      throw new Error(
+        `The file drawer never finished opening. collapsed=${String(lastAttempt.collapsed)} display=${lastAttempt.display}`,
+        { cause: error }
+      );
+    }
+  } else {
+    await evalInObsidian({
+      callback({ app }) {
         app.workspace.leftSplit.collapse();
+      },
+      vaultPath: vaultPath()
+    });
+  }
+
+  return await evalInObsidian({
+    async callback({ app, notePath: path }) {
+      const SETTLE_DELAY_IN_MILLISECONDS = 1500;
+
+      const file = app.vault.getFileByPath(path);
+      if (!file) {
+        throw new Error(`Note is missing from the vault: ${path}`);
       }
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
 
       return await app.vault.read(file);
     },
-    input: { mode, notePath, shouldShowTree },
+    input: { notePath },
     vaultPath: vaultPath()
   });
 }
