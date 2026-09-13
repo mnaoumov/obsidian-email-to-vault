@@ -43,7 +43,7 @@
 - chore: update libs
 - chore: update libs
 - chore(vitest): adopt the shared Obsidian plugin vitest configuration
-- refactor(prism): register the template language through ODU's SyntaxHighlightingComponent
+- refactor(prism): register the template language through obsidian-dev-utils' SyntaxHighlightingComponent
 
 ## 2.3.0
 
@@ -74,7 +74,7 @@
 ## 2.1.2
 
 - docs: standardize demo-vault README
-- docs: drop per-plugin demo-vault setup notes (bootstrap covered by ODU harness)
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the obsidian-dev-utils harness)
 - docs(demo-vault): create the Email to Vault demo vault
 - chore: update libs
 - docs: update
