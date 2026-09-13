@@ -3,7 +3,7 @@ import type { App } from 'obsidian';
 import { Notice } from 'obsidian';
 import { configureCommunityPlugin } from 'obsidian-dev-utils/obsidian/community-plugins';
 
-// This vault is G98's narrow exception: the feature fetches real mail from a live service over the
+// Not every headline feature gets a button here: the feature fetches real mail from a live service over the
 // Network, so no button can produce an email for you. What the buttons DO remove is everything either
 // Side of that — opening the settings tab, running the fetch, and the multi-line note templates, which
 // Are the fiddly part to type and the part worth experimenting with.

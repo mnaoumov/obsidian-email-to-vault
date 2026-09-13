@@ -86,7 +86,7 @@ vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-hand
 
 // `PluginDataHandler` and `PluginEventSourceImpl` are NOT stubbed: since obsidian-dev-utils 93.2 the base
 // Builds its own settings component out of them during `onload`, and that component really calls
-// `pluginEventSource.on`, so a bare `vi.fn()` double makes the base throw before `onloadImpl` runs (G49).
+// `pluginEventSource.on`, so a bare `vi.fn()` double makes the base throw before `onloadImpl` runs.
 vi.mock('obsidian-dev-utils/obsidian/components/templates-language-component', async () => ({
   TemplatesLanguageComponent: await loadableComponentStub()
 }));
