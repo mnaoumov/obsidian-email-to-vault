@@ -1,8 +1,8 @@
 /**
  * @file
  *
- * Produces the desktop screenshots the community-store listing needs
- * (T461-P21), driving REAL email through a real Obsidian and writing
+ * Produces the desktop screenshots the community-store listing needs,
+ * driving REAL email through a real Obsidian and writing
  * `images/screenshots/screenshot-desktop-N.png`.
  *
  * Nothing here is staged. The plugin creates its own disposable Mail.tm mailbox
