@@ -193,8 +193,8 @@ beforeAll(async () => {
       });
 
       // The drawer's foot carries the vault switcher, which in a capture run
-      // Shows the harness's generated `temp-vault-XXXXXX` name — a private-looking
-      // String that belongs in no listing.
+      // shows the harness's generated `temp-vault-XXXXXX` name — a private-looking
+      // string that belongs in no listing.
       const style = createEl('style');
       style.textContent = '.workspace-drawer-vault-switcher, .workspace-drawer-header-switcher { visibility: hidden; }';
       document.head.append(style);
@@ -258,7 +258,7 @@ describe('mobile store screenshots', () => {
     const notePath = await waitForNoteUnder(CUSTOM_TEMPLATE_FOLDER);
     const content = await openNote(notePath, 'preview');
     // The new template's own frontmatter, so the frame cannot be the old note
-    // Photographed in a new folder.
+    // photographed in a new folder.
     expect(content).toContain('tags:');
     expect(content).toContain('inbox/email');
     await shoot(4, 'Templates decide the path and the note itself');
@@ -426,7 +426,7 @@ async function openCommandPalette(query: string): Promise<string[]> {
 
       input.value = text;
       // The palette filters from its own input handler, so setting the value
-      // Alone would leave every command in the vault on screen.
+      // alone would leave every command in the vault on screen.
       input.dispatchEvent(new Event('input'));
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
@@ -465,7 +465,7 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
 
       // Let the previous shot's capture settle: the device-metrics override it
-      // Sets and clears disturbs anything driven too soon afterwards.
+      // sets and clears disturbs anything driven too soon afterwards.
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
       // A previous shot may have left the command palette on top of the note.
@@ -494,7 +494,7 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
       });
 
       // A folder the tree has not expanded is a folder the reader cannot see, and
-      // The email folder is created by the plugin mid-run, so it arrives collapsed.
+      // the email folder is created by the plugin mid-run, so it arrives collapsed.
       const fileExplorerLeaf = app.workspace.getLeavesOfType('file-explorer')[0];
       if (fileExplorerLeaf) {
         const view: unknown = fileExplorerLeaf.view;
@@ -565,10 +565,10 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
           }
 
           // ONE collapse/expand pair per attempt, never two: calling `expand()`
-          // Again on a drawer that is already sliding open toggles it back, so an
-          // Eager retry flips it open and shut forever and never satisfies its own
-          // Predicate. The poll interval is what keeps the next attempt from
-          // Landing mid-slide.
+          // again on a drawer that is already sliding open toggles it back, so an
+          // eager retry flips it open and shut forever and never satisfies its own
+          // predicate. The poll interval is what keeps the next attempt from
+          // landing mid-slide.
           app.workspace.leftSplit.collapse();
           await sleep(toggleDelayInMilliseconds);
           app.workspace.leftSplit.expand();
@@ -582,8 +582,8 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
           await sleep(drawerSettleDelayInMilliseconds);
 
           // The two facts that told the story when this failed: the split's own
-          // Flag, and whether the drawer element is actually displayed. They
-          // Disagree, and that disagreement IS the bug this retry works around.
+          // flag, and whether the drawer element is actually displayed. They
+          // disagree, and that disagreement IS the bug this retry works around.
           const drawer = document.querySelector('.workspace-drawer.mod-left');
 
           return {
@@ -596,8 +596,8 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
         timeoutMessage: 'the file drawer to finish opening',
         until(attempt: DrawerAttempt): boolean {
           // Remembered in NODE, because the attempt that fails is no longer the one
-          // That reports: the diagnostic below is thrown out here rather than
-          // Inside Obsidian.
+          // that reports: the diagnostic below is thrown out here rather than
+          // inside Obsidian.
           lastAttempt = attempt;
           return attempt.isOpen;
         },
@@ -605,8 +605,8 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
       });
     } catch (error) {
       // Only a drawer that was actually polled and never opened gets the drawer's
-      // Own message; anything that failed before the first attempt returned — a
-      // Missing note, a dead transport — is reported as itself.
+      // own message; anything that failed before the first attempt returned — a
+      // missing note, a dead transport — is reported as itself.
       if (!lastAttempt) {
         throw error;
       }
@@ -720,8 +720,8 @@ async function registerMailbox(): Promise<string> {
       await registrar.registerRandomEmailAddress();
 
       // Read back from the SETTINGS FILE, not from the object graph: the settings
-      // Component hands out a copy, so an object found by walking the plugin keeps
-      // Reporting the empty address it held before registration.
+      // component hands out a copy, so an object found by walking the plugin keeps
+      // reporting the empty address it held before registration.
       async function readAddress(): Promise<string> {
         try {
           const raw: unknown = JSON.parse(await app.vault.adapter.read(DATA_PATH));
@@ -905,8 +905,8 @@ async function waitForNoteUnder(folder: string): Promise<string> {
  */
 async function writeFrame(index: number, caption: string, captured: Uint8Array): Promise<void> {
   // The AVD is 900x1600, so the device frame IS the store's size. Asserting it
-  // Here is what keeps that true: run this against any other AVD and it fails
-  // Loudly instead of quietly shipping an off-spec image.
+  // here is what keeps that true: run this against any other AVD and it fails
+  // loudly instead of quietly shipping an off-spec image.
   expect(readPngDimensions(captured)).toStrictEqual({
     heightInPixels: HEIGHT_IN_PIXELS,
     widthInPixels: WIDTH_IN_PIXELS

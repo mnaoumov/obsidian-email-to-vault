@@ -206,7 +206,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                     await mailTmProvider.unregisterEmailAddress();
 
                     // Registering and unregistering change which rows the group contains, so the tab has to
-                    // Be rebuilt rather than merely re-evaluated.
+                    // be rebuilt rather than merely re-evaluated.
                     this.refresh();
                   }));
               } else {
@@ -404,7 +404,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               this.bind({
                 onChanged: () => {
                   // Switching the provider swaps a whole group in and out, so the definitions themselves
-                  // Change — that needs a rebuild, not a predicate re-evaluation.
+                  // change — that needs a rebuild, not a predicate re-evaluation.
                   this.refresh();
                 },
                 propertyName: 'emailProviderType',

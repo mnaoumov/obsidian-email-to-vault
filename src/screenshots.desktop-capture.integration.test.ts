@@ -196,7 +196,7 @@ describe('desktop store screenshots', () => {
     const notePath = await waitForNoteUnder(CUSTOM_TEMPLATE_FOLDER);
     const content = await openNote(notePath, 'preview');
     // The new template's own frontmatter, so the frame cannot be the old note
-    // Photographed in a new folder.
+    // photographed in a new folder.
     expect(content).toContain('tags:');
     expect(content).toContain('inbox/email');
     await shoot(4, 'Templates decide the path and the note itself');
@@ -364,7 +364,7 @@ async function openCommandPalette(query: string): Promise<string[]> {
 
       input.value = text;
       // The palette filters from its own input handler, so setting the value
-      // Alone would leave every command in the vault on screen.
+      // alone would leave every command in the vault on screen.
       input.dispatchEvent(new Event('input'));
 
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
@@ -393,7 +393,7 @@ async function openNote(notePath: string, mode: string): Promise<string> {
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
 
       // Let the previous shot's capture settle: the device-metrics override it
-      // Sets and clears disturbs anything driven too soon afterwards.
+      // sets and clears disturbs anything driven too soon afterwards.
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
       // A previous shot may have left the command palette on top of the note.
@@ -423,7 +423,7 @@ async function openNote(notePath: string, mode: string): Promise<string> {
       });
 
       // A folder the tree has not expanded is a folder the reader cannot see, and
-      // The email folder is created by the plugin mid-run, so it arrives collapsed.
+      // the email folder is created by the plugin mid-run, so it arrives collapsed.
       const fileExplorerLeaf = app.workspace.getLeavesOfType('file-explorer')[0];
       if (fileExplorerLeaf) {
         const view: unknown = fileExplorerLeaf.view;
@@ -520,8 +520,8 @@ async function registerMailbox(): Promise<string> {
       await registrar.registerRandomEmailAddress();
 
       // Read back from the SETTINGS FILE, not from the object graph: the settings
-      // Component hands out a copy, so an object found by walking the plugin keeps
-      // Reporting the empty address it held before registration.
+      // component hands out a copy, so an object found by walking the plugin keeps
+      // reporting the empty address it held before registration.
       async function readAddress(): Promise<string> {
         try {
           const raw: unknown = JSON.parse(await app.vault.adapter.read(DATA_PATH));

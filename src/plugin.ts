@@ -32,10 +32,10 @@ export class Plugin extends PluginBase {
     );
     this.pluginSettingsComponent = pluginSettingsComponent;
     // Since obsidian-dev-utils 90 a child is loaded as it is added, so the settings' async load tail runs
-    // In parallel with the components added below instead of before them. EmailProviderManagerComponent
-    // Activates a provider from `emailProviderType` in its synchronous `onload` and only re-activates on
+    // in parallel with the components added below instead of before them. EmailProviderManagerComponent
+    // activates a provider from `emailProviderType` in its synchronous `onload` and only re-activates on
     // A later `saveSettings`, never on the initial load — so without this wait it would activate the
-    // Default provider and keep it for the whole session until the user saved the settings.
+    // default provider and keep it for the whole session until the user saved the settings.
     await pluginSettingsComponent.loadWithPromises();
 
     const emailProviderManager = this.addChild(

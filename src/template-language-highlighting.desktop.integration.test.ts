@@ -8,7 +8,7 @@ import {
 } from 'vitest';
 
 // Declared here rather than imported from `tokenized-string-language-component.ts`: this file runs in Node,
-// And that module pulls in `obsidian`, which only resolves inside the app.
+// and that module pulls in `obsidian`, which only resolves inside the app.
 const TOKENIZED_STRING_LANGUAGE = 'email-to-vault-template';
 
 describe('template language', () => {
@@ -34,7 +34,7 @@ describe('template language', () => {
     });
 
     // The settings tab's code-highlighter fields render exactly this markup, so this asserts what the
-    // User sees: each part of `{{date:YYYY-MM-DD}}` carries its own token class.
+    // user sees: each part of `{{date:YYYY-MM-DD}}` carries its own token class.
     expect(result.html).toContain('class="token prefix regex"');
     expect(result.html).toContain('class="token token number"');
     expect(result.html).toContain('class="token formatDelimiter regex"');
