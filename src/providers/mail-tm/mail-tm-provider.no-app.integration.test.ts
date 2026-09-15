@@ -556,7 +556,7 @@ describe('Mail.tm API', () => {
 
       // Reading the full message the way ImapProviderDesktopComponent's Mail.tm counterpart
       // (MailTmProviderComponent.getMessage) does — a GET on /messages/{id} — must NOT flip `seen`,
-      // Otherwise the "Mark emails as seen" opt-out would be defeated just by building the note.
+      // otherwise the "Mark emails as seen" opt-out would be defeated just by building the note.
       await getFullMessage(message.id);
       const afterRead = await pollForSubject(testAccount.token, subject);
       expect(afterRead.seen).toBe(false);

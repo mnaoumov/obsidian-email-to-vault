@@ -38,22 +38,22 @@ import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.
 import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 
 // The real `PluginBase.onload()` loads dev-utils' own notice/context/debug components, which read a
-// Shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
-// Stub this one utility (return a fresh value wrapper per call) — mirroring dev-utils' own PluginBase test.
+// shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
+// stub this one utility (return a fresh value wrapper per call) — mirroring dev-utils' own PluginBase test.
 vi.mock('obsidian-dev-utils/obsidian/app', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/app')>(),
   getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
 // A dev-utils/own component that is added via `addChild` must be loadable, so its stub returns a
-// Real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
-// Not the discarded `this` (`mock.instances[0]`).
+// real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
+// not the discarded `this` (`mock.instances[0]`).
 interface ObsidianComponentModule {
   Component: new () => object;
 }
 
 // The settings component is awaited (`loadWithPromises`) by `onloadImpl`, which a plain `Component` does
-// Not have — so its stub returns a `ComponentEx`.
+// not have — so its stub returns a `ComponentEx`.
 function loadableComponentExStub(): ReturnType<typeof vi.fn> {
   // eslint-disable-next-line prefer-arrow-callback -- Same reason as loadableComponentStub below.
   return vi.fn(function componentExStub() {
@@ -65,7 +65,7 @@ async function loadableComponentStub(): Promise<ReturnType<typeof vi.fn>> {
   const { Component } = await vi.importActual<ObsidianComponentModule>('obsidian');
   // Vitest requires a non-arrow function for a mock invoked with `new`; it must return a fresh real
   // `Component`. Constructing a stub class directly would route `this` through vitest's mock proxy and
-  // Break the test-mocks `Component` constructor's own strict proxy.
+  // break the test-mocks `Component` constructor's own strict proxy.
   // eslint-disable-next-line prefer-arrow-callback -- See above; an arrow cannot be used here.
   return vi.fn(function componentStub() {
     return new Component();
@@ -85,7 +85,7 @@ vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-hand
 }));
 
 // `PluginDataHandler` and `PluginEventSourceImpl` are NOT stubbed: since obsidian-dev-utils 93.2 the base
-// Builds its own settings component out of them during `onload`, and that component really calls
+// builds its own settings component out of them during `onload`, and that component really calls
 // `pluginEventSource.on`, so a bare `vi.fn()` double makes the base throw before `onloadImpl` runs.
 vi.mock('obsidian-dev-utils/obsidian/components/templates-language-component', async () => ({
   TemplatesLanguageComponent: await loadableComponentStub()
@@ -128,7 +128,7 @@ vi.mock('./plugin-settings-tab.ts', () => ({
 }));
 
 // The base pre-wires `commandHandlerComponent`; stub its `registerCommandHandlers` so the plugin's registration
-// Is asserted without exercising the mocked command handlers against a real registrar.
+// is asserted without exercising the mocked command handlers against a real registrar.
 vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockResolvedValue(strictProxy<DisposableEx>({}));
 
 const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
@@ -164,7 +164,7 @@ function instanceOf(mock: ReturnType<typeof vi.fn>): unknown {
 
 function noticeComponentOf(plugin: Plugin): PluginNoticeComponent {
   // `pluginNoticeComponent` is `protected` on the dev-utils `PluginBase`; the plugin wires this exact
-  // Instance into every collaborator, so the tests assert against the real instance rather than a matcher.
+  // instance into every collaborator, so the tests assert against the real instance rather than a matcher.
   return castTo<PluginWithNoticeComponent>(plugin).pluginNoticeComponent;
 }
 
@@ -305,7 +305,7 @@ describe('Plugin', () => {
       await plugin.onload();
 
       // The base separately auto-registers its own handler, so assert the plugin's own registration by its five
-      // Handlers rather than the total call count.
+      // handlers rather than the total call count.
       expect(buildPluginCommandHandlers()).toStrictEqual([
         expect.any(CheckEmailsCommandHandler),
         expect.any(OpenDemoVaultCommandHandler),
@@ -318,7 +318,7 @@ describe('Plugin', () => {
 });
 
 // `registerCommandHandlers` takes a factory since obsidian-dev-utils 89.0.0, and the base registers its
-// Own handlers through the same spy — so pick the plugin's own factory by what it builds.
+// own handlers through the same spy — so pick the plugin's own factory by what it builds.
 function buildPluginCommandHandlers(): CommandHandler[] {
   const commandHandlerBatches = vi.mocked(CommandHandlerComponent.prototype.registerCommandHandlers).mock.calls
     .map(([commandHandlerFactory]) => commandHandlerFactory());

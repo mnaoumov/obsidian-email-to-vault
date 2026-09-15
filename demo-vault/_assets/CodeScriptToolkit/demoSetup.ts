@@ -4,9 +4,9 @@ import { Notice } from 'obsidian';
 import { configureCommunityPlugin } from 'obsidian-dev-utils/obsidian/community-plugins';
 
 // Not every headline feature gets a button here: the feature fetches real mail from a live service over the
-// Network, so no button can produce an email for you. What the buttons DO remove is everything either
-// Side of that — opening the settings tab, running the fetch, and the multi-line note templates, which
-// Are the fiddly part to type and the part worth experimenting with.
+// network, so no button can produce an email for you. What the buttons DO remove is everything either
+// side of that — opening the settings tab, running the fetch, and the multi-line note templates, which
+// are the fiddly part to type and the part worth experimenting with.
 
 const PLUGIN_ID = 'email-to-vault';
 

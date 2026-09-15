@@ -21,7 +21,7 @@ import {
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
 // A JWT is `header.payload.signature`; only the first two parts are needed, and the limit keeps a
-// Signature containing `.` from producing extra segments.
+// signature containing `.` from producing extra segments.
 const JWT_HEADER_AND_PAYLOAD_PART_COUNT = 2;
 const HTTP_STATUS_CREATED = 201;
 

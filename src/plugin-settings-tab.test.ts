@@ -43,8 +43,8 @@ import { EmailProviderType } from './providers/email-provider-type.ts';
 const mockShowNotice = vi.fn();
 
 // The setting `onClick`/`onChange` handlers are wrapped in `convertAsyncToSync` (fire-and-forget). Stub it
-// To identity so the captured handlers are the raw async functions and the test can `await` them — the
-// Sanctioned exception for making fire-and-forget async awaitable in a unit test.
+// to identity so the captured handlers are the raw async functions and the test can `await` them — the
+// sanctioned exception for making fire-and-forget async awaitable in a unit test.
 vi.mock('obsidian-dev-utils/async', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/async')>(),
   convertAsyncToSync: vi.fn(($function: (...$arguments: unknown[]) => unknown) => $function)
@@ -58,8 +58,8 @@ vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
 }));
 
 // The obsidian-test-mocks package does not model Obsidian's `loadPrism`, so return a stub prism; otherwise the
-// Real `CodeHighlighterComponent`'s highlight-on-`setValue` (new in dev-utils 86.0.0) rejects when the settings
-// Tab binds its code-highlighter components.
+// real `CodeHighlighterComponent`'s highlight-on-`setValue` (new in dev-utils 86.0.0) rejects when the settings
+// tab binds its code-highlighter components.
 vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (importOriginal) => ({
   ...await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>(),
   loadPrism: vi.fn((): Promise<PrismModule> => Promise.resolve(strictProxy<PrismModule>({ highlightElement: vi.fn() })))
@@ -77,13 +77,13 @@ interface ProviderDropdownBindOptions {
 }
 
 // Real components are rendered by the real `SettingEx`; these prototype spies capture the real
-// Component instances/handlers as they are created so the tests can drive them.
+// component instances/handlers as they are created so the tests can drive them.
 //
 // `bind` is the one real base method that cannot run here: it duck-types each component via property
-// Access (e.g. `component.setPlaceholderValue`), which the test-mocks strict proxy rejects for
-// Non-text components (dropdown/toggle). It is neutralized to a no-op (returning the component) — the
-// Real `PluginSettingsTabBase`/`SettingEx`/components are otherwise used unmocked. The tab's own
-// Binding intent is asserted via the recorded `bind` calls instead.
+// access (e.g. `component.setPlaceholderValue`), which the test-mocks strict proxy rejects for
+// non-text components (dropdown/toggle). It is neutralized to a no-op (returning the component) — the
+// real `PluginSettingsTabBase`/`SettingEx`/components are otherwise used unmocked. The tab's own
+// binding intent is asserted via the recorded `bind` calls instead.
 let bindSpy: MockInstance<PluginSettingsTab['bind']>;
 let buttonOnClickSpy: MockInstance<ButtonComponent['onClick']>;
 let extraButtonOnClickSpy: MockInstance<ExtraButtonComponent['onClick']>;
@@ -271,7 +271,7 @@ describe('PluginSettingsTab', () => {
       renderRows(tab);
 
       // The source must delegate dropdown change handling to `bind` (via its `onChanged` option),
-      // Not register its own `onChange` that would overwrite the binding.
+      // not register its own `onChange` that would overwrite the binding.
       expect(dropdownOnChangeSpy).not.toHaveBeenCalled();
     });
 
