@@ -59,7 +59,7 @@ import {
  */
 interface CollapsibleFileItem {
   collapsed?: boolean;
-  setCollapsed?(this: void, isCollapsed: boolean): Promise<void>;
+  setCollapsed?: (this: void, isCollapsed: boolean) => Promise<void>;
 }
 
 /**
@@ -87,7 +87,7 @@ interface FileExplorerView {
  * declare. Setting `baseFontSize` alone changes nothing on screen.
  */
 interface FontSizeApp {
-  updateFontSize(this: void): void;
+  updateFontSize: (this: void) => void;
 }
 
 /**
@@ -95,7 +95,7 @@ interface FontSizeApp {
  * declare. Setting the config alone changes nothing on screen.
  */
 interface InlineTitleApp {
-  updateInlineTitleDisplay(this: void): void;
+  updateInlineTitleDisplay: (this: void) => void;
 }
 
 const WIDTH_IN_PIXELS = 900;
@@ -676,7 +676,7 @@ async function registerMailbox(): Promise<string> {
       const REGISTER_TIMEOUT_IN_MILLISECONDS = 25_000;
 
       interface MailboxRegistrar {
-        registerRandomEmailAddress(this: void): Promise<void>;
+        registerRandomEmailAddress: (this: void) => Promise<void>;
       }
 
       const DATA_PATH = `.obsidian/plugins/${pluginId}/data.json`;

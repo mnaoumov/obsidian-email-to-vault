@@ -30,7 +30,7 @@ vi.stubGlobal('window', {
 
 interface CreateMockPluginSettingsComponentResult {
   readonly pluginSettingsComponent: PluginSettingsComponent;
-  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): Promise<void>;
+  readonly triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => Promise<void>;
 }
 
 interface MockEmailProviderOverrides {

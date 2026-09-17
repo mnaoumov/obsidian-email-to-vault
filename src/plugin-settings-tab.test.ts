@@ -73,7 +73,7 @@ interface MockPluginSettingsComponentOverrides {
 }
 
 interface ProviderDropdownBindOptions {
-  onChanged?(newValue: EmailProviderType, oldValue: EmailProviderType): unknown;
+  readonly onChanged?: (newValue: EmailProviderType, oldValue: EmailProviderType) => unknown;
 }
 
 // Real components are rendered by the real `SettingEx`; these prototype spies capture the real
