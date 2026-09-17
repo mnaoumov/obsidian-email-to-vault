@@ -71,7 +71,7 @@ vi.mock('./imap/imap-provider.ts', async () => {
 
 interface CreateMockPluginSettingsComponentResult {
   readonly pluginSettingsComponent: PluginSettingsComponent;
-  triggerSaveSettings(newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>): Promise<void>;
+  readonly triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => Promise<void>;
 }
 
 type SaveSettingsCallback = (

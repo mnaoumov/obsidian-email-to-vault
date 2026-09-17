@@ -36,11 +36,11 @@ const mockRequestUrl = vi.mocked(requestUrl);
 interface MockParams {
   readonly emailAddress?: string;
   readonly emailPasswordSecretKey?: string;
-  getAvailableDomain?(): Promise<string>;
+  readonly getAvailableDomain?: () => Promise<string>;
   readonly pluginId?: string;
-  secretStorageGetSecret?(key: string): null | string;
-  secretStorageSetSecret?(key: string, value: string): void;
-  settingsComponentEditAndSave?(callback: (settings: PluginSettings) => void): Promise<void>;
+  readonly secretStorageGetSecret?: (key: string) => null | string;
+  readonly secretStorageSetSecret?: (key: string, value: string) => void;
+  readonly settingsComponentEditAndSave?: (callback: (settings: PluginSettings) => void) => Promise<void>;
 }
 
 interface MockResult {
