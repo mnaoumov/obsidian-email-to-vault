@@ -388,7 +388,17 @@ async function openCommandPalette(query: string): Promise<string[]> {
 async function openNote(notePath: string, mode: string): Promise<string> {
   return await evalInObsidian({
     async callback({ app, lib: { pressKey, waitUntil }, mode: viewMode, notePath: path }) {
-      const RENDER_TIMEOUT_IN_MILLISECONDS = 20_000;
+      /*
+       * Under the transport's ~30s per-closure cap, not at it.
+       * At 20_000 the render ceiling took this closure to 25_000, of which 5_000 is settles that are
+       * elapsed time rather than ceilings, leaving five seconds inside the cap for opening the note,
+       * switching its view state and expanding the file tree. A run that lost them died as a bare
+       * transport timeout naming the harness rather than the wait that overran.
+       * The ceiling waits only for `.cm-content` or `.markdown-preview-view` to exist, so 12_000 is a
+       * wide margin - and it is what the Android twin of this helper already uses, which is the number
+       * this one should have matched.
+       */
+      const RENDER_TIMEOUT_IN_MILLISECONDS = 12_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1500;
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
 
@@ -473,6 +483,20 @@ function readEnvironment(): Record<string, string> {
 async function registerMailbox(): Promise<string> {
   return await evalInObsidian({
     async callback({ app, lib: { waitUntil }, pluginId }) {
+      /*
+       * Under the transport's ~30s per-closure cap, not at it - but it is the one budget here that is NOT
+       * comfortable, and the number is deliberately left alone rather than tightened.
+       * This closure waits on a live third-party mailbox service, which is the one thing in these suites
+       * that can genuinely take tens of seconds, so 25_000 is an honest ceiling rather than a generous
+       * one. What is not counted is `registerRandomEmailAddress` on the line above the wait: it declares
+       * no budget, so the rule cannot see it, yet it spends real network time inside the same eval. A slow
+       * registration therefore pushes the closure past the cap and it dies as a bare transport timeout,
+       * losing the diagnostic below that names the notices.
+       * The treatment for that is `pollInObsidian` - register in `start`, read the address in `poll`,
+       * evaluate `until` in Node and carry the long budget in `timeoutInMilliseconds` - which needs a live
+       * run to verify and cannot be checked from a capture suite, since running one rewrites its committed
+       * screenshots.
+       */
       const REGISTER_TIMEOUT_IN_MILLISECONDS = 25_000;
 
       interface MailboxRegistrar {
