@@ -674,9 +674,9 @@ async function registerMailbox(): Promise<string> {
   return await evalInObsidian({
     async callback({ app, lib: { waitUntil }, pluginId }) {
       /*
-       * Under the transport's ~30s per-closure cap, not at it - but it is the one budget here that is NOT
-       * comfortable, and the number is deliberately left alone rather than tightened. The desktop twin of
-       * this helper carries the same reasoning.
+       * Under the transport's ~30s per-closure cap, not at it.
+       * This is the one budget here that is not comfortable, and the number is deliberately left alone
+       * rather than tightened. The desktop twin of this helper carries the same reasoning.
        * This closure waits on a live third-party mailbox service, which is the one thing in these suites
        * that can genuinely take tens of seconds, so 25_000 is an honest ceiling rather than a generous
        * one. What is not counted is `registerRandomEmailAddress` on the line above the wait: it declares
