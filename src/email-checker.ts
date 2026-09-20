@@ -109,10 +109,7 @@ export class EmailCheckerComponent extends ComponentEx {
 
   private selectNewMessages(messages: EmailMessageSummary[], isTimestampMode: boolean): EmailMessageSummary[] {
     const { lastProcessedEmailTimestamp } = this.pluginSettingsComponent.settings;
-    if (isTimestampMode && lastProcessedEmailTimestamp) {
-      return messages.filter((m) => m.createdAt > lastProcessedEmailTimestamp);
-    }
-    return messages.filter((m) => !m.seen);
+    return isTimestampMode && lastProcessedEmailTimestamp ? messages.filter((m) => m.createdAt > lastProcessedEmailTimestamp) : messages.filter((m) => !m.seen);
   }
 
   private async updateLastProcessedTimestamp(messages: EmailMessageSummary[]): Promise<void> {

@@ -496,12 +496,14 @@ async function openNote(notePath: string, mode: string, shouldShowTree = false):
       // A folder the tree has not expanded is a folder the reader cannot see, and
       // the email folder is created by the plugin mid-run, so it arrives collapsed.
       const fileExplorerLeaf = app.workspace.getLeavesOfType('file-explorer')[0];
-      if (fileExplorerLeaf) {
-        const view: unknown = fileExplorerLeaf.view;
-        for (const item of Object.values((view as FileExplorerView).fileItems)) {
-          if (item.collapsed === true) {
-            await item.setCollapsed?.(false);
-          }
+      if (!fileExplorerLeaf) {
+        return;
+      }
+
+      const view: unknown = fileExplorerLeaf.view;
+      for (const item of Object.values((view as FileExplorerView).fileItems)) {
+        if (item.collapsed === true) {
+          await item.setCollapsed?.(false);
         }
       }
     },

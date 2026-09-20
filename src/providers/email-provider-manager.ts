@@ -55,10 +55,7 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
   }
 
   public getMailTmProvider(): MailTmProviderComponent | null {
-    if (this.activeProvider instanceof MailTmProviderComponent) {
-      return this.activeProvider;
-    }
-    return null;
+    return this.activeProvider instanceof MailTmProviderComponent ? this.activeProvider : null;
   }
 
   public async getMessage(messageId: string): Promise<EmailMessageFull> {
