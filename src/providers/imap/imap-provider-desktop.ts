@@ -68,7 +68,7 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
         return {
           attachments,
           cc: mapAddresses(message.envelope?.cc),
-          createdAt: message.envelope?.date?.toISOString() ?? '',
+          createdAt: mapEnvelopeDate(message.envelope?.date),
           from: mapAddress(message.envelope?.from?.[0]),
           hasAttachments: attachments.length > 0,
           html: parsed.html ? [parsed.html] : [],
@@ -172,10 +172,21 @@ function mapAddresses(addresses?: MessageAddressObject[]): EmailAddress[] {
   return addresses?.map((a) => mapAddress(a)) ?? [];
 }
 
+function mapEnvelopeDate(date?: Date | string): string {
+  // Since imapflow 2 an envelope date is the raw header string whenever the library's own
+  // `new Date(...)` on it came back invalid, so both call sites have to narrow the union before
+  // reaching for `toISOString` - which throws on an invalid date rather than returning anything.
+  // A header that parses nowhere therefore becomes the same empty string a missing envelope did:
+  // `createdAt` is compared lexicographically against the last-processed bookmark, so a value that
+  // is not an ISO timestamp would order wrongly against every real one.
+  const parsedDate = date instanceof Date ? date : new Date(date ?? '');
+  return Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toISOString();
+}
+
 function mapFetchToSummary(message: FetchMessageObject): EmailMessageSummary {
   const hasAttachments = checkHasAttachments(message.bodyStructure);
   return {
-    createdAt: message.envelope?.date?.toISOString() ?? '',
+    createdAt: mapEnvelopeDate(message.envelope?.date),
     from: mapAddress(message.envelope?.from?.[0]),
     hasAttachments,
     id: String(message.uid),
