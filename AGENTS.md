@@ -48,6 +48,14 @@
 
 ## Testing notes
 
+### Both capture suites wait on live mail, and that wait can exceed their budget
+
+Every frame that photographs a delivered email spends nearly the whole per-test budget (`CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS`, 180 s in `scripts/vitest-config.ts`) waiting on a real message: sent over SMTP by the `.env` account, delivered to the disposable Mail.tm mailbox, then fetched by the plugin. **Measured on 2026-09-20, that delivery took 261 s** — sent from the `.env` account to a Mail.tm mailbox and polled until it appeared, with the account creation and the token call both answering in under a second, so the whole 261 s was inbound delivery.
+
+When it goes that way a capture run reports **three different-looking failures for one cause** and none of them names it: `1` and `2` die on a bare `Test timed out in 180000ms`, and `3` on `expected 2 to be greater than 2`, which is the same failure one step downstream — the two notes `1` and `2` should have produced never arrived. `4` and `5` pass, because neither waits on new mail. So before treating that shape as a regression, send one message to a Mail.tm mailbox by hand and time it; the suite is very likely fine and the mailbox service is slow today.
+
+`registerMailbox` is NOT part of this: it was moved onto `pollInObsidian`, so a registration that fails says so with the service's own error rather than expiring as a transport timeout.
+
 ### The mobile screenshot capture suite
 
 The mobile frames are captured by **two different routes**, and which route a frame takes is a decision about that frame rather than a style choice:
