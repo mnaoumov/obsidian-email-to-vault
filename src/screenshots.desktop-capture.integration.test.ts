@@ -32,8 +32,10 @@ import { createTransport } from 'nodemailer';
 import { sleep as sleepInNode } from 'obsidian-dev-utils/async';
 import {
   captureObsidianScreenshot,
+  ContextId,
   evalInObsidian,
   labelScreenshot,
+  pollInObsidian,
   readPngDimensions
 } from 'obsidian-integration-testing';
 import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
@@ -208,6 +210,29 @@ describe('desktop store screenshots', () => {
     await shoot(5, 'Fetch on demand, or let it check on a timer');
   });
 });
+
+/**
+ * The registration's in-Obsidian state, seeded by `start` and read by every `poll`.
+ *
+ * It lives in a {@link ContextId} rather than in the closures because the
+ * registration is kicked off in one eval and observed from later ones — the whole
+ * point of the split.
+ */
+interface MailboxRegistrationContext {
+  hasSettled: boolean;
+  registrationError: string;
+  seenNotices: string[];
+}
+
+/**
+ * One reading of the registration, taken inside Obsidian by a single `poll`.
+ */
+interface MailboxRegistrationStatus {
+  readonly address: string;
+  readonly hasSettled: boolean;
+  readonly notices: string;
+  readonly registrationError: string;
+}
 
 /**
  * Parameters for {@link sendEmail}.
@@ -481,101 +506,173 @@ function readEnvironment(): Record<string, string> {
  * @returns The address the plugin registered.
  */
 async function registerMailbox(): Promise<string> {
-  return await evalInObsidian({
-    async callback({ app, lib: { waitUntil }, pluginId }) {
-      /*
-       * Under the transport's ~30s per-closure cap, not at it.
-       * This is the one budget here that is not comfortable, and the number is deliberately left alone
-       * rather than tightened.
-       * This closure waits on a live third-party mailbox service, which is the one thing in these suites
-       * that can genuinely take tens of seconds, so 25_000 is an honest ceiling rather than a generous
-       * one. What is not counted is `registerRandomEmailAddress` on the line above the wait: it declares
-       * no budget, so the rule cannot see it, yet it spends real network time inside the same eval. A slow
-       * registration therefore pushes the closure past the cap and it dies as a bare transport timeout,
-       * losing the diagnostic below that names the notices.
-       * The treatment for that is `pollInObsidian` - register in `start`, read the address in `poll`,
-       * evaluate `until` in Node and carry the long budget in `timeoutInMilliseconds` - which needs a live
-       * run to verify and cannot be checked from a capture suite, since running one rewrites its committed
-       * screenshots.
-       */
-      const REGISTER_TIMEOUT_IN_MILLISECONDS = 25_000;
+  /*
+   * A NODE-side budget, where the transport's ~30s per-eval cap does not apply -
+   * not one long wait inside a single closure.
+   *
+   * The shape this replaced awaited `registerRandomEmailAddress` - a live round
+   * trip to a third-party mailbox service - and THEN waited 25 000 ms for the
+   * address to reach the settings file, both inside one `evalInObsidian`. The
+   * registration declared no budget, so `no-over-cap-wait-in-eval-in-obsidian`
+   * sized that closure at 25 000 ms and called it comfortably under the cap; the
+   * network time it could not see was spent in the same eval, so a slow
+   * registration pushed real elapsed past the cap. The eval then died as a bare
+   * transport timeout naming only the harness, throwing away the one diagnostic
+   * that says WHY no address arrived.
+   *
+   * Split across `start` and `poll`, no single transport call is long: `start`
+   * kicks the registration off and returns, each `poll` is a settings-file read,
+   * and the budget below is spent in Node between them. It is generous on purpose
+   * - this is the one thing in these suites that can genuinely take tens of
+   * seconds - and costs nothing when the mailbox service answers quickly, because
+   * `until` accepts the first poll that carries an address.
+   */
+  const REGISTER_BUDGET_IN_MILLISECONDS = 90_000;
+  const REGISTER_POLL_INTERVAL_IN_MILLISECONDS = 500;
 
-      interface MailboxRegistrar {
-        registerRandomEmailAddress: (this: void) => Promise<void>;
-      }
+  /**
+   * Describes a registration that produced no address.
+   *
+   * @param status - The last status read out of Obsidian.
+   * @returns The diagnostic message.
+   */
+  function describeFailure(status: MailboxRegistrationStatus): string {
+    return `Registration produced no address. address=${status.address} hasSettled=${String(status.hasSettled)}`
+      + ` registrationError=${status.registrationError} notices=${status.notices}`;
+  }
 
-      const DATA_PATH = `.obsidian/plugins/${pluginId}/data.json`;
+  const contextId = new ContextId<MailboxRegistrationContext>();
+  let lastStatus: MailboxRegistrationStatus | undefined;
+  let status: MailboxRegistrationStatus;
 
-      function findByMember(memberName: string): null | object {
-        const blocked = new Set(['app', 'containerEl', 'dom', 'metadataCache', 'plugins', 'vault', 'workspace']);
-        const seen = new Set<unknown>();
-        const queue: unknown[] = [app.plugins.getPlugin(pluginId)];
-        let budget = 12_000;
+  try {
+    status = await pollInObsidian({
+      contextId,
+      input: { pluginId: PLUGIN_ID },
+      intervalInMilliseconds: REGISTER_POLL_INTERVAL_IN_MILLISECONDS,
+      async poll({ app, context, pluginId }): Promise<MailboxRegistrationStatus> {
+        const DATA_PATH = `.obsidian/plugins/${pluginId}/data.json`;
 
-        while (queue.length > 0 && budget-- > 0) {
-          const current = queue.shift();
-          if (current === null || typeof current !== 'object' || seen.has(current)) {
-            continue;
-          }
-
-          seen.add(current);
-          const record = current as Record<string, unknown>;
-          // A plain read rather than an `in` check: the member being looked for is
-          // A method, which lives on the prototype.
-          const member: unknown = record[memberName];
-          if (member !== undefined) {
-            return current;
-          }
-
-          for (const [key, value] of Object.entries(record)) {
-            if (!blocked.has(key)) {
-              queue.push(value);
-            }
-          }
-        }
-
-        return null;
-      }
-
-      const registrar = findByMember('registerRandomEmailAddress') as MailboxRegistrar | null;
-      if (!registrar) {
-        throw new Error('The plugin exposes no mailbox registrar.');
-      }
-
-      await registrar.registerRandomEmailAddress();
-
-      // Read back from the SETTINGS FILE, not from the object graph: the settings
-      // component hands out a copy, so an object found by walking the plugin keeps
-      // reporting the empty address it held before registration.
-      async function readAddress(): Promise<string> {
+        // Read back from the SETTINGS FILE, not from the object graph: the settings
+        // component hands out a copy, so an object found by walking the plugin keeps
+        // reporting the empty address it held before registration.
+        let address: string;
         try {
           const raw: unknown = JSON.parse(await app.vault.adapter.read(DATA_PATH));
-          const address: unknown = (raw as Record<string, unknown>)['emailAddress'];
-          return typeof address === 'string' ? address : '';
+          const value: unknown = (raw as Record<string, unknown>)['emailAddress'];
+          address = typeof value === 'string' ? value : '';
         } catch {
-          return '';
+          address = '';
         }
-      }
 
-      try {
-        await waitUntil({
-          message: 'the plugin to record the address it registered',
-          predicate: async () => {
-            const address = await readAddress();
-            return address.includes('@');
-          },
-          timeoutInMilliseconds: REGISTER_TIMEOUT_IN_MILLISECONDS
-        });
-      } catch {
-        const notices = [...document.querySelectorAll('.notice')].map((notice) => notice.textContent).join(' ~ ');
-        throw new Error(`Registration produced no address. address=${await readAddress()} notices=${notices}`);
-      }
+        // Notices are ACCUMULATED across polls rather than read once at the end. An
+        // Obsidian notice clears itself after a few seconds, so the one naming why
+        // registration failed is usually gone by the time a budget expires - which
+        // the single-eval shape could do nothing about, having only ever one look.
+        const currentNotices = [...document.querySelectorAll('.notice')].map((notice) => notice.textContent);
+        for (const text of currentNotices) {
+          if (text !== '' && !context.seenNotices.includes(text)) {
+            context.seenNotices.push(text);
+          }
+        }
 
-      return await readAddress();
-    },
-    input: { pluginId: PLUGIN_ID },
-    vaultPath: vaultPath()
-  });
+        return {
+          address,
+          hasSettled: context.hasSettled,
+          notices: context.seenNotices.join(' ~ '),
+          registrationError: context.registrationError
+        };
+      },
+      start({ app, context, pluginId }): void {
+        interface MailboxRegistrar {
+          registerRandomEmailAddress: (this: void) => Promise<void>;
+        }
+
+        function findByMember(memberName: string): null | object {
+          const blocked = new Set(['app', 'containerEl', 'dom', 'metadataCache', 'plugins', 'vault', 'workspace']);
+          const seen = new Set<unknown>();
+          const queue: unknown[] = [app.plugins.getPlugin(pluginId)];
+          let budget = 12_000;
+
+          while (queue.length > 0 && budget-- > 0) {
+            const current = queue.shift();
+            if (current === null || typeof current !== 'object' || seen.has(current)) {
+              continue;
+            }
+
+            seen.add(current);
+            const record = current as Record<string, unknown>;
+            // A plain read rather than an `in` check: the member being looked for is
+            // A method, which lives on the prototype.
+            const member: unknown = record[memberName];
+            if (member !== undefined) {
+              return current;
+            }
+
+            for (const [key, value] of Object.entries(record)) {
+              if (!blocked.has(key)) {
+                queue.push(value);
+              }
+            }
+          }
+
+          return null;
+        }
+
+        const registrar = findByMember('registerRandomEmailAddress') as MailboxRegistrar | null;
+        if (!registrar) {
+          throw new Error('The plugin exposes no mailbox registrar.');
+        }
+
+        context.hasSettled = false;
+        context.registrationError = '';
+        context.seenNotices = [];
+
+        // Kicked off and deliberately NOT awaited: awaiting the live round trip
+        // here is precisely what this helper moved to Node to stop doing. The
+        // outcome is recorded in the shared context instead, which every `poll`
+        // reads - so a registration that REJECTS is reported rather than lost.
+        registrar.registerRandomEmailAddress()
+          .then(() => {
+            context.hasSettled = true;
+          })
+          .catch((error: unknown) => {
+            context.hasSettled = true;
+            context.registrationError = error instanceof Error ? error.message : String(error);
+          });
+      },
+      timeoutInMilliseconds: REGISTER_BUDGET_IN_MILLISECONDS,
+      timeoutMessage: 'the plugin to record the address it registered',
+      until(pollStatus: MailboxRegistrationStatus): boolean {
+        // Remembered in NODE, because the poll that fails is not the one that
+        // reports: the diagnostic is thrown from the `catch` below.
+        lastStatus = pollStatus;
+
+        // A registration that has already rejected will never produce an address,
+        // so stop on that too rather than spending the rest of the budget polling
+        // a service that has answered.
+        return pollStatus.address.includes('@') || pollStatus.registrationError !== '';
+      },
+      vaultPath: vaultPath()
+    });
+  } catch (error) {
+    // Only a registration that was actually polled gets the diagnostic; anything
+    // that failed before the first poll returned - no registrar, a dead transport
+    // - is reported as itself.
+    if (!lastStatus) {
+      throw error;
+    }
+
+    throw new Error(describeFailure(lastStatus), { cause: error });
+  } finally {
+    await contextId.dispose(vaultPath());
+  }
+
+  if (!status.address.includes('@')) {
+    throw new Error(describeFailure(status));
+  }
+
+  return status.address;
 }
 
 /**
