@@ -230,6 +230,31 @@ describe('IMAP provider integration', () => {
         await client.logout();
       }
     });
+
+    it('should return an internal date for a message whose Date header cannot be read', async () => {
+      const client = createImapClient();
+      await client.connect();
+      const lock = await client.getMailboxLock('INBOX');
+
+      try {
+        // The fallback ImapProviderDesktopComponent applies when `envelope.date` parses nowhere is only
+        // worth anything if the server actually hands INTERNALDATE back for the fetch shape the plugin
+        // asks with - a date the server owns, so it is there whatever the sender wrote in the header.
+        const message = await client.fetchOne(
+          String(normalEmailUid),
+          { envelope: true, internalDate: true },
+          { uid: true }
+        );
+
+        expect(message).toBeTruthy();
+        if (message) {
+          expect(message.internalDate).toBeInstanceOf(Date);
+        }
+      } finally {
+        lock.release();
+        await client.logout();
+      }
+    });
   });
 
   describe('full message with source', () => {
@@ -366,7 +391,7 @@ describe('IMAP provider integration', () => {
         // "Mark emails as seen" opt-out would be defeated merely by reading the message to create a note.
         const message = await client.fetchOne(
           String(unseenEmailUid),
-          { bodyStructure: true, envelope: true, flags: true, source: true },
+          { bodyStructure: true, envelope: true, flags: true, internalDate: true, source: true },
           { uid: true }
         );
         expect(message).toBeTruthy();
