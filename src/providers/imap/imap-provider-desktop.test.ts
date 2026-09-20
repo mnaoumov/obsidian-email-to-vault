@@ -315,6 +315,54 @@ describe('ImapProvider', () => {
       });
     });
 
+    it('should convert a string envelope date to an ISO timestamp', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: 'Thu, 15 Jan 2026 10:00:00 +0000',
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        }
+      });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.createdAt).toBe('2026-01-15T10:00:00.000Z');
+    });
+
+    it('should fallback to an empty createdAt when the envelope date cannot be parsed', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: 'Whenever it was sent',
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        }
+      });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.createdAt).toBe('');
+    });
+
+    it('should fallback to an empty createdAt for an invalid Date instead of throwing', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: new Date('Whenever it was sent'),
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        }
+      });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.createdAt).toBe('');
+    });
+
     it('should fallback to empty strings when address fields are undefined', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
       const message = createSampleFetchMessage({
@@ -482,6 +530,38 @@ describe('ImapProvider', () => {
       expect(result.text).toBe('');
       expect(result.html).toEqual([]);
       expect(mocks.mockSimpleParser).toHaveBeenCalledWith(Buffer.alloc(0));
+    });
+
+    it('should convert a string envelope date to an ISO timestamp', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: 'Thu, 15 Jan 2026 10:00:00 +0000',
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        },
+        source: Buffer.from('raw')
+      });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.createdAt).toBe('2026-01-15T10:00:00.000Z');
+    });
+
+    it('should fallback to an empty createdAt when the envelope date cannot be parsed', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: 'Whenever it was sent',
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        },
+        source: Buffer.from('raw')
+      });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.createdAt).toBe('');
     });
 
     it('should handle empty html in parsed result', async () => {
