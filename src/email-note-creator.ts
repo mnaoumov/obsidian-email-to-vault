@@ -192,16 +192,7 @@ interface ExtractHeaderValueParams {
 }
 
 function checkIsDataTable(table: Element): boolean {
-  if (table.getAttribute('role') === 'presentation') {
-    return false;
-  }
-  if (!table.querySelector('th')) {
-    return false;
-  }
-  if (table.querySelector('table')) {
-    return false;
-  }
-  return true;
+  return table.getAttribute('role') !== 'presentation' && Boolean(table.querySelector('th')) && !table.querySelector('table');
 }
 
 function extractEmailFromRfc822(emlContent: string): EmailData {
@@ -257,10 +248,7 @@ function extractForwardedEmail(data: EmailData): EmailData {
 function extractHeaderValue(params: ExtractHeaderValueParams): string {
   const { fallback, pattern, text } = params;
   const raw = pattern.exec(text)?.groups?.['value'];
-  if (raw === undefined) {
-    return fallback;
-  }
-  return stripMarkdownFormatting(raw.trim());
+  return raw === undefined ? fallback : stripMarkdownFormatting(raw.trim());
 }
 
 function formatAddress(address: EmailAddress): string {
@@ -299,10 +287,7 @@ function replaceInlineAttachmentRefs(body: string, savedAttachments: Map<string,
     $string: body,
     replacer: ({ capturedGroupArguments: [alt = '', attachId = ''] }) => {
       const savedFilename = savedAttachments.get(attachId);
-      if (savedFilename) {
-        return `![[${savedFilename}]]`;
-      }
-      return `![[${alt || 'attachment'}]]`;
+      return savedFilename ? `![[${savedFilename}]]` : `![[${alt || 'attachment'}]]`;
     },
     searchValue: INLINE_ATTACHMENT_PATTERN
   });
@@ -473,10 +458,7 @@ function fillTemplate(params: FillTemplateParams): string {
 function normalizeDate(dateString: string): string {
   const normalized = normalizeWhitespace(dateString);
   const parsed = momentFunction(normalized, KNOWN_DATE_FORMATS, true);
-  if (parsed.isValid()) {
-    return parsed.format();
-  }
-  return dateString;
+  return parsed.isValid() ? parsed.format() : dateString;
 }
 
 function normalizeWhitespace($string: string): string {

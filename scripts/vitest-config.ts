@@ -73,6 +73,17 @@ const DEMO_VAULT_TEST_FILES = 'src/**/*.demo-vault.integration.test.ts';
  */
 const DEMO_VAULT_TIMEOUT_IN_MILLISECONDS = 600_000;
 
+/**
+ * The email-checker suite redefines `window` — `vi.stubGlobal('window', …)` at module level and in
+ * four more places — to drive the polling timer without a real one. The shared `unit-tests` project
+ * runs on `pool: 'vmThreads'`, where `window` is a non-configurable property of the VM global, so
+ * that stub throws `Cannot redefine property` and the file fails at load. Listing it here moves it
+ * to the sibling `unit-tests:global-stubs` project, identical but on the default pool; `test` and
+ * `test:coverage` name `unit-tests`, which selects `unit-tests:*` too, so the sibling runs and is
+ * covered with no script change. It is the only file in this repo's suite that needs it.
+ */
+const GLOBAL_STUB_TEST_FILES = ['src/email-checker.test.ts'];
+
 export const config = defineObsidianPluginVitestConfig({
   customProjects(context: ObsidianPluginVitestConfigContext): TestProjectConfiguration[] {
     return [
@@ -110,5 +121,8 @@ export const config = defineObsidianPluginVitestConfig({
         }
       }
     ];
+  },
+  editContext(context: ObsidianPluginVitestConfigContext): void {
+    context.globalStubTestFiles.push(...GLOBAL_STUB_TEST_FILES);
   }
 });
