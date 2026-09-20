@@ -59,7 +59,7 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     return this.withConnection(async (client) => {
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
-        const message = await client.fetchOne(messageId, { bodyStructure: true, envelope: true, flags: true, source: true }, { uid: true });
+        const message = await client.fetchOne(messageId, { bodyStructure: true, envelope: true, flags: true, internalDate: true, source: true }, { uid: true });
         if (!message) {
           throw new Error(`Message ${messageId} not found`);
         }
@@ -68,7 +68,7 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
         return {
           attachments,
           cc: mapAddresses(message.envelope?.cc),
-          createdAt: mapEnvelopeDate(message.envelope?.date),
+          createdAt: mapCreatedAt(message),
           from: mapAddress(message.envelope?.from?.[0]),
           hasAttachments: attachments.length > 0,
           html: parsed.html ? [parsed.html] : [],
@@ -89,7 +89,7 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
         const messages: EmailMessageSummary[] = [];
-        for await (const message of client.fetch('1:*', { bodyStructure: true, envelope: true, flags: true, uid: true })) {
+        for await (const message of client.fetch('1:*', { bodyStructure: true, envelope: true, flags: true, internalDate: true, uid: true })) {
           messages.push(mapFetchToSummary(message));
         }
         return messages;
@@ -169,21 +169,21 @@ function mapAddresses(addresses?: MessageAddressObject[]): EmailAddress[] {
   return addresses?.map((a) => mapAddress(a)) ?? [];
 }
 
-function mapEnvelopeDate(date?: Date | string): string {
-  // Since imapflow 2 an envelope date is the raw header string whenever the library's own
-  // `new Date(...)` on it came back invalid, so both call sites have to narrow the union before
-  // reaching for `toISOString` - which throws on an invalid date rather than returning anything.
-  // A header that parses nowhere therefore becomes the same empty string a missing envelope did:
-  // `createdAt` is compared lexicographically against the last-processed bookmark, so a value that
-  // is not an ISO timestamp would order wrongly against every real one.
-  const parsedDate = date instanceof Date ? date : new Date(date ?? '');
-  return Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toISOString();
+function mapCreatedAt(message: FetchMessageObject): string {
+  // The sender's `Date` header is what a reader means by the date of an email, so the envelope
+  // wins whenever it parses. When it does not, INTERNALDATE - the time the server accepted the
+  // message, which IMAP always carries - is a worse answer but a real one, and the difference
+  // matters beyond the rendered `{{date}}`: `createdAt` is the bookmark `email-checker` compares
+  // against with `>`, and `''` loses that comparison to every real timestamp, so an empty date is
+  // not an undated import but no import at all. Both dates missing leaves `''`, which takes a
+  // message with no readable header on a server that recorded no receipt time.
+  return mapImapDate(message.envelope?.date) || mapImapDate(message.internalDate);
 }
 
 function mapFetchToSummary(message: FetchMessageObject): EmailMessageSummary {
   const hasAttachments = checkHasAttachments(message.bodyStructure);
   return {
-    createdAt: mapEnvelopeDate(message.envelope?.date),
+    createdAt: mapCreatedAt(message),
     from: mapAddress(message.envelope?.from?.[0]),
     hasAttachments,
     id: String(message.uid),
@@ -191,6 +191,18 @@ function mapFetchToSummary(message: FetchMessageObject): EmailMessageSummary {
     subject: message.envelope?.subject ?? '',
     to: mapAddresses(message.envelope?.to)
   };
+}
+
+function mapImapDate(date?: Date | string): string {
+  // Since imapflow 2 a date is the raw string whenever the library's own `new Date(...)` on it
+  // came back invalid - true of `envelope.date` and of `internalDate` alike, which is why one
+  // helper serves both - so every call site has to narrow the union before reaching for
+  // `toISOString`, which throws on an invalid date rather than returning anything. A value that
+  // parses nowhere becomes the empty string, never the raw text: `createdAt` is compared
+  // lexicographically against the last-processed bookmark, so a non-ISO value would order
+  // arbitrarily against every real one.
+  const parsedDate = date instanceof Date ? date : new Date(date ?? '');
+  return Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toISOString();
 }
 
 async function streamToArrayBuffer(stream: AsyncIterable<Buffer>): Promise<ArrayBuffer> {

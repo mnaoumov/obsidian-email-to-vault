@@ -331,13 +331,58 @@ describe('ImapProvider', () => {
       expect(result[0]?.createdAt).toBe('2026-01-15T10:00:00.000Z');
     });
 
-    it('should fallback to an empty createdAt when the envelope date cannot be parsed', async () => {
+    it('should fallback to the internal date when the envelope date cannot be parsed', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
       const message = createSampleFetchMessage({
         envelope: {
           date: 'Whenever it was sent',
           from: [{ address: 'sender@example.com', name: 'Sender' }]
-        }
+        },
+        internalDate: new Date('2026-01-15T11:30:00Z')
+      });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.createdAt).toBe('2026-01-15T11:30:00.000Z');
+    });
+
+    it('should fallback to an internal date handed back as a string', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        },
+        internalDate: 'Thu, 15 Jan 2026 11:30:00 +0000'
+      });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.createdAt).toBe('2026-01-15T11:30:00.000Z');
+    });
+
+    it('should prefer the envelope date over the internal date', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({ internalDate: new Date('2026-01-15T11:30:00Z') });
+
+      mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
+
+      const result = await provider.getMessages();
+
+      expect(result[0]?.createdAt).toBe('2026-01-15T10:00:00.000Z');
+    });
+
+    it('should fallback to an empty createdAt when neither date can be read', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: 'Whenever it was sent',
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        },
+        internalDate: 'Whenever it arrived'
       });
 
       mocks.mockClientDefaults.fetch.mockReturnValue(createAsyncIterable([message]));
@@ -345,6 +390,20 @@ describe('ImapProvider', () => {
       const result = await provider.getMessages();
 
       expect(result[0]?.createdAt).toBe('');
+    });
+
+    it('should request the internal date so the fallback has something to fall back to', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+
+      await provider.getMessages();
+
+      expect(mocks.mockLatestClient?.['fetch']).toHaveBeenCalledWith('1:*', {
+        bodyStructure: true,
+        envelope: true,
+        flags: true,
+        internalDate: true,
+        uid: true
+      });
     });
 
     it('should fallback to an empty createdAt for an invalid Date instead of throwing', async () => {
@@ -548,7 +607,24 @@ describe('ImapProvider', () => {
       expect(result.createdAt).toBe('2026-01-15T10:00:00.000Z');
     });
 
-    it('should fallback to an empty createdAt when the envelope date cannot be parsed', async () => {
+    it('should fallback to the internal date when the envelope date cannot be parsed', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({
+        envelope: {
+          date: 'Whenever it was sent',
+          from: [{ address: 'sender@example.com', name: 'Sender' }]
+        },
+        internalDate: new Date('2026-01-15T11:30:00Z'),
+        source: Buffer.from('raw')
+      });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
+
+      const result = await provider.getMessage('42');
+
+      expect(result.createdAt).toBe('2026-01-15T11:30:00.000Z');
+    });
+
+    it('should fallback to an empty createdAt when neither date can be read', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
       const message = createSampleFetchMessage({
         envelope: {
@@ -562,6 +638,26 @@ describe('ImapProvider', () => {
       const result = await provider.getMessage('42');
 
       expect(result.createdAt).toBe('');
+    });
+
+    it('should request the internal date so the fallback has something to fall back to', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      const message = createSampleFetchMessage({ source: Buffer.from('raw') });
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(message);
+
+      await provider.getMessage('42');
+
+      expect(mocks.mockLatestClient?.['fetchOne']).toHaveBeenCalledWith(
+        '42',
+        {
+          bodyStructure: true,
+          envelope: true,
+          flags: true,
+          internalDate: true,
+          source: true
+        },
+        { uid: true }
+      );
     });
 
     it('should handle empty html in parsed result', async () => {
