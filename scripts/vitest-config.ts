@@ -3,6 +3,8 @@ import type { TestProjectConfiguration } from 'vitest/config';
 
 import { defineObsidianPluginVitestConfig } from 'obsidian-dev-utils/script-utils/test-runners/vitest-config';
 
+import { CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS } from './capture-timings.ts';
+
 /**
  * The screenshot-capture suites that write
  * `images/screenshots/screenshot-*.png`.
@@ -49,13 +51,6 @@ const APPIUM_URL = 'http://localhost:4723';
  * it is still starting up.
  */
 const LAYOUT_READY_TIMEOUT_IN_MILLISECONDS = 240_000;
-
-/**
- * Longer than the 30s default, and specific to this plugin: every shot waits on
- * REAL mail crossing a real network — sent over SMTP, delivered to a disposable
- * mailbox, then fetched by the plugin. None of that fits in the default budget.
- */
-const CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS = 180_000;
 
 /**
  * The demo-vault button suite. It drives a real desktop Obsidian like the desktop project, but opens

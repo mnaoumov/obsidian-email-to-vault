@@ -48,13 +48,27 @@
 
 ## Testing notes
 
-### Both capture suites wait on live mail, and that wait can exceed their budget
+### Both capture suites wait on live mail, and every wait that does so says so
 
-Every frame that photographs a delivered email spends nearly the whole per-test budget (`CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS`, 180 s in `scripts/vitest-config.ts`) waiting on a real message: sent over SMTP by the `.env` account, delivered to the disposable Mail.tm mailbox, then fetched by the plugin. **Measured on 2026-09-20, that delivery took 261 s** — sent from the `.env` account to a Mail.tm mailbox and polled until it appeared, with the account creation and the token call both answering in under a second, so the whole 261 s was inbound delivery.
+Every frame that photographs a delivered email waits on a real message: sent over SMTP by the `.env` account, delivered to the disposable Mail.tm mailbox, then fetched by the plugin. **Measured on 2026-09-20, that delivery took 261 s** — sent from the `.env` account to a Mail.tm mailbox and polled until it appeared, with the account creation and the token call both answering in under a second, so the whole 261 s was inbound delivery. Against the 180 s per-test budget of the day, a run on a slow day could not finish.
 
-When it goes that way a capture run reports **three different-looking failures for one cause** and none of them names it: `1` and `2` die on a bare `Test timed out in 180000ms`, and `3` on `expected 2 to be greater than 2`, which is the same failure one step downstream — the two notes `1` and `2` should have produced never arrived. `4` and `5` pass, because neither waits on new mail. So before treating that shape as a regression, send one message to a Mail.tm mailbox by hand and time it; the suite is very likely fine and the mailbox service is slow today.
+**The budgets now live in one place, `scripts/capture-timings.ts`, and the per-test budget is DERIVED rather than written down:**
+
+| Constant | Value | What it bounds |
+| --- | --- | --- |
+| `DELIVERY_BUDGET_IN_MILLISECONDS` | 450 s | `fetchEmails` — one message crossing SMTP into the Mail.tm mailbox. 1.7x the measured 261 s. |
+| `REDOWNLOAD_BUDGET_IN_MILLISECONDS` | 90 s | `waitForNoteUnder` — `redownload-all-emails` re-writing mail ALREADY in the vault. Nothing crosses the network. |
+| `CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS` | 600 s | The vitest per-test budget, `= DELIVERY + 150 s of overhead`. |
+
+Deriving the last one is the point, and it is not tidiness. **A helper's own budget has to be strictly under the per-test budget, or the helper's message can never be printed.** Before this, `fetchEmails` looped 24 attempts at 5 s — each also running a `check-emails` whose in-Obsidian settle alone is 4 s, so ~230 s of loop against a 180 s test — and its `The plugin never created a note for: …` was **unreachable by construction**: vitest always expired first and reported the `it`. Raise a wait budget and the per-test budget now rises with it, so that cannot silently come back.
+
+The two waits carry **different budgets on purpose**, and the diagnostic says which kind of failure you have: a `fetchEmails` timeout names inbound delivery, which this repo does not control and which you should time by hand before calling it a regression; a `waitForNoteUnder` timeout says outright that it **is** a defect here, most likely the settings write or the plugin reload in `applyCustomTemplates`. Each message carries what it waited for, how long, the mailbox, the poll count and the notes actually in the vault.
+
+Shot `3` was the third face of the same cause and now names it too. It photographs a folder that has FILLED, so it needs the notes shots `1` and `2` produced as well as its own; when mail was slow it failed on a bare `expected 2 to be greater than 2` that read as a defect in shot `3`. Its assertion now carries a message saying it is an earlier shot's mail that never arrived. (`4` and `5` never waited on new mail and passed throughout.)
 
 `registerMailbox` is NOT part of this: it was moved onto `pollInObsidian`, so a registration that fails says so with the service's own error rather than expiring as a transport timeout.
+
+The timings module lives in `scripts/` rather than `src/` deliberately — the coverage `include` is `src/**/*.ts`, so a constants module there would be counted by the coverage report and never loaded by the unit suites that produce it.
 
 ### The mobile screenshot capture suite
 
