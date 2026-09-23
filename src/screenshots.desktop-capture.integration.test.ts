@@ -48,6 +48,11 @@ import {
   it
 } from 'vitest';
 
+import {
+  DELIVERY_BUDGET_IN_MILLISECONDS,
+  REDOWNLOAD_BUDGET_IN_MILLISECONDS
+} from '../scripts/capture-timings.ts';
+
 /**
  * A file-explorer row, reduced to the collapse toggle.
  */
@@ -189,7 +194,17 @@ describe('desktop store screenshots', () => {
     const notePath = await findEmailNote(BOOKING_SUBJECT);
     await openNote(notePath, 'preview');
     const paths = await listFiles();
-    expect(paths.filter((path) => path.startsWith(`${EMAILS_FOLDER}/`)).length).toBeGreaterThan(2);
+    const emailNotePaths = paths.filter((path) => path.startsWith(`${EMAILS_FOLDER}/`));
+    // Named, because this is the THIRD face of one cause. This shot photographs a folder that has
+    // FILLED, so it needs the notes shots 1 and 2 produced as well as its own; when mail is slow it
+    // fails here on a count while they fail on their own waits, and the bare `expected 2 to be
+    // greater than 2` reads as a defect in this shot rather than as the same slow mailbox.
+    expect(
+      emailNotePaths.length,
+      'Shot 3 needs the notes shots 1 and 2 produced as well as its own. The vault holds'
+        + ` ${String(emailNotePaths.length)} under \`${EMAILS_FOLDER}/\`: ${emailNotePaths.join(', ') || '(none)'}.`
+        + ' A count short here is not a defect in shot 3 — it is mail from an earlier shot that never arrived.'
+    ).toBeGreaterThan(2);
     await shoot(3, 'Everything you forward, filed and searchable');
   });
 
@@ -211,6 +226,41 @@ describe('desktop store screenshots', () => {
     await shoot(5, 'Fetch on demand, or let it check on a timer');
   });
 });
+
+/**
+ * One expired Node-side wait, as {@link describeWait} reports it.
+ */
+interface DescribeWaitParams {
+  /**
+   * What the wait was allowed, so a reader can tell a budget that expired from one that was never reached.
+   */
+  readonly budgetInMilliseconds: number;
+
+  /**
+   * Whose fault this class of wait usually is — the one line that tells a slow third-party service apart from a defect here.
+   */
+  readonly cause: string;
+
+  /**
+   * What the wait actually spent.
+   */
+  readonly elapsedInMilliseconds: number;
+
+  /**
+   * Every file in the vault as the last poll saw it.
+   */
+  readonly paths: readonly string[];
+
+  /**
+   * How many times the condition was checked.
+   */
+  readonly polls: number;
+
+  /**
+   * What was being waited for, phrased to complete `Waited 12.3 s for …`.
+   */
+  readonly waitedFor: string;
+}
 
 /**
  * The registration's in-Obsidian state, seeded by `start` and read by every `poll`.
@@ -303,31 +353,76 @@ async function buildInvoiceImage(): Promise<Uint8Array> {
 }
 
 /**
+ * Describes a Node-side wait that ran out of budget.
+ *
+ * Every line of it exists because the failure it replaces was a bare
+ * `Test timed out in 180000ms` naming the `it` rather than the wait — so this
+ * says WHAT was waited for, for HOW LONG, what the vault held while waiting,
+ * and, last and most important, WHOSE FAULT that class of wait usually is.
+ *
+ * @param params - The wait that expired.
+ * @returns The diagnostic message.
+ */
+function describeWait(params: DescribeWaitParams): string {
+  const emailNotePaths = params.paths.filter((path) => path.startsWith(`${EMAILS_FOLDER}/`));
+
+  return [
+    `Waited ${formatDuration(params.elapsedInMilliseconds)} for ${params.waitedFor}, and it never arrived.`,
+    `Budget ${formatDuration(params.budgetInMilliseconds)}, spent over ${String(params.polls)} poll(s).`,
+    `Mailbox: ${mailboxAddress === '' ? '(never registered)' : mailboxAddress}.`,
+    `The vault holds ${String(emailNotePaths.length)} file(s) under \`${EMAILS_FOLDER}/\`: ${emailNotePaths.join(', ') || '(none)'}.`,
+    params.cause
+  ].join('\n');
+}
+
+/**
  * Runs the plugin's own `Check emails` command and waits for the note to appear.
  *
  * Polled from the Node side rather than inside one closure: the fetch crosses a
  * real network, and a whole round trip does not fit the transport's per-call cap.
  *
+ * Bounded by a DEADLINE rather than by an attempt count, which is not a style
+ * preference. The count this replaced — 24 attempts at 5s, each also running a
+ * `check-emails` whose in-Obsidian settle alone is 4s — gave the loop a budget
+ * of roughly 230s against a 180s per-test budget, so the throw below could never
+ * be reached: vitest always expired first and reported the `it`. A deadline read
+ * from {@link DELIVERY_BUDGET_IN_MILLISECONDS} is provably under the per-test
+ * budget, because that budget is derived from it.
+ *
  * @param subject - The subject of the message being waited for.
  * @returns The path of the note the plugin created.
  */
 async function fetchEmails(subject: string): Promise<string> {
-  const ATTEMPTS = 24;
-  const INTERVAL_IN_MILLISECONDS = 5000;
+  const POLL_INTERVAL_IN_MILLISECONDS = 5000;
 
-  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+  const startedAtInMilliseconds = Date.now();
+  let paths: string[] = [];
+  let polls = 0;
+
+  while (Date.now() - startedAtInMilliseconds < DELIVERY_BUDGET_IN_MILLISECONDS) {
+    polls++;
     await runCommand('check-emails');
 
-    const paths = await listFiles();
+    paths = await listFiles();
     const notePath = paths.find((path) => path.startsWith(`${EMAILS_FOLDER}/`) && path.includes(shortenSubject(subject)));
     if (notePath) {
       return notePath;
     }
 
-    await sleepInNode({ milliseconds: INTERVAL_IN_MILLISECONDS });
+    await sleepInNode({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
-  throw new Error(`The plugin never created a note for: ${subject}`);
+  throw new Error(describeWait({
+    budgetInMilliseconds: DELIVERY_BUDGET_IN_MILLISECONDS,
+    cause: 'Nothing here is staged, so this wait is INBOUND MAIL DELIVERY: a real message crossing SMTP into a disposable'
+      + ' Mail.tm mailbox. Nothing in this repo controls that latency, and it was measured at 261 s on 2026-09-20 — so a'
+      + ' wait that runs the whole budget is far more likely to be a slow mailbox than a broken suite. Send one message to a'
+      + ' Mail.tm mailbox by hand and time it before treating this as a regression.',
+    elapsedInMilliseconds: Date.now() - startedAtInMilliseconds,
+    paths,
+    polls,
+    waitedFor: `a note under \`${EMAILS_FOLDER}/\` whose name carries "${shortenSubject(subject)}" (subject: "${subject}")`
+  }));
 }
 
 /**
@@ -344,6 +439,18 @@ async function findEmailNote(subject: string): Promise<string> {
   }
 
   return notePath;
+}
+
+/**
+ * Renders a millisecond count as seconds, for a message a human reads.
+ *
+ * @param milliseconds - The duration.
+ * @returns The duration in seconds, to one decimal place.
+ */
+function formatDuration(milliseconds: number): string {
+  const MILLISECONDS_IN_SECOND = 1000;
+
+  return `${(milliseconds / MILLISECONDS_IN_SECOND).toFixed(1)} s`;
 }
 
 /**
@@ -771,22 +878,41 @@ function vaultPath(): string {
 /**
  * Waits for the plugin to write a note under a folder.
  *
+ * Carries its OWN budget rather than the delivery one, because it waits on a
+ * different thing: the mail is already in the vault and `redownload-all-emails`
+ * only writes it out again under the new templates. Giving it the delivery
+ * budget would sit on a real defect in this repo for 450 s and then describe it
+ * as a slow mailbox.
+ *
  * @param folder - The folder the note should appear under.
  * @returns The note's path.
  */
 async function waitForNoteUnder(folder: string): Promise<string> {
-  const ATTEMPTS = 20;
-  const INTERVAL_IN_MILLISECONDS = 3000;
+  const POLL_INTERVAL_IN_MILLISECONDS = 3000;
 
-  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
-    const paths = await listFiles();
+  const startedAtInMilliseconds = Date.now();
+  let paths: string[] = [];
+  let polls = 0;
+
+  while (Date.now() - startedAtInMilliseconds < REDOWNLOAD_BUDGET_IN_MILLISECONDS) {
+    polls++;
+    paths = await listFiles();
     const notePath = paths.find((path) => path.startsWith(`${folder}/`) && path.endsWith('.md'));
     if (notePath) {
       return notePath;
     }
 
-    await sleepInNode({ milliseconds: INTERVAL_IN_MILLISECONDS });
+    await sleepInNode({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
-  throw new Error(`No note appeared under: ${folder}`);
+  throw new Error(describeWait({
+    budgetInMilliseconds: REDOWNLOAD_BUDGET_IN_MILLISECONDS,
+    cause: 'Nothing crosses the network here: the mail is already in the vault, and `redownload-all-emails` only writes it'
+      + ' out again under the templates `applyCustomTemplates` just wrote. So unlike the delivery wait, this one expiring IS'
+      + ' a defect in this repo — most likely the settings write or the plugin reload, not the mailbox.',
+    elapsedInMilliseconds: Date.now() - startedAtInMilliseconds,
+    paths,
+    polls,
+    waitedFor: `any \`.md\` note under \`${folder}/\`, the folder the custom path template writes to`
+  }));
 }
