@@ -363,6 +363,42 @@ describe('MailTmProvider', () => {
 
       expect(result.attachments).toEqual([]);
     });
+
+    it('should default html, text and cc when the API response omits them', async () => {
+      const apiResponse = {
+        attachments: [{ contentType: 'application/pdf', filename: 'scan.pdf', id: 'ATTACH000001' }],
+        createdAt: '2026-01-01T00:00:00+00:00',
+        downloadUrl: '',
+        from: { address: 'scanner@example.com', name: '' },
+        hasAttachments: true,
+        id: 'msg1',
+        seen: false,
+        size: 0,
+        subject: 'Scan',
+        to: [],
+        updatedAt: ''
+      };
+
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+
+      mockRequestUrl
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          json: { token: 'jwt-token' }
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          json: apiResponse
+        }));
+
+      const result = await manager.getMessage('msg1');
+
+      expect(result.html).toEqual([]);
+      expect(result.text).toBe('');
+      expect(result.cc).toEqual([]);
+    });
   });
 
   describe('getMessages', () => {
