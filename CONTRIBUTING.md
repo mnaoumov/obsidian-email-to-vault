@@ -58,5 +58,5 @@ npm run test:coverage
 
 ## Pull Requests
 
-- Base your PR on the `` branch.
+- Base your PR on the `main` branch.
 - Ensure all checks pass (`lint`, `format:check`, `spellcheck`, `test`).
