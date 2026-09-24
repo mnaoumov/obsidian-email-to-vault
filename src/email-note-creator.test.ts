@@ -2097,4 +2097,159 @@ describe('EmailNoteCreator', () => {
       await expect(creator.saveEmailAsNote(createMessage())).rejects.toThrow('Unknown token: unknown');
     });
   });
+
+  // cSpell:ignore Assunto Asunto Betreff Bianchi Gesendet Inviato Januar mercoledì Montag Oggetto Rossi settembre stoccaggio
+  describe('forwarded email extraction', () => {
+    interface SaveForwardedEmailParams {
+      readonly subject?: string;
+      readonly template?: string;
+      readonly text: string;
+    }
+
+    async function saveForwardedEmail(params: SaveForwardedEmailParams): Promise<string> {
+      const subject = params.subject ?? 'FW: Subject';
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return {
+            attachments: [],
+            cc: [{ address: 'forwarder-cc@example.com', name: '' }],
+            createdAt: '2026-01-01T00:00:00+00:00',
+
+            from: { address: 'forwarder@example.com', name: 'Forwarder' },
+            hasAttachments: false,
+            html: [],
+            id: 'msg1',
+            seen: false,
+
+            subject,
+            text: params.text,
+            to: [{ address: 'me@mail.tm', name: '' }]
+          };
+        })
+      });
+      const app = createMockApp();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
+        emailNoteTemplate: params.template ?? '{{from}} | {{to}} | {{cc}} | {{subject}} | {{body}}',
+        shouldExtractForwardedEmail: true
+      });
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage({ subject }));
+
+      return castTo<string>(vi.mocked(app.vault.create).mock.calls[0]?.[1]);
+    }
+
+    it('should extract the original sender and recipients from an Italian Outlook forward converted from HTML', async () => {
+      const content = await saveForwardedEmail({
+        subject: 'I: sistema di stoccaggio',
+        // The shape turndown gives Outlook's HTML header block: bold labels, hard breaks, and escaped `_` and `>`.
+        text: [
+          '  ',
+          '',
+          'Forwarder signature',
+          '',
+          '---',
+          '',
+          String.raw`**Da:** Mario Rossi <[mario.rossi@test.com](mailto:mario.rossi@test.com)\>  `,
+          '**Inviato:** mercoledì 23 settembre 2026 09:07  ',
+          String.raw`**A:** Luigi.Verdi <[luigi.verdi@test.com](mailto:luigi.verdi@test.com)\>; Forwarder <[forwarder@example.com](mailto:forwarder@example.com)\>  `,
+          String.raw`**Cc:** Anna Bianchi <[anna\_bianchi@test.com](mailto:anna_bianchi@test.com)\>  `,
+          '**Oggetto:** RE: sistema di stoccaggio',
+          '',
+          'Original content'
+        ].join('\n')
+      });
+
+      expect(content).toBe(
+        'Mario Rossi <mario.rossi@test.com> | Luigi.Verdi <luigi.verdi@test.com>, Forwarder <forwarder@example.com> | '
+          + 'Anna Bianchi <anna_bianchi@test.com> | RE: sistema di stoccaggio | Original content'
+      );
+    });
+
+    it('should extract the Cc line from an English Outlook forward', async () => {
+      const content = await saveForwardedEmail({
+        text: 'From: Original <orig@test.com>\r\nSent: Monday, January 1, 2024\r\nTo: dest@test.com\r\nCc: copy@test.com\r\nSubject: Original Subject\r\n\r\nBody'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | dest@test.com | copy@test.com | Original Subject | Body');
+    });
+
+    it('should read a label bolded without its colon', async () => {
+      const content = await saveForwardedEmail({
+        text: '**Von**: Original <orig@test.com>\n**Gesendet**: Montag, 1. Januar 2024\n**An**: dest@test.com\n**Betreff**: Betreff\n\nBody'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | dest@test.com |  | Betreff | Body');
+    });
+
+    it('should clear the forwarder cc and keep the forwarder to when the original header has neither line', async () => {
+      const content = await saveForwardedEmail({
+        text: 'From: Original <orig@test.com>\nSent: Monday, January 1, 2024\nSubject: Original Subject\n\nBody'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | me@mail.tm |  | Original Subject | Body');
+    });
+
+    it('should end the header block at a repeated field', async () => {
+      const content = await saveForwardedEmail({
+        text: 'From: Original <orig@test.com>\nSent: Monday, January 1, 2024\nSubject: Original Subject\nSubject: not a header\n\nBody'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | me@mail.tm |  | Original Subject | Subject: not a header\n\nBody');
+    });
+
+    it('should skip a From line that does not start a full header block', async () => {
+      const content = await saveForwardedEmail({
+        text: 'From: someone mentioned in passing\nNote: unrelated\n\nFrom: Original <orig@test.com>\nSent: Monday, January 1, 2024\nSubject: Original Subject\nBody right after'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | me@mail.tm |  | Original Subject | Body right after');
+    });
+
+    it('should keep the message as-is when no line of it is a forward header', async () => {
+      const content = await saveForwardedEmail({
+        subject: 'Plain',
+        text: 'Hello\nFrom: someone\nThanks'
+      });
+
+      expect(content).toBe('Forwarder <forwarder@example.com> | me@mail.tm | forwarder-cc@example.com | Plain | Hello\nFrom: someone\nThanks');
+    });
+
+    it('should extract the Cc line from a Gmail forward header', async () => {
+      const content = await saveForwardedEmail({
+        subject: 'Fwd: Original Subject',
+        text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\nCc: copy@test.com\n\nBody'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | dest@test.com | copy@test.com | Original Subject | Body');
+    });
+
+    it('should clear the forwarder cc when a Gmail forward header has no Cc line', async () => {
+      const content = await saveForwardedEmail({
+        subject: 'Fwd: Original Subject',
+        text: '---------- Forwarded message ---------\nFrom: Original <orig@test.com>\nDate: Mon, 1 Jan 2024\nSubject: Original Subject\nTo: dest@test.com\n\nBody'
+      });
+
+      expect(content).toBe('Original <orig@test.com> | dest@test.com |  | Original Subject | Body');
+    });
+
+    it.each([
+      ['I: Oggetto', 'Oggetto'],
+      ['WG: Betreff', 'Betreff'],
+      ['TR: Objet', 'Objet'],
+      ['RV: Asunto', 'Asunto'],
+      ['ENC: Assunto', 'Assunto'],
+      ['fw: lower case', 'lower case']
+    ])('should strip the forward prefix from %s', async (subject, expectedSubject) => {
+      const content = await saveForwardedEmail({ subject, template: '{{subject}}', text: 'Plain body without forward headers' });
+
+      expect(content).toBe(expectedSubject);
+    });
+  });
 });

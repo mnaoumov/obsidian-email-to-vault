@@ -7,6 +7,7 @@ import {
 } from 'obsidian';
 import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
 import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
+import { getMandatoryNamedGroup } from 'obsidian-dev-utils/reg-exp';
 import { replaceAll } from 'obsidian-dev-utils/string';
 import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
@@ -18,11 +19,30 @@ import type {
 } from './providers/email-provider-types.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
-const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW): ?/;
+const FORWARD_PREFIX_PATTERN = /^(?:Fwd|FW|I|WG|TR|RV|ENC): ?/i;
 
 const GMAIL_FORWARD_HEADER_PATTERN = /---------- Forwarded message ---------\s*\r?\n(?:.*\r?\n)*?\s*\r?\n/;
 
-const OUTLOOK_FORWARD_HEADER_PATTERN = /(?:^|\r?\n)From: .*\s*\r?\nSent: .*\s*\r?\nTo: .*\s*\r?\nSubject: .*\s*\r?\n\s*\r?\n/;
+const OUTLOOK_HEADER_LINE_PATTERN = /^[ \t]*(?:\*\*)?(?<label>[^*:\r\n]+?)(?:\*\*)?:(?:\*\*)?[ \t]*(?<value>.*?)[ \t\r]*$/;
+
+type OutlookHeaderField = 'cc' | 'from' | 'sent' | 'subject' | 'to';
+
+// Outlook localizes the labels of the header block it writes above a forwarded message.
+// cSpell:disable
+const OUTLOOK_HEADER_LABELS: readonly (readonly [OutlookHeaderField, readonly string[]])[] = [
+  ['cc', ['cc', 'copia', 'dw', 'kopie', 'копия']],
+  ['from', ['da', 'de', 'from', 'od', 'van', 'von', 'от']],
+  ['sent', ['data', 'date', 'enviado', 'enviado el', 'envoyé', 'gesendet', 'inviato', 'sent', 'verzonden', 'wysłane', 'отправлено']],
+  ['subject', ['asunto', 'assunto', 'betreff', 'objet', 'oggetto', 'onderwerp', 'subject', 'temat', 'тема']],
+  ['to', ['a', 'à', 'aan', 'an', 'do', 'para', 'to', 'кому']]
+];
+// cSpell:enable
+
+const OUTLOOK_HEADER_FIELD_BY_LABEL = new Map<string, OutlookHeaderField>(
+  OUTLOOK_HEADER_LABELS.flatMap(([field, labels]) => labels.map((label) => [label, field] as const))
+);
+
+const LEADING_BLANK_LINES_PATTERN = /^(?:[ \t]*\r?\n)+/;
 
 const HEADER_FROM_PATTERN = /From: (?<value>.+)/;
 const HEADER_SUBJECT_PATTERN = /Subject: (?<value>.+)/;
@@ -157,7 +177,16 @@ export class EmailNoteCreator {
 function applyHeaderOverrides(data: EmailData, headerBlock: string): void {
   data.from = extractHeaderValue({ fallback: data.from, pattern: HEADER_FROM_PATTERN, text: headerBlock });
   data.to = extractHeaderValue({ fallback: data.to, pattern: HEADER_TO_PATTERN, text: headerBlock });
+  data.cc = extractHeaderValue({ fallback: '', pattern: HEADER_CC_PATTERN, text: headerBlock });
   data.subject = extractHeaderValue({ fallback: data.subject, pattern: HEADER_SUBJECT_PATTERN, text: headerBlock });
+}
+
+function applyOutlookHeaderOverrides(data: EmailData, fields: ReadonlyMap<OutlookHeaderField, string>): void {
+  // `findOutlookHeaderBlock` only returns a block that has the From and Subject lines.
+  data.from = cleanHeaderValue(ensureNonNullable(fields.get('from')));
+  data.to = normalizeAddressList(cleanHeaderValue(fields.get('to') ?? data.to));
+  data.cc = normalizeAddressList(cleanHeaderValue(fields.get('cc') ?? ''));
+  data.subject = cleanHeaderValue(ensureNonNullable(fields.get('subject')));
 }
 
 const INLINE_ATTACHMENT_PATTERN = /!\[(?<alt>[^\]]*)\]\(attachment:(?<attachId>[^)]+)\)/g;
@@ -191,8 +220,27 @@ interface ExtractHeaderValueParams {
   readonly text: string;
 }
 
+interface OutlookHeaderBlock {
+  readonly endIndex: number;
+  readonly fields: ReadonlyMap<OutlookHeaderField, string>;
+}
+
+interface OutlookHeaderLine {
+  readonly field: OutlookHeaderField;
+  readonly value: string;
+}
+
+interface TextLine {
+  readonly index: number;
+  readonly text: string;
+}
+
 function checkIsDataTable(table: Element): boolean {
   return table.getAttribute('role') !== 'presentation' && Boolean(table.querySelector('th')) && !table.querySelector('table');
+}
+
+function cleanHeaderValue(value: string): string {
+  return unescapeMarkdown(stripMarkdownFormatting(value.trim()));
 }
 
 function extractEmailFromRfc822(emlContent: string): EmailData {
@@ -233,12 +281,11 @@ function extractForwardedEmail(data: EmailData): EmailData {
     return result;
   }
 
-  const outlookMatch = OUTLOOK_FORWARD_HEADER_PATTERN.exec(result.body);
-  if (outlookMatch) {
-    const headerBlock = outlookMatch[0];
-    applyHeaderOverrides(result, headerBlock);
+  const outlookHeaderBlock = findOutlookHeaderBlock(result.body);
+  if (outlookHeaderBlock) {
+    applyOutlookHeaderOverrides(result, outlookHeaderBlock.fields);
 
-    result.body = result.body.slice(outlookMatch.index + headerBlock.length);
+    result.body = replaceAll({ $string: result.body.slice(outlookHeaderBlock.endIndex), replacer: '', searchValue: LEADING_BLANK_LINES_PATTERN });
     return result;
   }
 
@@ -248,7 +295,34 @@ function extractForwardedEmail(data: EmailData): EmailData {
 function extractHeaderValue(params: ExtractHeaderValueParams): string {
   const { fallback, pattern, text } = params;
   const raw = pattern.exec(text)?.groups?.['value'];
-  return raw === undefined ? fallback : stripMarkdownFormatting(raw.trim());
+  return raw === undefined ? fallback : cleanHeaderValue(raw);
+}
+
+function findOutlookHeaderBlock(body: string): null | OutlookHeaderBlock {
+  const lines = splitLines(body);
+  for (const [startLineIndex, startLine] of lines.entries()) {
+    const startHeaderLine = parseOutlookHeaderLine(startLine.text);
+    if (startHeaderLine?.field !== 'from') {
+      continue;
+    }
+
+    const fields = new Map<OutlookHeaderField, string>([[startHeaderLine.field, startHeaderLine.value]]);
+    let lastLine = startLine;
+    for (const line of lines.slice(startLineIndex + 1)) {
+      const headerLine = parseOutlookHeaderLine(line.text);
+      if (!headerLine || fields.has(headerLine.field)) {
+        break;
+      }
+      fields.set(headerLine.field, headerLine.value);
+      lastLine = line;
+    }
+
+    if (fields.has('sent') && fields.has('subject')) {
+      return { endIndex: lastLine.index + lastLine.text.length, fields };
+    }
+  }
+
+  return null;
 }
 
 function formatAddress(address: EmailAddress): string {
@@ -259,6 +333,19 @@ function formatAddress(address: EmailAddress): string {
 
 function formatAddresses(addresses: EmailAddress[]): string {
   return addresses.map((a) => formatAddress(a)).join(', ');
+}
+
+function normalizeAddressList(value: string): string {
+  return value.split(/\s*;\s*/).filter(Boolean).join(', ');
+}
+
+function parseOutlookHeaderLine(line: string): null | OutlookHeaderLine {
+  const match = OUTLOOK_HEADER_LINE_PATTERN.exec(line);
+  if (!match) {
+    return null;
+  }
+  const field = OUTLOOK_HEADER_FIELD_BY_LABEL.get(getMandatoryNamedGroup(match, 'label').trim().toLowerCase());
+  return field ? { field, value: getMandatoryNamedGroup(match, 'value') } : null;
 }
 
 function prependHtmlParseError(body: string, pluginNoticeComponent: PluginNoticeComponent): string {
@@ -303,6 +390,24 @@ function sanitizeEmailHtml(html: string, options: SanitizeOptions): string {
   unwrapLayoutTables(doc);
 
   return doc.body.innerHTML;
+}
+
+// Splits on `\n` alone, keeping any `\r` on its line: a multiline `^`/`$` treats a lone `\r` as a line end too.
+function splitLines(text: string): TextLine[] {
+  let index = 0;
+  return text.split('\n').map((lineText) => {
+    const line = { index, text: lineText };
+    index += lineText.length + 1;
+    return line;
+  });
+}
+
+function unescapeMarkdown(text: string): string {
+  return replaceAll({
+    $string: text,
+    replacer: ({ capturedGroupArguments: [character] }) => ensureNonNullable(character),
+    searchValue: /\\(?<character>[\\`*_[\]#+\-.!>~|])/g
+  });
 }
 
 function unwrapLayoutTable(table: Element): void {

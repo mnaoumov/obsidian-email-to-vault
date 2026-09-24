@@ -43,6 +43,6 @@ Open **Settings -> Community plugins -> Email to Vault** to configure the plugin
 - `emailNoteTemplate`
   - the content template for each note (frontmatter plus body and attachments).
 - `shouldExtractForwardedEmail`
-  - treat forwarded emails as direct messages by extracting the original sender, recipients, and subject.
+  - treat forwarded emails as direct messages by extracting the original sender, recipients, CC, and subject. It reads Gmail's forward header, and Outlook's in English, Italian, French, German, Spanish, Portuguese, Dutch, Polish and Russian.
 - `shouldStripHiddenElements`
   - remove hidden HTML elements (`display:none`, `visibility:hidden`, `opacity:0`, `aria-hidden`) before converting the email to markdown.
