@@ -55,9 +55,10 @@ interface MailTmMessage {
 
 interface MailTmMessageFull extends MailTmMessage {
   attachments?: MailTmAttachment[];
-  cc: MailTmAddress[];
-  html: string[];
-  text: string;
+  // Not guaranteed present: a mail from Epson Scan to Cloud came back with no `html` and crashed the note creator (#8).
+  cc?: MailTmAddress[];
+  html?: string[];
+  text?: string;
 }
 
 interface MailTmMessagesResponse {
@@ -244,15 +245,15 @@ function mapMailTmMessage(message: MailTmMessage): EmailMessageSummary {
 function mapMailTmMessageFull(message: MailTmMessageFull): EmailMessageFull {
   return {
     attachments: message.attachments ?? [],
-    cc: message.cc,
+    cc: message.cc ?? [],
     createdAt: message.createdAt,
     from: message.from,
     hasAttachments: message.hasAttachments,
-    html: message.html,
+    html: message.html ?? [],
     id: message.id,
     seen: message.seen,
     subject: message.subject,
-    text: message.text,
+    text: message.text ?? '',
     to: message.to
   };
 }
