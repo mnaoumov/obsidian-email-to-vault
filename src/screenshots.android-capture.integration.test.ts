@@ -39,6 +39,7 @@ import {
   captureObsidianScreenshot,
   ContextId,
   evalInObsidian,
+  hideCaret,
   labelScreenshot,
   pollInObsidian,
   raiseSoftKeyboard,
@@ -1062,22 +1063,6 @@ async function shoot(index: number, caption: string): Promise<void> {
  * @param caption - The caption drawn across the bottom of the frame.
  */
 async function shootWithSoftKeyboard(index: number, caption: string): Promise<void> {
-  /*
-   * The field keeps focus, and its caret blinks, so which phase the shutter caught decided the pixels
-   * next to the typed text. Not a blur, as the desktop suite does: the focused field with the keyboard
-   * up is this frame's subject. A transparent caret leaves the focus, and the keyboard, where they are.
-   */
-  await evalInObsidian({
-    callback({ selector }) {
-      const input = activeDocument.querySelector(selector);
-      if (input instanceof HTMLElement) {
-        input.setCssStyles({ caretColor: 'transparent' });
-      }
-    },
-    input: { selector: PALETTE_INPUT_SELECTOR },
-    vaultPath: vaultPath()
-  });
-
   const captured = await withSoftKeyboardEnabled({
     async callback() {
       await raiseSoftKeyboard({
@@ -1086,7 +1071,18 @@ async function shootWithSoftKeyboard(index: number, caption: string): Promise<vo
         vaultPath: vaultPath()
       });
 
-      return await captureDeviceScreenshot({ deviceId });
+      /*
+       * The field keeps focus, and its caret blinks, so which phase the shutter caught decided the pixels
+       * next to the typed text. A device capture reads the framebuffer over adb, so it hides no caret by
+       * itself. Not a blur: the focused field with the keyboard up is this frame's subject, and a
+       * transparent caret leaves the focus, and the keyboard, where they are.
+       */
+      const caret = await hideCaret({ vaultPath: vaultPath() });
+      try {
+        return await captureDeviceScreenshot({ deviceId });
+      } finally {
+        await caret.restore();
+      }
     },
     deviceId
   });
