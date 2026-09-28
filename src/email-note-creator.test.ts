@@ -2172,6 +2172,28 @@ describe('EmailNoteCreator', () => {
       );
     });
 
+    it('should extract the original sender and recipients from a macOS Outlook forward converted from HTML', async () => {
+      const content = await saveForwardedEmail({
+        subject: 'FW: Pilots and Handoffs',
+        // The shape turndown gives macOS Outlook's HTML header block: Date rather than Sent, and a From line naming a delegate.
+        text: [
+          'Sharing for the second item in particular.',
+          '',
+          String.raw`**From:** Team List <list@test.com> on behalf of Jane Original <[jane\_original@test.com](mailto:jane_original@test.com)\>  `,
+          '**Date:** Thursday, August 20, 2026 at 11:30 AM  ',
+          String.raw`**To:** Its Team <[its@test.com](mailto:its@test.com)\>; Meg L <[meg@test.com](mailto:meg@test.com)\>  `,
+          '**Subject:** Pilots and Handoffs',
+          '',
+          'Original content'
+        ].join('\n')
+      });
+
+      expect(content).toBe(
+        'Team List <list@test.com> on behalf of Jane Original <jane_original@test.com> | Its Team <its@test.com>, Meg L <meg@test.com> | '
+          + ' | Pilots and Handoffs | Original content'
+      );
+    });
+
     it('should extract the Cc line from an English Outlook forward', async () => {
       const content = await saveForwardedEmail({
         text: 'From: Original <orig@test.com>\r\nSent: Monday, January 1, 2024\r\nTo: dest@test.com\r\nCc: copy@test.com\r\nSubject: Original Subject\r\n\r\nBody'
