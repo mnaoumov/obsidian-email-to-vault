@@ -1,5 +1,46 @@
 # CHANGELOG
 
+## 2.3.8
+
+- chore(cspell): merge the lintable dictionary word
+- test(screenshots): merge the harness-side caret hiding
+- test(screenshots): merge the hidden palette caret for frame 5
+- chore(deps): merge the obsidian-integration-testing ^17 float and the re-shot frames
+- fix(forward): merge the localized and HTML Outlook forward headers
+- fix(mail-tm): merge the missing-body-fields default
+- chore(deps): merge the obsidian-test-mocks ^7.0.0 float
+- fix(test): merge the headless demo-vault toolkit install
+- chore: adopt the npm run gate branch gate
+- fix(deps): restore the lockfile's missing resolved and integrity fields
+- docs(contributing): name the default branch contributors should base a PR on
+- fix(screenshots): size both capture waits above live mail, and make each wait report itself
+- style(screenshots): silence the sharp no-named-as-default warning in both capture suites
+- fix(imap): fall back to the server internal date when the Date header cannot be read
+- docs(agents): record that a capture run can fail three ways on one slow mail delivery
+- test(screenshots): move registerMailbox onto pollInObsidian in both capture suites
+- test(vitest-config): run the window-stubbing email-checker suite on the default pool
+- fix(imap): read an envelope date imapflow 2 could not parse itself
+- fix(deps): float devalue to 5.9.4, clearing GHSA-9rgm-9g3h-6x36
+- test: open both mailbox notes on the exact marker line
+- test: bring the desktop capture render ceiling in line, and say what the mailbox wait costs
+- build(markdownlint): forbid hard-wrapped markdown paragraphs
+- chore(deps): drop the dead markdown-it override
+- chore(deps): drop the dead js-yaml override
+- fix(deps): override smol-toml to clear a denial-of-service advisory
+- style(comments): stop capitalizing the middle of a wrapped comment
+- docs: replace the private rule-id citations with what they assert
+- test: run the mobile file-drawer retry from Node, so its own diagnostic can fire
+- docs: name the library and the sibling plugins so a reader can resolve them
+- docs: replace the private tracker references with what they pointed at
+- test(integration): take the palette frame with the soft keyboard up
+- test: size openNote's wait ceiling under the cap, and drop the disable it needed
+- refactor: use the shared Templates language component from obsidian-dev-utils
+- refactor(android): drive the Android suites with trusted input
+- docs: name the unversioned demo-vault asset and the folder it unzips into
+- chore: make the LICENSE copyright line lintable and guard it against the year roll-over
+- test(test-mocks): drop the app.plugins stub, and sweep the dependencies
+- fix(build): wire build:compile to buildCompile and drop the duplicate leaf script
+
 ## 2.3.7
 
 - chore(deps): sweep caret-ranged dependencies to latest
