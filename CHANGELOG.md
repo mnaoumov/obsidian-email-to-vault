@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.3.9
+
+- test(screenshots): merge the applyObsidianTheme desktop capture theme
+- test(forward): merge the macOS Outlook forward header test
+
 ## 2.3.8
 
 - chore(cspell): merge the lintable dictionary word
