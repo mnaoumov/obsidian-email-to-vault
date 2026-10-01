@@ -428,6 +428,38 @@ describe('PluginSettingsTab', () => {
       expect(editAndSaveFunction).not.toHaveBeenCalled();
     });
 
+    it('should lock the password field when registered and the password is stored on this device', () => {
+      const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
+      const tab = createTab({ emailAddress: 'test@mail.tm' });
+
+      renderRows(tab);
+
+      expect(setDisabledSpy).toHaveBeenCalledWith(true);
+      expect(passwordOnChangeSpy).not.toHaveBeenCalled();
+    });
+
+    it('should let the password be entered when registered on another device', async () => {
+      const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
+      const plugin = createMockPlugin();
+      vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
+      const tab = new PluginSettingsTab({
+        emailProviderManager: createMockEmailProviderManager(),
+        plugin,
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' })
+      });
+      renderRows(tab);
+
+      expect(setDisabledSpy).toHaveBeenCalledWith(false);
+      expect(tab.containerEl.textContent).toContain('the password is stored on each device separately');
+
+      const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
+      await onChange('synced-password');
+
+      expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('test-key', 'synced-password');
+    });
+
     it('should show notice when no password found for copy', async () => {
       const writeTextFunction = vi.fn(async () => noopAsync());
       vi.stubGlobal('navigator', { clipboard: { writeText: writeTextFunction } });

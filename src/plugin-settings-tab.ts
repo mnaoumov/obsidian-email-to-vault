@@ -165,6 +165,11 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     }
 
     const isRegistered = !!this.pluginSettingsComponent.settings.emailAddress;
+    // The address is synced with the vault's settings, but the password lives in the device's own secret storage, so
+    // a second device sees the address without the password. The field stays editable until this device has one.
+    const savedPassword = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey) ?? '';
+    const isPasswordMissingOnThisDevice = isRegistered && !savedPassword;
+    const isPasswordLocked = isRegistered && !!savedPassword;
 
     return this.settingGroupEx({
       heading: 'Mail.tm',
@@ -245,15 +250,16 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }
         }),
         this.settingEx({
-          desc: 'Password for the mail.tm mailbox.',
+          desc: isPasswordMissingOnThisDevice
+            ? 'Password for the mail.tm mailbox. The address came from another device, and the password is stored on each device separately: copy it there and paste it here.'
+            : 'Password for the mail.tm mailbox.',
           name: 'Email password',
           render: (setting) => {
             setting
               .addPassword((passwordComponent) => {
-                passwordComponent.setDisabled(isRegistered);
-                const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey) ?? '';
-                passwordComponent.setValue(password);
-                if (!isRegistered) {
+                passwordComponent.setDisabled(isPasswordLocked);
+                passwordComponent.setValue(savedPassword);
+                if (!isPasswordLocked) {
                   passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
                     await this.ensurePasswordSecretKey();
                     this.app.secretStorage.setSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey, value);
