@@ -18,7 +18,8 @@ The quickest way to try Email to Vault is the built-in **Mail.tm** provider: a f
 
 ## Notes
 
-- The generated address and its password are stored in the plugin settings so the plugin can keep polling the mailbox. You can copy either to the clipboard, or click **Unregister email address** to discard the mailbox.
+- The generated address is stored in the plugin settings, and its password in Obsidian's secret storage, so the plugin can keep polling the mailbox. You can copy either to the clipboard, or click **Unregister email address** to discard the mailbox.
+- **Using the vault on more than one device?** The address travels with the vault's settings, but the password stays on the device that created the mailbox. On each other device, open the settings, copy the password on the first device with its clipboard button, and paste it into the **Email password** field, which stays editable until that device has a password.
 - Mail.tm works on both desktop and mobile.
 - Prefer your own email account instead? See [02 IMAP mode](<./02 IMAP mode.md>).
 - To change where notes are created and what they contain, see [03 Email notes and commands](<./03 Email notes and commands.md>) and [04 Settings](<./04 Settings.md>).
