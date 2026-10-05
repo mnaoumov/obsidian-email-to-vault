@@ -10,8 +10,6 @@ interface MailTmDomain {
 interface MailTmDomainsResponse {
   'hydra:member': MailTmDomain[];
 }
-// `split` is given a limit so a local part containing `@` cannot yield extra segments.
-const ADDRESS_PART_COUNT = 2;
 
 export class MailTmDomainManager {
   public async getAvailableDomain(): Promise<string> {
@@ -23,16 +21,6 @@ export class MailTmDomainManager {
     }
 
     return activeDomain.domain;
-  }
-
-  public async validateEmailDomain(address: string): Promise<boolean> {
-    const domainPart = address.split('@', ADDRESS_PART_COUNT)[1];
-    if (!domainPart) {
-      return false;
-    }
-
-    const domains = await this.getAvailableDomains();
-    return domains.some((d) => d.domain === domainPart && d.isActive);
   }
 
   private async getAvailableDomains(): Promise<MailTmDomain[]> {

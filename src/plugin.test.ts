@@ -186,7 +186,7 @@ describe('Plugin', () => {
       expect(MockMailTmDomainManager).toHaveBeenCalledOnce();
     });
 
-    it('should create PluginSettingsComponent with dataHandler, mailTmDomainManager, and pluginId', async () => {
+    it('should create PluginSettingsComponent with dataHandler and pluginId', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
@@ -194,7 +194,6 @@ describe('Plugin', () => {
       expect(params?.dataHandler).toBeInstanceOf(PluginDataHandler);
       expect(params?.pluginEventSource).toBeInstanceOf(PluginEventSourceImpl);
       expect(params).toMatchObject({
-        mailTmDomainManager: MockMailTmDomainManager.mock.instances[0],
         pluginId: 'email-to-vault',
         pluginSettingsClass: PluginSettings
       });
