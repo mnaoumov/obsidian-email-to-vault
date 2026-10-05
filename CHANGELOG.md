@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.3.10
+
+- fix(settings): merge the retired Mail.tm domain and secret key fixes
+- fix(settings): merge the second-device Mail.tm password entry
+
 ## 2.3.9
 
 - test(screenshots): merge the applyObsidianTheme desktop capture theme
