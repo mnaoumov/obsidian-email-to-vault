@@ -139,8 +139,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey) ?? '';
               passwordComponent.setValue(password);
               passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
-                await this.ensurePasswordSecretKey();
-                this.app.secretStorage.setSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey, value);
+                const secretKey = await this.ensurePasswordSecretKey();
+                this.app.secretStorage.setSecret(secretKey, value);
               }));
             });
           }
@@ -261,8 +261,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                 passwordComponent.setValue(savedPassword);
                 if (!isPasswordLocked) {
                   passwordComponent.onChange(convertAsyncToSync(async (value: string) => {
-                    await this.ensurePasswordSecretKey();
-                    this.app.secretStorage.setSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey, value);
+                    const secretKey = await this.ensurePasswordSecretKey();
+                    this.app.secretStorage.setSecret(secretKey, value);
                   }));
                 }
               })
@@ -423,15 +423,19 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     });
   }
 
-  private async ensurePasswordSecretKey(): Promise<void> {
-    if (this.pluginSettingsComponent.settings.emailPasswordSecretKey) {
-      return;
+  // Returns the key rather than leaving the caller to read it back from the settings: the save awaits, and a settings
+  // reload or re-validation landing in that window can leave the key unset, which `setSecret` rejects (#10).
+  private async ensurePasswordSecretKey(): Promise<string> {
+    const existingSecretKey = this.pluginSettingsComponent.settings.emailPasswordSecretKey;
+    if (existingSecretKey) {
+      return existingSecretKey;
     }
 
     const secretKey = `${this.pluginId}-password`;
     await this.pluginSettingsComponent.editAndSave((settings) => {
       settings.emailPasswordSecretKey = secretKey;
     });
+    return secretKey;
   }
 }
 
