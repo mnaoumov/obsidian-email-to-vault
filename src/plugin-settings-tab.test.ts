@@ -408,6 +408,31 @@ describe('PluginSettingsTab', () => {
       expect(pluginSettingsComponent.settings.emailPasswordSecretKey).toBe('email-to-vault-password');
     });
 
+    it('should save the password under the derived key even when the settings lose it during the save', async () => {
+      // A settings reload landing while the save awaits leaves the key empty in the settings; `setSecret('')` threw (#10).
+      const editAndSaveFunction = vi.fn(async (): Promise<void> => {
+        await noopAsync();
+      });
+      const plugin = createMockPlugin();
+      const pluginSettingsComponent = createMockPluginSettingsComponent({
+        editAndSave: editAndSaveFunction,
+        emailPasswordSecretKey: ''
+      });
+      const tab = new PluginSettingsTab({
+        emailProviderManager: createMockEmailProviderManager(),
+        plugin,
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+      renderRows(tab);
+
+      const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
+      await onChange('manual-password');
+
+      expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('email-to-vault-password', 'manual-password');
+    });
+
     it('should not recreate password secret key if already set', async () => {
       const editAndSaveFunction = vi.fn();
       const pluginSettingsComponent = createMockPluginSettingsComponent({

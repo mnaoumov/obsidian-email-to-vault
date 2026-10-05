@@ -24,7 +24,6 @@ export class Plugin extends PluginBase {
     const pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
         dataHandler: new PluginDataHandler(this),
-        mailTmDomainManager,
         pluginEventSource: new PluginEventSourceImpl(this),
         pluginId: this.manifest.id,
         pluginSettingsClass: PluginSettings

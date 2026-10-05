@@ -10,8 +10,6 @@ import {
   vi
 } from 'vitest';
 
-import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
-
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
@@ -39,15 +37,6 @@ class MockDataHandler implements DataHandler {
   }
 }
 
-function createMailTmDomainManager(isValidDomain: boolean): MailTmDomainManager {
-  return strictProxy<MailTmDomainManager>({
-    validateEmailDomain: vi.fn(async () => {
-      await noopAsync();
-      return isValidDomain;
-    })
-  });
-}
-
 function createMockPluginEventSource(): PluginEventSource {
   return strictProxy<PluginEventSource>({});
 }
@@ -56,7 +45,6 @@ describe('PluginSettingsManager', () => {
   it('should validate email address through registered validator', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -72,7 +60,6 @@ describe('PluginSettingsManager', () => {
   it('should return error for invalid email prefix', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -85,26 +72,24 @@ describe('PluginSettingsManager', () => {
     expect(result.emailAddress).toBe('The email address must start with email-to-vault-');
   });
 
-  it('should return error for invalid domain', async () => {
+  it('should accept an address on a domain Mail.tm no longer offers for new accounts', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(false),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
     });
     const settings = new PluginSettings();
-    settings.emailAddress = 'email-to-vault-abc@invalid.com';
+    settings.emailAddress = 'email-to-vault-abc@retired-domain.com';
 
     const result = await manager.validate(settings);
 
-    expect(result.emailAddress).toBe('The email address domain is not a valid Mail.tm domain');
+    expect(result.emailAddress).toBeUndefined();
   });
 
   it('should return no error for empty email address', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -117,28 +102,9 @@ describe('PluginSettingsManager', () => {
     expect(result.emailAddress).toBeUndefined();
   });
 
-  it('should not validate domain when prefix check fails', async () => {
-    const mockManager = createMailTmDomainManager(true);
-    const manager = new PluginSettingsComponent({
-      dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
-      pluginEventSource: createMockPluginEventSource(),
-      pluginId: 'email-to-vault',
-      pluginSettingsClass: PluginSettings
-    });
-    const settings = new PluginSettings();
-    settings.emailAddress = 'wrong@mail.tm';
-
-    await manager.validate(settings);
-
-    expect(mockManager.validateEmailDomain).not.toHaveBeenCalled();
-  });
-
   it('should skip email validation when provider is not Mail.tm', async () => {
-    const mockManager = createMailTmDomainManager(false);
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(false),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -150,13 +116,11 @@ describe('PluginSettingsManager', () => {
     const result = await manager.validate(settings);
 
     expect(result.emailAddress).toBeUndefined();
-    expect(mockManager.validateEmailDomain).not.toHaveBeenCalled();
   });
 
   it('should return error when IMAP host is empty for IMAP provider', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -173,7 +137,6 @@ describe('PluginSettingsManager', () => {
   it('should not validate IMAP host when provider is not IMAP', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -190,7 +153,6 @@ describe('PluginSettingsManager', () => {
   it('should return error for invalid IMAP port', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings
@@ -208,7 +170,6 @@ describe('PluginSettingsManager', () => {
   it('should not validate IMAP port when provider is not IMAP', async () => {
     const manager = new PluginSettingsComponent({
       dataHandler: new MockDataHandler(),
-      mailTmDomainManager: createMailTmDomainManager(true),
       pluginEventSource: createMockPluginEventSource(),
       pluginId: 'email-to-vault',
       pluginSettingsClass: PluginSettings

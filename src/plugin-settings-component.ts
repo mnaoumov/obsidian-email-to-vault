@@ -3,29 +3,24 @@ import type { MaybeReturn } from 'obsidian-dev-utils/type';
 
 import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 
-import type { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
-
 import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
 interface PluginSettingsComponentConstructorParams extends PluginSettingsComponentBaseConstructorParams<PluginSettings> {
-  readonly mailTmDomainManager: MailTmDomainManager;
   readonly pluginId: string;
 }
 
 export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginSettings> {
-  private readonly mailTmDomainManager: MailTmDomainManager;
   private readonly pluginId: string;
 
   public constructor(params: PluginSettingsComponentConstructorParams) {
     super(params);
     this.pluginId = params.pluginId;
-    this.mailTmDomainManager = params.mailTmDomainManager;
   }
 
   protected override registerValidators(): void {
     super.registerValidators();
-    this.registerValidator('emailAddress', async (value, settings): Promise<MaybeReturn<string>> => {
+    this.registerValidator('emailAddress', (value, settings): MaybeReturn<string> => {
       if (settings.emailProviderType === EmailProviderType.MailTm) {
         return this.validateMailTmEmailAddress(value);
       }
@@ -47,17 +42,16 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
     });
   }
 
-  private async validateMailTmEmailAddress(value: string): Promise<MaybeReturn<string>> {
+  // The domain is deliberately not checked against Mail.tm's `/domains` list (#10). That list holds the domains NEW
+  // accounts can be created on, and Mail.tm drops a domain from it while accounts already on it keep working. A failed
+  // validation also resets the effective address to its empty default, so such a check stopped every mail check.
+  private validateMailTmEmailAddress(value: string): MaybeReturn<string> {
     if (!value) {
       return;
     }
     const expectedPrefix = `${this.pluginId}-`;
     if (!value.startsWith(expectedPrefix)) {
       return `The email address must start with ${expectedPrefix}`;
-    }
-    const isValidDomain = await this.mailTmDomainManager.validateEmailDomain(value);
-    if (!isValidDomain) {
-      return 'The email address domain is not a valid Mail.tm domain';
     }
   }
 }
