@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.3.11
+
+- fix(settings): merge the invalid password secret key fix
+
 ## 2.3.10
 
 - fix(settings): merge the retired Mail.tm domain and secret key fixes
