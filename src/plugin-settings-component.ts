@@ -25,6 +25,7 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
         return this.validateMailTmEmailAddress(value);
       }
     });
+    this.registerValidator('emailPasswordSecretKey', (value): MaybeReturn<string> => validateSecretKey(value));
     this.registerValidator('imapHost', (_value, settings): MaybeReturn<string> => {
       if (settings.emailProviderType === EmailProviderType.Imap && !settings.imapHost) {
         return 'IMAP host is required';
@@ -53,5 +54,20 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
     if (!value.startsWith(expectedPrefix)) {
       return `The email address must start with ${expectedPrefix}`;
     }
+  }
+}
+
+// Mirrors the check Obsidian's `secretStorage.setSecret` applies to a secret ID. A stored key that fails it can neither
+// read the password back nor save a new one (#10), so it is rejected here: the effective key then falls back to empty,
+// and the next password entered is saved under a freshly derived key.
+const SECRET_KEY_PATTERN = /^[a-z0-9-]+$/;
+const SECRET_KEY_MAX_LENGTH = 64;
+
+function validateSecretKey(value: unknown): MaybeReturn<string> {
+  if (value === '') {
+    return;
+  }
+  if (typeof value !== 'string' || !SECRET_KEY_PATTERN.test(value) || value.length > SECRET_KEY_MAX_LENGTH) {
+    return 'The password secret key must use only lowercase letters, numbers and dashes, 64 characters max';
   }
 }
