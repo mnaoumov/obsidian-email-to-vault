@@ -2,6 +2,7 @@ import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 
 import { noopAsync } from 'obsidian-dev-utils/function';
+import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
 import {
   describe,
@@ -116,6 +117,58 @@ describe('PluginSettingsManager', () => {
     const result = await manager.validate(settings);
 
     expect(result.emailAddress).toBeUndefined();
+  });
+
+  it.each(['', 'email-to-vault-password', 'a'.repeat(64)])('should accept the password secret key %j', async (secretKey) => {
+    const manager = new PluginSettingsComponent({
+      dataHandler: new MockDataHandler(),
+      pluginEventSource: createMockPluginEventSource(),
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
+    });
+    const settings = new PluginSettings();
+    settings.emailPasswordSecretKey = secretKey;
+
+    const result = await manager.validate(settings);
+
+    expect(result.emailPasswordSecretKey).toBeUndefined();
+  });
+
+  // Obsidian's `setSecret` throws `Secret ID is invalid` for each of these, so a stored one broke the password field (#10).
+  it.each([
+    'Email-To-Vault-Password',
+    'email to vault',
+    'email_to_vault@password',
+    'a'.repeat(65),
+    42
+  ])('should reject the password secret key %j', async (secretKey) => {
+    const manager = new PluginSettingsComponent({
+      dataHandler: new MockDataHandler(),
+      pluginEventSource: createMockPluginEventSource(),
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
+    });
+    const settings = new PluginSettings();
+    castTo<Record<string, unknown>>(settings)['emailPasswordSecretKey'] = secretKey;
+
+    const result = await manager.validate(settings);
+
+    expect(result.emailPasswordSecretKey).toBe(
+      'The password secret key must use only lowercase letters, numbers and dashes, 64 characters max'
+    );
+  });
+
+  it('should read an invalid stored password secret key as empty', async () => {
+    const manager = new PluginSettingsComponent({
+      dataHandler: new MockDataHandler({ emailPasswordSecretKey: 'Not A Valid Key' }),
+      pluginEventSource: createMockPluginEventSource(),
+      pluginId: 'email-to-vault',
+      pluginSettingsClass: PluginSettings
+    });
+    manager.load();
+    await manager.loadFromFile(true);
+
+    expect(manager.settings.emailPasswordSecretKey).toBe('');
   });
 
   it('should return error when IMAP host is empty for IMAP provider', async () => {
