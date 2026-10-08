@@ -274,6 +274,87 @@ describe('MailTmProvider', () => {
       expect(setSecretFunction).toHaveBeenCalledWith('test-password-key', '');
       expect(editAndSaveFunction).toHaveBeenCalledOnce();
     });
+
+    it('should report the server deletion', async () => {
+      const manager = createManager({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: 'test-password-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+
+      const TEST_JWT = `eyJhbGciOiJIUzI1NiJ9.${btoa(JSON.stringify({ id: 'account-uuid-789' }))}.sig`;
+      mockRequestUrl
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          json: { token: TEST_JWT },
+          status: 200
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({}));
+
+      await expect(manager.unregisterEmailAddress()).resolves.toBe(true);
+    });
+
+    it('should forget the address on this device when Mail.tm rejects the saved password', async () => {
+      const setSecretFunction = vi.fn();
+      const editAndSaveFunction = vi.fn(async (callback: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
+        callback(new PluginSettings());
+      });
+      const manager = createManager({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: 'test-password-key',
+        secretStorageGetSecret: () => 'wrong-password',
+        secretStorageSetSecret: setSecretFunction,
+        settingsComponentEditAndSave: editAndSaveFunction
+      });
+
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
+        status: 401
+      }));
+
+      await expect(manager.unregisterEmailAddress()).resolves.toBe(false);
+
+      expect(mockRequestUrl).toHaveBeenCalledOnce();
+      expect(mockRequestUrl).toHaveBeenCalledWith(expect.objectContaining({
+        throw: false,
+        url: 'https://api.mail.tm/token'
+      }));
+      expect(setSecretFunction).toHaveBeenCalledWith('test-password-key', '');
+      expect(editAndSaveFunction).toHaveBeenCalledOnce();
+    });
+
+    it('should forget the address on this device when this device has no password for it', async () => {
+      const editAndSaveFunction = vi.fn(async (callback: (s: PluginSettings) => void): Promise<void> => {
+        await noopAsync();
+        callback(new PluginSettings());
+      });
+      const manager = createManager({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: 'test-password-key',
+        settingsComponentEditAndSave: editAndSaveFunction
+      });
+
+      await expect(manager.unregisterEmailAddress()).resolves.toBe(false);
+
+      expect(mockRequestUrl).not.toHaveBeenCalled();
+      expect(editAndSaveFunction).toHaveBeenCalledOnce();
+    });
+
+    it('should keep the address when the token request fails for another reason', async () => {
+      const editAndSaveFunction = vi.fn();
+      const manager = createManager({
+        emailAddress: 'test@mail.tm',
+        emailPasswordSecretKey: 'test-password-key',
+        secretStorageGetSecret: () => 'password123',
+        settingsComponentEditAndSave: editAndSaveFunction
+      });
+
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
+        status: 500
+      }));
+
+      await expect(manager.unregisterEmailAddress()).rejects.toThrow('Failed to get Mail.tm token: 500');
+      expect(editAndSaveFunction).not.toHaveBeenCalled();
+    });
   });
 
   describe('getMessage', () => {
