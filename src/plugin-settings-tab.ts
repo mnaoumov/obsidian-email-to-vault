@@ -16,6 +16,11 @@ import type { EmailProviderManagerComponent } from './providers/email-provider-m
 import { EmailProviderType } from './providers/email-provider-type.ts';
 import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 
+interface MailTmCredentialLock {
+  readonly isEmailLocked: boolean;
+  readonly isPasswordLocked: boolean;
+}
+
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
   readonly emailProviderManager: EmailProviderManagerComponent;
   readonly pluginId: string;
@@ -24,6 +29,7 @@ interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstr
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   private readonly emailProviderManager: EmailProviderManagerComponent;
+  private mailTmCredentialLock: MailTmCredentialLock | null = null;
   private readonly pluginId: string;
   private readonly pluginNoticeComponent: PluginNoticeComponent;
 
@@ -32,6 +38,11 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     this.emailProviderManager = params.emailProviderManager;
     this.pluginId = params.pluginId;
     this.pluginNoticeComponent = params.pluginNoticeComponent;
+  }
+
+  public override hide(): void {
+    super.hide();
+    this.mailTmCredentialLock = null;
   }
 
   protected override getSettingDefinitionItems(): SettingDefinitionItem[] {
@@ -169,7 +180,13 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     // a second device sees the address without the password. The field stays editable until this device has one.
     const savedPassword = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey) ?? '';
     const isPasswordMissingOnThisDevice = isRegistered && !savedPassword;
-    const isPasswordLocked = isRegistered && !!savedPassword;
+    // Decided once per opening of the tab, not on every rebuild: the first keystroke can save the settings, the save
+    // rebuilds the tab, and a lock re-decided then disabled both fields one character into the password (#10).
+    this.mailTmCredentialLock ??= {
+      isEmailLocked: isRegistered,
+      isPasswordLocked: isRegistered && !!savedPassword
+    };
+    const { isEmailLocked, isPasswordLocked } = this.mailTmCredentialLock;
 
     return this.settingGroupEx({
       heading: 'Mail.tm',
@@ -208,10 +225,16 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                       return;
                     }
 
-                    await mailTmProvider.unregisterEmailAddress();
+                    const isDeletedOnServer = await mailTmProvider.unregisterEmailAddress();
+                    if (!isDeletedOnServer) {
+                      this.pluginNoticeComponent.showNotice(
+                        'The email address was removed from this vault, but the mailbox was not deleted on mail.tm: it did not accept the saved password.'
+                      );
+                    }
 
                     // Registering and unregistering change which rows the group contains, so the tab has to
                     // be rebuilt rather than merely re-evaluated.
+                    this.mailTmCredentialLock = null;
                     this.refresh();
                   }));
               } else {
@@ -220,6 +243,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
                   .onClick(convertAsyncToSync(async () => {
                     await mailTmProvider.registerRandomEmailAddress();
 
+                    this.mailTmCredentialLock = null;
                     this.refresh();
                   }));
               }
@@ -234,7 +258,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             setting
               .setClass('email-address')
               .addEmail((emailComponent) => {
-                emailComponent.setDisabled(isRegistered);
+                emailComponent.setDisabled(isEmailLocked);
                 this.bind({ propertyName: 'emailAddress', valueComponent: emailComponent });
               })
               .addExtraButton((button) => {
@@ -431,10 +455,11 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
       return existingSecretKey;
     }
 
+    // Set like a bound field, not through `editAndSave`: that save rebuilds the tab in the middle of the keystroke,
+    // which took the focus and re-read the password before it was stored, so the next key landed in an empty field
+    // (#10). The tab writes the settings to disk when it closes, as it does for every bound field.
     const secretKey = `${this.pluginId}-password`;
-    await this.pluginSettingsComponent.editAndSave((settings) => {
-      settings.emailPasswordSecretKey = secretKey;
-    });
+    await this.pluginSettingsComponent.setProperty('emailPasswordSecretKey', secretKey);
     return secretKey;
   }
 }

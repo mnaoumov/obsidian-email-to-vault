@@ -102,7 +102,10 @@ function createMockEmailProviderManager(mailTmProvider?: MailTmProviderComponent
 function createMockMailTmProvider(): MailTmProviderComponent {
   return strictProxy<MailTmProviderComponent>({
     registerRandomEmailAddress: vi.fn(),
-    unregisterEmailAddress: vi.fn()
+    unregisterEmailAddress: vi.fn(async () => {
+      await noopAsync();
+      return true;
+    })
   });
 }
 
@@ -326,6 +329,86 @@ describe('PluginSettingsTab', () => {
       await onClick(new MouseEvent('click'));
 
       expect(mailTmProvider.unregisterEmailAddress).toHaveBeenCalledOnce();
+      expect(mockShowNotice).not.toHaveBeenCalled();
+    });
+
+    it('should say so when the mailbox could only be forgotten on this device', async () => {
+      vi.mocked(confirm).mockResolvedValue(true);
+      const mailTmProvider = createMockMailTmProvider();
+      vi.mocked(mailTmProvider.unregisterEmailAddress).mockResolvedValue(false);
+      const tab = createTab({ emailAddress: 'old@mail.tm' }, mailTmProvider);
+      renderRows(tab);
+      tab.refresh = vi.fn();
+
+      const onClick = ensureNonNullable(buttonOnClickSpy.mock.calls[0])[0];
+      await onClick(new MouseEvent('click'));
+
+      expect(mockShowNotice).toHaveBeenCalledWith(expect.stringContaining('the mailbox was not deleted on mail.tm'));
+      expect(tab.refresh).toHaveBeenCalledOnce();
+    });
+
+    it('should not lock the credentials while they are being typed, when a save rebuilds the tab', () => {
+      // The first password keystroke can save the settings, and the save rebuilds the tab with an address and a
+      // one-character password already stored (#10).
+      const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const tab = new PluginSettingsTab({
+        emailProviderManager: createMockEmailProviderManager(),
+        plugin: createMockPlugin(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+      renderRows(tab);
+
+      castTo<PluginSettings>(pluginSettingsComponent.settings).emailAddress = 'typed@mail.tm';
+      setDisabledSpy.mockClear();
+      renderRows(tab);
+
+      expect(setDisabledSpy).not.toHaveBeenCalledWith(true);
+      expect(passwordOnChangeSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should lock the credentials when the tab is opened again', () => {
+      const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const tab = new PluginSettingsTab({
+        emailProviderManager: createMockEmailProviderManager(),
+        plugin: createMockPlugin(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+      renderRows(tab);
+
+      castTo<PluginSettings>(pluginSettingsComponent.settings).emailAddress = 'typed@mail.tm';
+      tab.hide();
+      setDisabledSpy.mockClear();
+      renderRows(tab);
+
+      expect(setDisabledSpy).toHaveBeenCalledWith(true);
+    });
+
+    it('should lock the credentials after registering', async () => {
+      const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
+      const tab = new PluginSettingsTab({
+        emailProviderManager: createMockEmailProviderManager(),
+        plugin: createMockPlugin(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+      renderRows(tab);
+      tab.refresh = vi.fn();
+
+      const onClick = ensureNonNullable(buttonOnClickSpy.mock.calls[0])[0];
+      await onClick(new MouseEvent('click'));
+      castTo<PluginSettings>(pluginSettingsComponent.settings).emailAddress = 'registered@mail.tm';
+      setDisabledSpy.mockClear();
+      renderRows(tab);
+
+      expect(setDisabledSpy).toHaveBeenCalledWith(true);
     });
 
     it('should not unregister when user cancels', async () => {
@@ -383,11 +466,8 @@ describe('PluginSettingsTab', () => {
       expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('test-key', 'new-password');
     });
 
-    it('should create password secret key if missing on manual entry', async () => {
-      const editAndSaveFunction = vi.fn(async (callback: (settings: PluginSettings) => void): Promise<void> => {
-        await noopAsync();
-        callback(pluginSettingsComponent.settings);
-      });
+    it('should create password secret key if missing on manual entry, without a save that rebuilds the tab', async () => {
+      const editAndSaveFunction = vi.fn();
       const pluginSettingsComponent = createMockPluginSettingsComponent({
         editAndSave: editAndSaveFunction,
         emailPasswordSecretKey: ''
@@ -404,18 +484,15 @@ describe('PluginSettingsTab', () => {
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('manual-password');
 
-      expect(editAndSaveFunction).toHaveBeenCalledOnce();
-      expect(pluginSettingsComponent.settings.emailPasswordSecretKey).toBe('email-to-vault-password');
+      expect(pluginSettingsComponent.setProperty).toHaveBeenCalledWith('emailPasswordSecretKey', 'email-to-vault-password');
+      expect(editAndSaveFunction).not.toHaveBeenCalled();
     });
 
     it('should save the password under the derived key even when the settings lose it during the save', async () => {
       // A settings reload landing while the save awaits leaves the key empty in the settings; `setSecret('')` threw (#10).
-      const editAndSaveFunction = vi.fn(async (): Promise<void> => {
-        await noopAsync();
-      });
+      // The mocked `setProperty` never writes the key, which is that reload.
       const plugin = createMockPlugin();
       const pluginSettingsComponent = createMockPluginSettingsComponent({
-        editAndSave: editAndSaveFunction,
         emailPasswordSecretKey: ''
       });
       const tab = new PluginSettingsTab({
@@ -434,10 +511,7 @@ describe('PluginSettingsTab', () => {
     });
 
     it('should not recreate password secret key if already set', async () => {
-      const editAndSaveFunction = vi.fn();
-      const pluginSettingsComponent = createMockPluginSettingsComponent({
-        editAndSave: editAndSaveFunction
-      });
+      const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
@@ -450,7 +524,7 @@ describe('PluginSettingsTab', () => {
       const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
       await onChange('another-password');
 
-      expect(editAndSaveFunction).not.toHaveBeenCalled();
+      expect(pluginSettingsComponent.setProperty).not.toHaveBeenCalled();
     });
 
     it('should lock the password field when registered and the password is stored on this device', () => {
