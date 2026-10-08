@@ -24,6 +24,8 @@ import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 // signature containing `.` from producing extra segments.
 const JWT_HEADER_AND_PAYLOAD_PART_COUNT = 2;
 const HTTP_STATUS_CREATED = 201;
+const HTTP_STATUS_BAD_REQUEST = 400;
+const HTTP_STATUS_UNAUTHORIZED = 401;
 
 interface JwtPayload {
   id: string;
@@ -167,14 +169,24 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     });
   }
 
-  public async unregisterEmailAddress(): Promise<void> {
-    const token = await this.getToken();
-    const accountId = extractAccountIdFromToken(token);
-    await requestUrl({
-      headers: { Authorization: `Bearer ${token}` },
-      method: 'DELETE',
-      url: `${MAIL_TM_API_BASE_URL}/accounts/${accountId}`
-    });
+  /**
+   * Deletes the mailbox on Mail.tm and forgets it on this device.
+   *
+   * When this device has no password for the address, or Mail.tm rejects the one it has, the mailbox cannot be
+   * deleted on the server; it is still forgotten here, because otherwise the user could never leave that state (#10).
+   *
+   * @returns Whether the mailbox was deleted on the server too.
+   */
+  public async unregisterEmailAddress(): Promise<boolean> {
+    const token = await this.tryGetToken();
+    if (token !== null) {
+      const accountId = extractAccountIdFromToken(token);
+      await requestUrl({
+        headers: { Authorization: `Bearer ${token}` },
+        method: 'DELETE',
+        url: `${MAIL_TM_API_BASE_URL}/accounts/${accountId}`
+      });
+    }
 
     const secretKey = this.pluginSettingsComponent.settings.emailPasswordSecretKey;
     if (secretKey) {
@@ -185,6 +197,8 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
       settings.emailAddress = '';
       settings.emailPasswordSecretKey = '';
     });
+
+    return token !== null;
   }
 
   private async createAccount(params: MailTmProviderComponentCreateAccountParams): Promise<void> {
@@ -218,6 +232,35 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
       method: 'POST',
       url: `${MAIL_TM_API_BASE_URL}/token`
     });
+
+    const data = response.json as MailTmTokenResponse;
+    return data.token;
+  }
+
+  // Unlike `getToken`, a missing password or one Mail.tm rejects is an answer here rather than an error.
+  private async tryGetToken(): Promise<null | string> {
+    const address = this.pluginSettingsComponent.settings.emailAddress;
+    const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey);
+
+    if (!address || !password) {
+      return null;
+    }
+
+    const response = await requestUrl({
+      body: JSON.stringify({ address, password }),
+      contentType: 'application/json',
+      method: 'POST',
+      throw: false,
+      url: `${MAIL_TM_API_BASE_URL}/token`
+    });
+
+    if (response.status === HTTP_STATUS_UNAUTHORIZED) {
+      return null;
+    }
+
+    if (response.status >= HTTP_STATUS_BAD_REQUEST) {
+      throw new Error(`Failed to get Mail.tm token: ${String(response.status)}`);
+    }
 
     const data = response.json as MailTmTokenResponse;
     return data.token;
