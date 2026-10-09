@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.3.12
+
+- fix(settings): merge the Mail.tm credential typing and unregister fixes
+
 ## 2.3.11
 
 - fix(settings): merge the invalid password secret key fix
