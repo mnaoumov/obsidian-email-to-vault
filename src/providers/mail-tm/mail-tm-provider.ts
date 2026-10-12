@@ -18,6 +18,7 @@ import {
   generatePassword,
   generateUsername
 } from '../../string-generators.ts';
+import { EmailProviderAuthenticationError } from '../email-provider-authentication-error.ts';
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
 // A JWT is `header.payload.signature`; only the first two parts are needed, and the limit keeps a
@@ -84,6 +85,19 @@ interface MailTmTokenResponse {
 }
 
 export class MailTmProviderComponent extends ComponentEx implements EmailProvider {
+  /**
+   * Whether Mail.tm rejected the password saved on this device the last time it was asked for a token.
+   *
+   * The settings tab locks a password field that already holds a password, and before this a wrong one could only be
+   * escaped by unregistering, which threw the mailbox away (#10). While this is set the field stays editable.
+   *
+   * @returns Whether the saved password was rejected.
+   */
+  public get isPasswordRejected(): boolean {
+    return this._isPasswordRejected;
+  }
+
+  private _isPasswordRejected = false;
   private readonly app: App;
   private readonly mailTmDomainManager: MailTmDomainManager;
   private readonly pluginId: string;
@@ -219,22 +233,26 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
 
   private async getToken(): Promise<string> {
     const address = this.pluginSettingsComponent.settings.emailAddress;
-    const secretKey = this.pluginSettingsComponent.settings.emailPasswordSecretKey;
-    const password = this.app.secretStorage.getSecret(secretKey);
+    const password = this.app.secretStorage.getSecret(this.pluginSettingsComponent.settings.emailPasswordSecretKey);
 
-    if (!address || !password) {
-      throw new Error('Email address or password not configured');
+    if (!address) {
+      throw new EmailProviderAuthenticationError('No mail.tm email address is configured. Register one in the plugin settings.');
     }
 
-    const response = await requestUrl({
-      body: JSON.stringify({ address, password }),
-      contentType: 'application/json',
-      method: 'POST',
-      url: `${MAIL_TM_API_BASE_URL}/token`
-    });
+    if (!password) {
+      throw new EmailProviderAuthenticationError(
+        `No password for ${address} is saved on this device. Copy it from the device the address was registered on, and paste it into the "Email password" field in the plugin settings.`
+      );
+    }
 
-    const data = response.json as MailTmTokenResponse;
-    return data.token;
+    const token = await this.tryGetToken();
+    if (token === null) {
+      throw new EmailProviderAuthenticationError(
+        `mail.tm did not accept the password saved on this device for ${address}. Paste the right password into the "Email password" field in the plugin settings.`
+      );
+    }
+
+    return token;
   }
 
   // Unlike `getToken`, a missing password or one Mail.tm rejects is an answer here rather than an error.
@@ -255,6 +273,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     });
 
     if (response.status === HTTP_STATUS_UNAUTHORIZED) {
+      this._isPasswordRejected = true;
       return null;
     }
 
@@ -262,6 +281,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
       throw new Error(`Failed to get Mail.tm token: ${String(response.status)}`);
     }
 
+    this._isPasswordRejected = false;
     const data = response.json as MailTmTokenResponse;
     return data.token;
   }

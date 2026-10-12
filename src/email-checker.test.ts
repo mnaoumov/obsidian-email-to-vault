@@ -20,6 +20,7 @@ import type { PluginSettings } from './plugin-settings.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailCheckerComponent } from './email-checker.ts';
+import { EmailProviderAuthenticationError } from './providers/email-provider-authentication-error.ts';
 
 const mockShowNotice = vi.fn();
 
@@ -606,6 +607,42 @@ describe('EmailChecker', () => {
     });
   });
 
+  describe('authentication errors', () => {
+    function createChecker(getMessages: EmailProvider['getMessages']): EmailCheckerComponent {
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
+      return new EmailCheckerComponent({
+        emailNoteCreator: createMockNoteCreator(),
+        emailProvider: createMockEmailProvider({ getMessages }),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+    }
+
+    async function rejectWithAuthenticationError(): Promise<never> {
+      await noopAsync();
+      throw new EmailProviderAuthenticationError('Paste the right password');
+    }
+
+    async function rejectWithOtherError(): Promise<never> {
+      await noopAsync();
+      throw new Error('Network down');
+    }
+
+    it('should show the message as a notice when checking emails', async () => {
+      await expect(createChecker(rejectWithAuthenticationError).checkEmails()).resolves.toBeUndefined();
+      expect(mockShowNotice).toHaveBeenLastCalledWith('Paste the right password');
+    });
+
+    it('should show the message as a notice when downloading emails again', async () => {
+      await expect(createChecker(rejectWithAuthenticationError).redownloadEmails()).resolves.toBeUndefined();
+      expect(mockShowNotice).toHaveBeenLastCalledWith('Paste the right password');
+    });
+
+    it('should rethrow any other error', async () => {
+      await expect(createChecker(rejectWithOtherError).checkEmails()).rejects.toThrow('Network down');
+      await expect(createChecker(rejectWithOtherError).redownloadEmails()).rejects.toThrow('Network down');
+    });
+  });
   describe('onload', () => {
     it('should not schedule when interval is 0', () => {
       const emailProvider = createMockEmailProvider();

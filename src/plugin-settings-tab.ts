@@ -21,6 +21,11 @@ interface MailTmCredentialLock {
   readonly isPasswordLocked: boolean;
 }
 
+interface PasswordDescriptionParams {
+  readonly isPasswordMissingOnThisDevice: boolean;
+  readonly isPasswordRejected: boolean;
+}
+
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
   readonly emailProviderManager: EmailProviderManagerComponent;
   readonly pluginId: string;
@@ -182,9 +187,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     const isPasswordMissingOnThisDevice = isRegistered && !savedPassword;
     // Decided once per opening of the tab, not on every rebuild: the first keystroke can save the settings, the save
     // rebuilds the tab, and a lock re-decided then disabled both fields one character into the password (#10).
+    // A password Mail.tm rejected stays editable too: locked, a wrong one could only be escaped by unregistering (#10).
     this.mailTmCredentialLock ??= {
       isEmailLocked: isRegistered,
-      isPasswordLocked: isRegistered && !!savedPassword
+      isPasswordLocked: isRegistered && !!savedPassword && !mailTmProvider.isPasswordRejected
     };
     const { isEmailLocked, isPasswordLocked } = this.mailTmCredentialLock;
 
@@ -274,9 +280,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }
         }),
         this.settingEx({
-          desc: isPasswordMissingOnThisDevice
-            ? 'Password for the mail.tm mailbox. The address came from another device, and the password is stored on each device separately: copy it there and paste it here.'
-            : 'Password for the mail.tm mailbox.',
+          desc: getPasswordDescription({
+            isPasswordMissingOnThisDevice,
+            isPasswordRejected: isRegistered && !!savedPassword && mailTmProvider.isPasswordRejected
+          }),
           name: 'Email password',
           render: (setting) => {
             setting
@@ -477,4 +484,14 @@ function appendVariables(f: DocumentFragment): void {
   f.appendText('Date format uses ');
   f.createEl('a', { href: 'https://momentjs.com/docs/#/displaying/format/', text: 'Moment.js format' });
   f.appendText('.');
+}
+
+function getPasswordDescription(params: PasswordDescriptionParams): string {
+  if (params.isPasswordMissingOnThisDevice) {
+    return 'Password for the mail.tm mailbox. The address came from another device, and the password is stored on each device separately: copy it there and paste it here.';
+  }
+
+  return params.isPasswordRejected
+    ? 'Password for the mail.tm mailbox. mail.tm did not accept the password saved on this device: paste the right one here.'
+    : 'Password for the mail.tm mailbox.';
 }

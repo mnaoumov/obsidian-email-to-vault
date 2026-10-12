@@ -99,8 +99,9 @@ function createMockEmailProviderManager(mailTmProvider?: MailTmProviderComponent
   });
 }
 
-function createMockMailTmProvider(): MailTmProviderComponent {
+function createMockMailTmProvider(isPasswordRejected = false): MailTmProviderComponent {
   return strictProxy<MailTmProviderComponent>({
+    isPasswordRejected,
     registerRandomEmailAddress: vi.fn(),
     unregisterEmailAddress: vi.fn(async () => {
       await noopAsync();
@@ -535,6 +536,27 @@ describe('PluginSettingsTab', () => {
 
       expect(setDisabledSpy).toHaveBeenCalledWith(true);
       expect(passwordOnChangeSpy).not.toHaveBeenCalled();
+    });
+
+    it('should let a saved password that Mail.tm rejected be replaced', async () => {
+      const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
+      const plugin = createMockPlugin();
+      const tab = new PluginSettingsTab({
+        emailProviderManager: createMockEmailProviderManager(createMockMailTmProvider(true)),
+        plugin,
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'test@mail.tm' })
+      });
+      renderRows(tab);
+
+      expect(setDisabledSpy).toHaveBeenCalledWith(false);
+      expect(tab.containerEl.textContent).toContain('mail.tm did not accept the password saved on this device');
+
+      const onChange = castTo<(value: string) => Promise<void>>(ensureNonNullable(passwordOnChangeSpy.mock.calls[0])[0]);
+      await onChange('right-password');
+
+      expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('test-key', 'right-password');
     });
 
     it('should let the password be entered when registered on another device', async () => {

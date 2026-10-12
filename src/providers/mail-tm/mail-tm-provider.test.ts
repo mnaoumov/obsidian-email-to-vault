@@ -20,6 +20,7 @@ import type { EmailMessageFull } from '../email-provider-types.ts';
 import type { MailTmDomainManager } from './mail-tm-domain-manager.ts';
 
 import { PluginSettings } from '../../plugin-settings.ts';
+import { EmailProviderAuthenticationError } from '../email-provider-authentication-error.ts';
 import { MailTmProviderComponent } from './mail-tm-provider.ts';
 
 vi.mock('obsidian', async (importOriginal) => {
@@ -530,23 +531,90 @@ describe('MailTmProvider', () => {
       expect(result).toEqual(expected);
     });
 
-    it('should throw when credentials are missing', async () => {
+    it('should throw an authentication error when no address is configured', async () => {
       const manager = createManager({
         emailAddress: '',
         emailPasswordSecretKey: ''
       });
 
-      await expect(manager.getMessages()).rejects.toThrow('Email address or password not configured');
+      const promise = manager.getMessages();
+      await expect(promise).rejects.toBeInstanceOf(EmailProviderAuthenticationError);
+      await expect(promise).rejects.toThrow('No mail.tm email address is configured');
     });
 
-    it('should throw when password secret is null', async () => {
+    it('should throw an authentication error naming the address when this device has no password', async () => {
       const manager = createManager({
         emailAddress: 'me@mail.tm',
         emailPasswordSecretKey: 'key',
         secretStorageGetSecret: () => null
       });
 
-      await expect(manager.getMessages()).rejects.toThrow('Email address or password not configured');
+      const promise = manager.getMessages();
+      await expect(promise).rejects.toBeInstanceOf(EmailProviderAuthenticationError);
+      await expect(promise).rejects.toThrow('No password for me@mail.tm is saved on this device');
+      expect(mockRequestUrl).not.toHaveBeenCalled();
+    });
+
+    it('should throw an authentication error and record the rejection when Mail.tm rejects the password', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'key',
+        secretStorageGetSecret: () => 'x'
+      });
+
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
+        status: 401
+      }));
+
+      expect(manager.isPasswordRejected).toBe(false);
+      const promise = manager.getMessages();
+      await expect(promise).rejects.toBeInstanceOf(EmailProviderAuthenticationError);
+      await expect(promise).rejects.toThrow('mail.tm did not accept the password saved on this device for me@mail.tm');
+      expect(mockRequestUrl).toHaveBeenCalledOnce();
+      expect(manager.isPasswordRejected).toBe(true);
+    });
+
+    it('should clear the recorded rejection once Mail.tm accepts the password', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'key',
+        secretStorageGetSecret: () => 'password123'
+      });
+
+      mockRequestUrl
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          status: 401
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          json: { token: 'jwt-token' },
+          status: 200
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          json: { 'hydra:member': [] }
+        }));
+
+      await expect(manager.getMessages()).rejects.toBeInstanceOf(EmailProviderAuthenticationError);
+      expect(manager.isPasswordRejected).toBe(true);
+
+      await expect(manager.getMessages()).resolves.toEqual([]);
+      expect(manager.isPasswordRejected).toBe(false);
+    });
+
+    it('should throw a plain error when the token request fails for another reason', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'key',
+        secretStorageGetSecret: () => 'password123'
+      });
+
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
+        status: 503
+      }));
+
+      const promise = manager.getMessages();
+      await expect(promise).rejects.not.toBeInstanceOf(EmailProviderAuthenticationError);
+      await expect(promise).rejects.toThrow('Failed to get Mail.tm token: 503');
+      expect(manager.isPasswordRejected).toBe(false);
     });
   });
 });
