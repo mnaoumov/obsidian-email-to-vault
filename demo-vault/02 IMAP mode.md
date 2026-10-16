@@ -1,6 +1,6 @@
 # IMAP mode
 
-Instead of the disposable Mail.tm mailbox, you can connect Email to Vault directly to **your own** email account over IMAP — Gmail, Outlook, or any IMAP-compatible server. In this mode nothing is routed through a third party: the plugin talks straight to your mail server, and your password is kept in Obsidian's built-in secret storage.
+Instead of the disposable Mail.tm mailbox, you can connect `Email to Vault` directly to **your own** email account over IMAP — Gmail, Outlook, or any IMAP-compatible server. In this mode nothing is routed through a third party: the plugin talks straight to your mail server, and your password is kept in Obsidian's built-in secret storage.
 
 > [!NOTE] Desktop only
 >

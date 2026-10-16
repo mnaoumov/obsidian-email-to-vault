@@ -1,6 +1,6 @@
 # Email notes and commands
 
-Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.md>) or [02 IMAP mode](<./02 IMAP mode.md>)), Email to Vault turns each fetched message into a note. This note explains when fetching happens, the commands you can run, and where notes land.
+Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.md>) or [02 IMAP mode](<./02 IMAP mode.md>)), `Email to Vault` turns each fetched message into a note. This note explains when fetching happens, the commands you can run, and where notes land.
 
 ## When emails are fetched
 

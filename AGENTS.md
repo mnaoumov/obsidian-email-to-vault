@@ -9,7 +9,7 @@
 ### Plugin Name
 
 - **Repo**: `obsidian-email-to-vault`
-- **Display name**: TBD (e.g., "Email to Vault", "Mail to Vault")
+- **Display name**: TBD (e.g., `Email to Vault`, `Mail to Vault`)
 - Checked for conflicts — no existing plugin uses this name
 - Existing similar plugins (all have significant drawbacks our plugin avoids):
   - `obsidian-email-to-note` (OliverStaub) — empty repo, no implementation

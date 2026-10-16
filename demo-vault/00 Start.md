@@ -1,6 +1,6 @@
 # Start here
 
-Welcome to the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-vault/) demo vault. **Email to Vault** syncs emails into your vault as notes: create a free disposable mailbox with one click (Mail.tm), or connect your own IMAP server (Gmail, Outlook, etc.). The plugin periodically fetches new messages and saves each one as a note, preserving From, To, CC, Subject, Body, and Attachments.
+Welcome to the [Email to Vault](https://github.com/mnaoumov/obsidian-email-to-vault/) demo vault. `Email to Vault` syncs emails into your vault as notes: create a free disposable mailbox with one click (Mail.tm), or connect your own IMAP server (Gmail, Outlook, etc.). The plugin periodically fetches new messages and saves each one as a note, preserving From, To, CC, Subject, Body, and Attachments.
 
 > [!IMPORTANT] This demo needs your own mailbox
 >
