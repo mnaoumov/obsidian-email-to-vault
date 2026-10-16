@@ -1,20 +1,20 @@
+import type { CommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/command-handler';
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { DisposableEx } from '@mnaoumov/typescript-lib/disposable';
 import type {
   App as AppOriginal,
   PluginManifest
 } from 'obsidian';
-import type { DisposableEx } from 'obsidian-dev-utils/disposable';
-import type { CommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
-import { OpenDemoVaultCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler';
-import { OpenSettingsCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler';
-import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
-import { TemplatesLanguageComponent } from 'obsidian-dev-utils/obsidian/components/templates-language-component';
-import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
-import { PluginEventSourceImpl } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { CommandHandlerComponent } from '@mnaoumov/obsidian-lib/command-handlers/command-handler-component';
+import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
+import { OpenSettingsCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-settings-command-handler';
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
+import { TemplatesLanguageComponent } from '@mnaoumov/obsidian-lib/components/templates-language-component';
+import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
+import { PluginEventSourceImpl } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   beforeEach,
@@ -40,8 +40,8 @@ import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 // The real `PluginBase.onload()` loads dev-utils' own notice/context/debug components, which read a
 // shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
 // stub this one utility (return a fresh value wrapper per call) — mirroring dev-utils' own PluginBase test.
-vi.mock('obsidian-dev-utils/obsidian/app', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/app')>(),
+vi.mock('@mnaoumov/obsidian-lib/app', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/app')>(),
   getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
@@ -72,22 +72,22 @@ async function loadableComponentStub(): Promise<ReturnType<typeof vi.fn>> {
   });
 }
 
-vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', async () => ({
+vi.mock('@mnaoumov/obsidian-lib/components/plugin-settings-tab-component', async () => ({
   PluginSettingsTabComponent: await loadableComponentStub()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-demo-vault-command-handler', () => ({
+vi.mock('@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler', () => ({
   OpenDemoVaultCommandHandler: vi.fn()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/open-settings-command-handler', () => ({
+vi.mock('@mnaoumov/obsidian-lib/command-handlers/open-settings-command-handler', () => ({
   OpenSettingsCommandHandler: vi.fn()
 }));
 
 // `PluginDataHandler` and `PluginEventSourceImpl` are NOT stubbed: since obsidian-dev-utils 93.2 the base
 // builds its own settings component out of them during `onload`, and that component really calls
 // `pluginEventSource.on`, so a bare `vi.fn()` double makes the base throw before `onloadImpl` runs.
-vi.mock('obsidian-dev-utils/obsidian/components/templates-language-component', async () => ({
+vi.mock('@mnaoumov/obsidian-lib/components/templates-language-component', async () => ({
   TemplatesLanguageComponent: await loadableComponentStub()
 }));
 

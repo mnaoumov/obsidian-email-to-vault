@@ -1,7 +1,7 @@
 import type { RequestUrlResponse } from 'obsidian';
 
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
 import { requestUrl } from 'obsidian';
-import { castTo } from 'obsidian-dev-utils/object-utils';
 import {
   beforeEach,
   describe,

@@ -1,7 +1,7 @@
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   beforeEach,
   describe,
@@ -12,8 +12,8 @@ import {
 
 import { ImapProviderMobileComponent } from './imap-provider-mobile.ts';
 
-vi.mock('obsidian-dev-utils/function', async (importOriginal) => {
-  const original = await importOriginal<typeof import('obsidian-dev-utils/function')>();
+vi.mock('@mnaoumov/typescript-lib/function', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@mnaoumov/typescript-lib/function')>();
   return {
     ...original,
     noopAsync: vi.fn(original.noopAsync)

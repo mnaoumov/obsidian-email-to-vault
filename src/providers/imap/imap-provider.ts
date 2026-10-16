@@ -1,9 +1,9 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 import type { App } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
 import { Platform } from 'obsidian';
-import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
@@ -42,7 +42,7 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
     await this.platformImapProvider.deleteMessage(messageId);
   }
 
-  // eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
+  // eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
   public async downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer> {
     const { attachmentId, messageId } = params;
     return this.platformImapProvider.downloadAttachment({ attachmentId, messageId });

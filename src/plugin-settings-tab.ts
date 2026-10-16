@@ -1,14 +1,14 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { PluginSettingsTabBaseConstructorParams } from '@mnaoumov/obsidian-lib/plugin/plugin-settings-tab';
 import type {
   SettingDefinitionGroup,
   SettingDefinitionItem
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { PluginSettingsTabBaseConstructorParams } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
 
-import { convertAsyncToSync } from 'obsidian-dev-utils/async';
-import { appendCodeBlock } from 'obsidian-dev-utils/obsidian/html-element';
-import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
-import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
+import { appendCodeBlock } from '@mnaoumov/obsidian-lib/html-element';
+import { confirm } from '@mnaoumov/obsidian-lib/modals/confirm';
+import { PluginSettingsTabBase } from '@mnaoumov/obsidian-lib/plugin/plugin-settings-tab';
+import { convertAsyncToSync } from '@mnaoumov/typescript-lib/async';
 
 import type { PluginSettings } from './plugin-settings.ts';
 import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';

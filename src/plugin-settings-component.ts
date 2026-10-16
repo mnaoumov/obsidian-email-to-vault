@@ -1,7 +1,7 @@
-import type { PluginSettingsComponentBaseConstructorParams } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
-import type { MaybeReturn } from 'obsidian-dev-utils/type';
+import type { PluginSettingsComponentBaseConstructorParams } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
+import type { MaybeReturn } from '@mnaoumov/typescript-lib/type';
 
-import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
+import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 
 import { PluginSettings } from './plugin-settings.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
