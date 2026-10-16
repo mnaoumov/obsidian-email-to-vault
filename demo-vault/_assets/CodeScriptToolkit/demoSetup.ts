@@ -1,7 +1,7 @@
 import type { App } from 'obsidian';
 
 import { Notice } from 'obsidian';
-import { configureCommunityPlugin } from 'obsidian-dev-utils/obsidian/community-plugins';
+import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
 
 // Not every headline feature gets a button here: the feature fetches real mail from a live service over the
 // network, so no button can produce an email for you. What the buttons DO remove is everything either
