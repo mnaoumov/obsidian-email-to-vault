@@ -1,6 +1,6 @@
 # Create a mailbox (Mail.tm)
 
-The quickest way to try Email to Vault is the built-in **Mail.tm** provider: a free, disposable mailbox you create with one click, with no account, backend, or paid service.
+The quickest way to try `Email to Vault` is the built-in **Mail.tm** provider: a free, disposable mailbox you create with one click, with no account, backend, or paid service.
 
 > [!WARNING] Mail.tm is a third-party service
 >
