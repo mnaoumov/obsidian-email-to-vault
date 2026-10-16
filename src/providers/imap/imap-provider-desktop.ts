@@ -6,9 +6,9 @@ import type {
 } from 'imapflow';
 import type { App } from 'obsidian';
 
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
-import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
@@ -41,7 +41,7 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     });
   }
 
-  // eslint-disable-next-line obsidian-dev-utils/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
+  // eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- Implements the shared EmailProvider interface contract, so the parameter object type is shared across all providers.
   public async downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer> {
     const { attachmentId, messageId } = params;
     return this.withConnection(async (client) => {

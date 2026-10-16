@@ -1,7 +1,7 @@
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
 
 import type {
   EmailMessageFull,

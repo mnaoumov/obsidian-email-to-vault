@@ -1,10 +1,10 @@
 import type { App } from 'obsidian';
 
+import { GlobalCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/global-command-handler';
+import { SettingEx } from '@mnaoumov/obsidian-lib/setting-ex';
+import { convertAsyncToSync } from '@mnaoumov/typescript-lib/async';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
 import { Modal } from 'obsidian';
-import { convertAsyncToSync } from 'obsidian-dev-utils/async';
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { GlobalCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/global-command-handler';
-import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
 
 import type { EmailCheckerComponent } from '../email-checker.ts';
 

@@ -1,15 +1,15 @@
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 
+import { getOsAndObsidianUnsafePathCharsRegExp } from '@mnaoumov/obsidian-lib/validation';
+import { extractDefaultExportInterop } from '@mnaoumov/typescript-lib/object-utils';
+import { getMandatoryNamedGroup } from '@mnaoumov/typescript-lib/reg-exp';
+import { replaceAll } from '@mnaoumov/typescript-lib/string';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
 import {
   App,
   htmlToMarkdown,
   moment as momentLib
 } from 'obsidian';
-import { extractDefaultExportInterop } from 'obsidian-dev-utils/object-utils';
-import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
-import { getMandatoryNamedGroup } from 'obsidian-dev-utils/reg-exp';
-import { replaceAll } from 'obsidian-dev-utils/string';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type {

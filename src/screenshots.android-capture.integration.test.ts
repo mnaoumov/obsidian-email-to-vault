@@ -25,6 +25,7 @@
  * From line of every frame.
  */
 
+import { sleep as sleepInNode } from '@mnaoumov/typescript-lib/async';
 import {
   mkdirSync,
   readFileSync,
@@ -33,7 +34,6 @@ import {
 import { join } from 'node:path';
 import process from 'node:process';
 import { createTransport } from 'nodemailer';
-import { sleep as sleepInNode } from 'obsidian-dev-utils/async';
 import {
   captureDeviceScreenshot,
   captureObsidianScreenshot,

@@ -1,22 +1,22 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { AsyncEventRef } from '@mnaoumov/typescript-lib/async-events';
 import type { PrismModule } from '@obsidian-typings/obsidian-public-latest/implementations';
 import type {
   SettingDefinition,
   SettingGroup
 } from 'obsidian';
-import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { MockInstance } from 'vitest';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { confirm } from 'obsidian-dev-utils/obsidian/modals/confirm';
-import { PasswordComponent } from 'obsidian-dev-utils/obsidian/setting-components/password-component';
-import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { confirm } from '@mnaoumov/obsidian-lib/modals/confirm';
+import { PasswordComponent } from '@mnaoumov/obsidian-lib/setting-components/password-component';
+import { SettingEx } from '@mnaoumov/obsidian-lib/setting-ex';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
 import {
   ensureGenericObject,
   ensureNonNullable
-} from 'obsidian-dev-utils/type-guards';
+} from '@mnaoumov/typescript-lib/type-guards';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   ButtonComponent,
   DropdownComponent,
@@ -45,12 +45,12 @@ const mockShowNotice = vi.fn();
 // The setting `onClick`/`onChange` handlers are wrapped in `convertAsyncToSync` (fire-and-forget). Stub it
 // to identity so the captured handlers are the raw async functions and the test can `await` them — the
 // sanctioned exception for making fire-and-forget async awaitable in a unit test.
-vi.mock('obsidian-dev-utils/async', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/async')>(),
+vi.mock('@mnaoumov/typescript-lib/async', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/typescript-lib/async')>(),
   convertAsyncToSync: vi.fn(($function: (...$arguments: unknown[]) => unknown) => $function)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/modals/confirm', () => ({
+vi.mock('@mnaoumov/obsidian-lib/modals/confirm', () => ({
   confirm: vi.fn(async () => {
     await noopAsync();
     return true;

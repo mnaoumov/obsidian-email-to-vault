@@ -1,4 +1,4 @@
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 
 // Integration tests run in Node.js, not Obsidian/jsdom.
 // Mock the Obsidian globals so plugin code that uses activeWindow/activeDocument works.

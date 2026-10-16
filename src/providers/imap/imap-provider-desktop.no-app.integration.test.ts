@@ -1,10 +1,10 @@
 import type { MessageStructureObject } from 'imapflow';
 
+import { sleep } from '@mnaoumov/typescript-lib/async';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { lookup } from 'node:dns/promises';
 import { createTransport } from 'nodemailer';
-import { sleep } from 'obsidian-dev-utils/async';
 import {
   afterAll,
   beforeAll,

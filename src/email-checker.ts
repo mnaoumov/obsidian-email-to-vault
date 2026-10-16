@@ -1,8 +1,8 @@
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 
-import { convertAsyncToSync } from 'obsidian-dev-utils/async';
-import { registerAsyncEvent } from 'obsidian-dev-utils/obsidian/components/async-events-component';
-import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
+import { registerAsyncEvent } from '@mnaoumov/obsidian-lib/components/async-events-component';
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
+import { convertAsyncToSync } from '@mnaoumov/typescript-lib/async';
 
 import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';

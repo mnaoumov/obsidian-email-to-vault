@@ -1,7 +1,7 @@
+import { sleep } from '@mnaoumov/typescript-lib/async';
 import dedent from 'dedent';
 import { lookup } from 'node:dns/promises';
 import { createTransport } from 'nodemailer';
-import { sleep } from 'obsidian-dev-utils/async';
 import {
   afterAll,
   beforeAll,
