@@ -1,19 +1,39 @@
 import type { App } from 'obsidian';
 
-import { Notice } from 'obsidian';
+import {
+  Notice,
+  Platform
+} from 'obsidian';
 import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
 
 // Not every headline feature gets a button here: the feature fetches real mail from a live service over the
 // network, so no button can produce an email for you. What the buttons DO remove is everything either
-// side of that — opening the settings tab, running the fetch, and the multi-line note templates, which
-// are the fiddly part to type and the part worth experimenting with.
+// side of that — opening the settings tab, choosing the provider and its server, running the fetch, and the
+// multi-line note templates, which are the fiddly part to type and the part worth experimenting with.
+//
+// Two things stay deliberately manual. Registering a Mail.tm address creates a real mailbox on a third-party
+// service, so it is one click in the settings tab rather than a button anyone (or a test run) presses by
+// accident. And no button types your IMAP login or password: the password belongs in Obsidian's secret
+// storage, entered by you.
 
 const PLUGIN_ID = 'email-to-vault';
+
+// The values of the plugin's `EmailProviderType` enum.
+const MAIL_TM_PROVIDER = 'mail-tm';
+const IMAP_PROVIDER = 'imap';
+
+const IMAP_TLS_PORT = 993;
 
 interface DemoSettingsPatch {
   emailCheckIntervalInMinutes?: number;
   emailNotePathTemplate?: string;
   emailNoteTemplate?: string;
+  emailProviderType?: string;
+  imapHost?: string;
+  imapMailbox?: string;
+  imapPort?: number;
+  imapTls?: boolean;
+  shouldDeleteSeenEmails?: boolean;
   shouldExtractForwardedEmail?: boolean;
   shouldMarkEmailsAsSeen?: boolean;
   shouldStripHiddenElements?: boolean;
@@ -70,9 +90,60 @@ export function checkEmails(app: App): void {
  *
  * Manual equivalent: edit the same field in **Settings -> Community plugins -> Email to Vault**.
  */
-export async function changeSettings(app: App, patch: DemoSettingsPatch): Promise<void> {
+export async function changeSettings(
+  app: App,
+  patch: DemoSettingsPatch,
+  message = 'Applied. Re-run a fetch to see the new format.'
+): Promise<void> {
   await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: patch });
-  new Notice('Applied. Re-run a fetch to see the new format.');
+  new Notice(message);
+}
+
+/**
+ * Selects the disposable Mail.tm provider, the default — and turns **Delete seen emails** back off, so this
+ * is also the reset after trying IMAP mode.
+ *
+ * Manual equivalent: under **Provider**, set **Email provider** to **Mail.tm**.
+ */
+export async function useMailTmProvider(app: App): Promise<void> {
+  await changeSettings(
+    app,
+    { emailProviderType: MAIL_TM_PROVIDER, shouldDeleteSeenEmails: false },
+    'Email provider: Mail.tm. Register an address in the Mail.tm group of the settings.'
+  );
+}
+
+/**
+ * Selects IMAP and fills in a well-known server: TLS on port 993, reading `INBOX`. Your login and password
+ * are left for you to enter.
+ *
+ * Manual equivalent: under **Provider**, set **Email provider** to **IMAP**, then fill in **Server host**,
+ * **Server port**, **Use TLS** and **Mailbox** in the **IMAP** group.
+ */
+export async function useImapServer(app: App, host: string): Promise<void> {
+  if (Platform.isMobile) {
+    new Notice('IMAP mode is available on desktop only. Use Mail.tm on mobile.');
+    return;
+  }
+
+  await changeSettings(
+    app,
+    { emailProviderType: IMAP_PROVIDER, imapHost: host, imapMailbox: 'INBOX', imapPort: IMAP_TLS_PORT, imapTls: true },
+    `Email provider: IMAP, server ${host}. Now enter your email address and password in the settings.`
+  );
+}
+
+/**
+ * Turns **Delete seen emails** on or off.
+ *
+ * Manual equivalent: the **Delete seen emails** toggle in the plugin's settings.
+ */
+export async function setDeleteSeenEmails(app: App, isEnabled: boolean): Promise<void> {
+  await changeSettings(
+    app,
+    { shouldDeleteSeenEmails: isEnabled },
+    `Delete seen emails: ${isEnabled ? 'on' : 'off'}.`
+  );
 }
 
 /**

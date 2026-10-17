@@ -8,6 +8,67 @@ Instead of the disposable Mail.tm mailbox, you can connect `Email to Vault` dire
 
 ## Try it
 
+**Step 1 — switch to IMAP and fill in the server.** Pick your provider's server; each button sets **Email provider** to **IMAP**, the **Server host**, port `993` with **Use TLS** on, and the `INBOX` mailbox.
+
+```code-button
+---
+caption: Use IMAP with Gmail's server
+---
+await require('/demoSetup.ts').useImapServer(app, 'imap.gmail.com');
+```
+
+```code-button
+---
+caption: Use IMAP with Outlook's server
+---
+await require('/demoSetup.ts').useImapServer(app, 'outlook.office365.com');
+```
+
+**Step 2 — enter your login.** Open the settings and fill in **Email address** and **Email password**. **This step is yours**: the password goes into Obsidian's secret storage, and no button types it for you.
+
+```code-button
+---
+caption: Open the plugin's settings
+---
+require('/demoSetup.ts').openPluginSettings(app);
+```
+
+**Step 3 (optional) — delete what you import.** Turn on **Delete seen emails** to remove each message from the server once it has been saved.
+
+```code-button
+---
+caption: Turn on Delete seen emails
+---
+await require('/demoSetup.ts').setDeleteSeenEmails(app, true);
+```
+
+```code-button
+---
+caption: Turn off Delete seen emails
+---
+await require('/demoSetup.ts').setDeleteSeenEmails(app, false);
+```
+
+**Step 4 — fetch.** Matching emails become notes in your vault.
+
+```code-button
+---
+caption: Check emails
+---
+require('/demoSetup.ts').checkEmails(app);
+```
+
+**Reset.** Go back to the disposable Mail.tm mailbox, with **Delete seen emails** off:
+
+```code-button
+---
+caption: Switch back to Mail.tm
+---
+await require('/demoSetup.ts').useMailTmProvider(app);
+```
+
+### Manual equivalent
+
 1. Open **Settings -> Community plugins -> Email to Vault**.
 2. Under **Provider**, set **Email provider** to **IMAP**.
 3. Fill in the **IMAP** group with your server details:

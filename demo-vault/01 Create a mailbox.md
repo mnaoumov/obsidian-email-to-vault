@@ -10,11 +10,38 @@ The quickest way to try `Email to Vault` is the built-in **Mail.tm** provider: a
 
 ## Try it
 
-1. Open **Settings -> Community plugins -> Email to Vault**.
-2. Under **Provider**, leave **Email provider** set to **Mail.tm** (the default).
-3. In the **Mail.tm** group, click **Register new random email address**. The plugin asks mail.tm for a fresh address and fills in the **Email address** field. This step needs a network connection.
-4. Copy the address with the clipboard button next to it, and send or forward a test email to it from any mail client.
-5. Wait for the automatic check (see [03 Email notes and commands](<./03 Email notes and commands.md>)), or run the fetch command yourself. New emails become notes in your vault.
+**Step 1 — pick Mail.tm.** It is the default, so this only matters if you switched to IMAP in [02 IMAP mode](<./02 IMAP mode.md>).
+
+```code-button
+---
+caption: Use the Mail.tm provider
+---
+await require('/demoSetup.ts').useMailTmProvider(app);
+```
+
+Manual equivalent: open **Settings -> Community plugins -> Email to Vault**, and under **Provider** set **Email provider** to **Mail.tm**.
+
+**Step 2 — register an address.** Open the settings, and in the **Mail.tm** group click **Register new random email address**. The plugin asks mail.tm for a fresh address and fills in the **Email address** field. This step needs a network connection, and it stays a click in the settings rather than a button here, because it creates a real mailbox on a third-party service.
+
+```code-button
+---
+caption: Open the plugin's settings
+---
+require('/demoSetup.ts').openPluginSettings(app);
+```
+
+**Step 3 — send it something.** Copy the address with the clipboard button next to it, and send or forward a test email to it from any mail client. **This step is yours** — no button can produce an email for you.
+
+**Step 4 — fetch.** Wait for the automatic check (see [03 Email notes and commands](<./03 Email notes and commands.md>)), or fetch now:
+
+```code-button
+---
+caption: Check emails
+---
+require('/demoSetup.ts').checkEmails(app);
+```
+
+Manual equivalent: **Email to Vault: Check emails** in the Command Palette. New emails become notes in your vault.
 
 ## Notes
 
