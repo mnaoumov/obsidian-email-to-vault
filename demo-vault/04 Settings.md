@@ -1,6 +1,6 @@
 # Settings
 
-Open **Settings -> Community plugins -> Email to Vault** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`. Which groups are visible depends on the selected provider (Mail.tm or IMAP).
+Open **Settings -> Community plugins -> `Email to Vault`** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`. Which groups are visible depends on the selected provider (Mail.tm or IMAP).
 
 ## Provider
 

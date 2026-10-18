@@ -19,7 +19,7 @@ caption: Use the Mail.tm provider
 await require('/demoSetup.ts').useMailTmProvider(app);
 ```
 
-Manual equivalent: open **Settings -> Community plugins -> Email to Vault**, and under **Provider** set **Email provider** to **Mail.tm**.
+Manual equivalent: open **Settings -> Community plugins -> `Email to Vault`**, and under **Provider** set **Email provider** to **Mail.tm**.
 
 **Step 2 — register an address.** Open the settings, and in the **Mail.tm** group click **Register new random email address**. The plugin asks mail.tm for a fresh address and fills in the **Email address** field. This step needs a network connection, and it stays a click in the settings rather than a button here, because it creates a real mailbox on a third-party service.
 
@@ -41,7 +41,7 @@ caption: Check emails
 require('/demoSetup.ts').checkEmails(app);
 ```
 
-Manual equivalent: **Email to Vault: Check emails** in the Command Palette. New emails become notes in your vault.
+Manual equivalent: **`Email to Vault`: Check emails** in the Command Palette. New emails become notes in your vault.
 
 ## Notes
 

@@ -69,7 +69,7 @@ await require('/demoSetup.ts').useMailTmProvider(app);
 
 ### Manual equivalent
 
-1. Open **Settings -> Community plugins -> Email to Vault**.
+1. Open **Settings -> Community plugins -> `Email to Vault`**.
 2. Under **Provider**, set **Email provider** to **IMAP**.
 3. Fill in the **IMAP** group with your server details:
    - **Server host**

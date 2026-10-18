@@ -11,13 +11,13 @@ Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.m
 
 ## Commands
 
-- **Email to Vault: Check emails**
+- **`Email to Vault`: Check emails**
   - fetch any new, unseen emails and save them as notes. This is the same action the automatic timer performs.
-- **Email to Vault: Redownload all emails**
+- **`Email to Vault`: Redownload all emails**
   - re-import every email currently in the mailbox, even ones already saved.
-- **Email to Vault: Redownload recent emails**
+- **`Email to Vault`: Redownload recent emails**
   - re-import recent emails, so you can recover a note you deleted without reprocessing the whole mailbox.
-- **Email to Vault: Open settings**
+- **`Email to Vault`: Open settings**
   - jump straight to the plugin's settings tab.
 
 ## Where notes land and what they contain
@@ -48,7 +48,7 @@ caption: Check emails
 require('/demoSetup.ts').checkEmails(app);
 ```
 
-Manual equivalent: **Email to Vault: Check emails** in the Command Palette.
+Manual equivalent: **`Email to Vault`: Check emails** in the Command Palette.
 
 **Step 3.** Open the `Emails/` folder — your message is now a note.
 
