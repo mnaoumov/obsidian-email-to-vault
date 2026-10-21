@@ -2,15 +2,15 @@
 
 ## 2.3.12
 
-- fix(settings): merge the Mail.tm credential typing and unregister fixes
+- fix(settings): merge the Mail.tm credential typing and unregister fixes (re #10 - [BUG] "The email address domain is not a valid Mail.tm domain")
 
 ## 2.3.11
 
-- fix(settings): merge the invalid password secret key fix
+- fix(settings): merge the invalid password secret key fix (re #10 - [BUG] "The email address domain is not a valid Mail.tm domain")
 
 ## 2.3.10
 
-- fix(settings): merge the retired Mail.tm domain and secret key fixes
+- fix(settings): merge the retired Mail.tm domain and secret key fixes (re #10 - [BUG] "The email address domain is not a valid Mail.tm domain")
 - fix(settings): merge the second-device Mail.tm password entry
 
 ## 2.3.9
@@ -24,8 +24,8 @@
 - test(screenshots): merge the harness-side caret hiding
 - test(screenshots): merge the hidden palette caret for frame 5
 - chore(deps): merge the obsidian-integration-testing ^17 float and the re-shot frames
-- fix(forward): merge the localized and HTML Outlook forward headers
-- fix(mail-tm): merge the missing-body-fields default
+- fix(forward): merge the localized and HTML Outlook forward headers (re #9 - [BUG] Extract forward email doesn't extract emails + Feature request)
+- fix(mail-tm): merge the missing-body-fields default (re #8 - Issue when using Epson scan to cloud)
 - chore(deps): merge the obsidian-test-mocks ^7.0.0 float
 - fix(test): merge the headless demo-vault toolkit install
 - chore: adopt the npm run gate branch gate
