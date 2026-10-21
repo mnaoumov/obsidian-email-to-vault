@@ -30,7 +30,7 @@ export class Plugin extends PluginBase {
       })
     );
     this.pluginSettingsComponent = pluginSettingsComponent;
-    // Since obsidian-dev-utils 90 a child is loaded as it is added, so the settings' async load tail runs
+    // A child is loaded as it is added, so the settings' async load tail runs
     // in parallel with the components added below instead of before them. EmailProviderManagerComponent
     // activates a provider from `emailProviderType` in its synchronous `onload` and only re-activates on
     // A later `saveSettings`, never on the initial load — so without this wait it would activate the
