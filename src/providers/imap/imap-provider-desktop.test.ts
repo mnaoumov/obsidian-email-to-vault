@@ -682,6 +682,14 @@ describe('ImapProvider', () => {
       expect(mocks.mockLatestClient?.['download']).toHaveBeenCalledWith('42', '2', { uid: true });
       expect(new Uint8Array(result)).toEqual(new Uint8Array(Buffer.from('attachment-data')));
     });
+
+    it('should throw when attachment not found', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      // What imapflow's `download()` resolves with for a missing message or part: no `content`.
+      mocks.mockClientDefaults.download.mockResolvedValueOnce(castTo<Awaited<ReturnType<typeof mocks.mockClientDefaults.download>>>({}));
+
+      await expect(provider.downloadAttachment({ attachmentId: '9', messageId: '42' })).rejects.toThrow('Attachment 9 of message 42 not found');
+    });
   });
 
   describe('markMessageAsSeen', () => {
