@@ -314,8 +314,9 @@ describe('IMAP provider integration', () => {
 
           if (attachmentPart) {
             const downloadResult = await client.download(String(attachmentEmailUid), attachmentPart, { uid: true });
+            expect(downloadResult.content).toBeDefined();
             const chunks: Uint8Array[] = [];
-            for await (const chunk of downloadResult.content) {
+            for await (const chunk of downloadResult.content ?? []) {
               chunks.push(new Uint8Array(chunk as ArrayBuffer));
             }
             const content = Buffer.concat(chunks);

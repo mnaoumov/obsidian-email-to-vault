@@ -48,6 +48,9 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
         const downloadResult = await client.download(messageId, attachmentId, { uid: true });
+        if (!downloadResult.content) {
+          throw new Error(`Attachment ${attachmentId} of message ${messageId} not found`);
+        }
         return await streamToArrayBuffer(downloadResult.content);
       } finally {
         lock.release();
