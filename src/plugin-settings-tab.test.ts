@@ -58,7 +58,7 @@ vi.mock('@mnaoumov/obsidian-lib/modals/confirm', () => ({
 }));
 
 // The obsidian-test-mocks package does not model Obsidian's `loadPrism`, so return a stub prism; otherwise the
-// real `CodeHighlighterComponent`'s highlight-on-`setValue` (new in dev-utils 86.0.0) rejects when the settings
+// real `CodeHighlighterComponent`'s highlight-on-`setValue` rejects when the settings
 // tab binds its code-highlighter components.
 vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (importOriginal) => ({
   ...await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>(),

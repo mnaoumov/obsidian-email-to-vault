@@ -37,15 +37,15 @@ import { EmailProviderManagerComponent } from './providers/email-provider-manage
 import { MailTmDomainManager } from './providers/mail-tm/mail-tm-domain-manager.ts';
 import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 
-// The real `PluginBase.onload()` loads dev-utils' own notice/context/debug components, which read a
+// The real `PluginBase.onload()` loads obsidian-lib's own notice/context/debug components, which read a
 // shared-state bag off the app via `getObsidianDevUtilsState`. The strict App mock has no such bag, so
-// stub this one utility (return a fresh value wrapper per call) — mirroring dev-utils' own PluginBase test.
+// stub this one utility (return a fresh value wrapper per call) — mirroring obsidian-lib's own PluginBase test.
 vi.mock('@mnaoumov/obsidian-lib/app', async (importOriginal) => ({
   ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/app')>(),
   getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
-// A dev-utils/own component that is added via `addChild` must be loadable, so its stub returns a
+// An obsidian-lib/own component that is added via `addChild` must be loadable, so its stub returns a
 // real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
 // not the discarded `this` (`mock.instances[0]`).
 interface ObsidianComponentModule {
@@ -163,7 +163,7 @@ function instanceOf(mock: ReturnType<typeof vi.fn>): unknown {
 }
 
 function noticeComponentOf(plugin: Plugin): PluginNoticeComponent {
-  // `pluginNoticeComponent` is `protected` on the dev-utils `PluginBase`; the plugin wires this exact
+  // `pluginNoticeComponent` is `protected` on the obsidian-lib `PluginBase`; the plugin wires this exact
   // instance into every collaborator, so the tests assert against the real instance rather than a matcher.
   return castTo<PluginWithNoticeComponent>(plugin).pluginNoticeComponent;
 }
