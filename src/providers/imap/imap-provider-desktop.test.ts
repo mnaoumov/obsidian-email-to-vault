@@ -1,6 +1,7 @@
 import type {
   FetchMessageObject,
   MailboxLockObject,
+  MailboxObject,
   MessageAddressObject,
   MessageStructureObject
 } from 'imapflow';
@@ -20,6 +21,8 @@ import {
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 
 import { ImapProviderDesktopComponent } from './imap-provider-desktop.ts';
+
+type MockMailbox = false | Pick<MailboxObject, 'exists'>;
 
 vi.mock('obsidian', async (importOriginal) => {
   const original = await importOriginal<typeof import('obsidian')>();
@@ -85,6 +88,7 @@ const mocks = vi.hoisted(() => ({
       return true;
     })
   },
+  mockGetMailbox: vi.fn((): MockMailbox => ({ exists: 1 })),
   mockLatestClient: null as null | Record<string, ReturnType<typeof vi.fn>>,
   mockSimpleParser: vi.fn()
 }));
@@ -97,11 +101,13 @@ vi.mock('imapflow', () => {
     public fetchOne: ReturnType<typeof vi.fn>;
     public getMailboxLock: ReturnType<typeof vi.fn>;
     public logout: ReturnType<typeof vi.fn>;
+    public mailbox: MockMailbox;
     public messageDelete: ReturnType<typeof vi.fn>;
     public messageFlagsAdd: ReturnType<typeof vi.fn>;
 
     public constructor() {
       this.connect = mocks.mockClientDefaults.connect;
+      this.mailbox = mocks.mockGetMailbox();
       this.download = mocks.mockClientDefaults.download;
       this.fetch = mocks.mockClientDefaults.fetch;
       this.fetchOne = mocks.mockClientDefaults.fetchOne;
@@ -219,6 +225,7 @@ describe('ImapProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.mockLatestClient = null;
+    mocks.mockGetMailbox.mockReturnValue({ exists: 1 });
     mocks.mockSimpleParser.mockResolvedValue({
       html: '<p>Hello</p>',
       text: 'Hello'
@@ -248,6 +255,29 @@ describe('ImapProvider', () => {
       const result = await provider.getMessages();
 
       expect(result).toEqual([]);
+    });
+
+    it('should return empty array without fetching when the mailbox is empty', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockGetMailbox.mockReturnValue({ exists: 0 });
+      mocks.mockClientDefaults.fetch.mockImplementation(() => {
+        throw new Error('Command failed');
+      });
+
+      const result = await provider.getMessages();
+
+      expect(result).toEqual([]);
+      expect(mocks.mockLatestClient?.['fetch']).not.toHaveBeenCalled();
+      expect(mocks.mockLatestClient?.['logout']).toHaveBeenCalled();
+    });
+
+    it('should still fetch when no mailbox state is reported', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockGetMailbox.mockReturnValue(false);
+
+      await provider.getMessages();
+
+      expect(mocks.mockLatestClient?.['fetch']).toHaveBeenCalled();
     });
 
     it('should return mapped message summaries', async () => {

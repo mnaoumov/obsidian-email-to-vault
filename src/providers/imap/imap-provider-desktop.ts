@@ -91,6 +91,13 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     return this.withConnection(async (client) => {
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
       try {
+        // The imapflow library sends `1:*` verbatim, and an empty mailbox has no message 1 for it
+        // to name, so servers such as Dovecot reject it as an invalid message set, which imapflow
+        // raises as `Command failed`. SELECT already told us the count, so an empty mailbox skips
+        // FETCH. Gmail tolerates the empty range, which is why the integration suite never saw it.
+        if (client.mailbox && client.mailbox.exists === 0) {
+          return [];
+        }
         const messages: EmailMessageSummary[] = [];
         for await (const message of client.fetch('1:*', { bodyStructure: true, envelope: true, flags: true, internalDate: true, uid: true })) {
           messages.push(mapFetchToSummary(message));
