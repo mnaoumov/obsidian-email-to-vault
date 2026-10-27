@@ -1,27 +1,27 @@
 export interface EmailAddress {
-  address: string;
-  name: string;
+  readonly address: string;
+  readonly name: string;
 }
 
 export interface EmailAttachment {
-  contentType: string;
-  filename: string;
-  id: string;
+  readonly contentType: string;
+  readonly filename: string;
+  readonly id: string;
 }
 
 export interface EmailMessageFull extends EmailMessageSummary {
-  attachments: EmailAttachment[];
-  cc: EmailAddress[];
-  html: string[];
-  text: string;
+  readonly attachments: EmailAttachment[];
+  readonly cc: EmailAddress[];
+  readonly html: string[];
+  readonly text: string;
 }
 
 export interface EmailMessageSummary {
-  createdAt: string;
-  from: EmailAddress;
-  hasAttachments: boolean;
-  id: string;
-  seen: boolean;
-  subject: string;
-  to: EmailAddress[];
+  readonly createdAt: string;
+  readonly from: EmailAddress;
+  readonly hasAttachments: boolean;
+  readonly id: string;
+  readonly seen: boolean;
+  readonly subject: string;
+  readonly to: EmailAddress[];
 }

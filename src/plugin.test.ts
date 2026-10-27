@@ -41,7 +41,7 @@ import { TOKENIZED_STRING_LANGUAGE } from './tokenized-string-language.ts';
 // real `Component`. The flowing instance is the stub's return value (`mock.results[0].value`),
 // not the discarded `this` (`mock.instances[0]`).
 interface ObsidianComponentModule {
-  Component: new () => object;
+  readonly Component: new () => object;
 }
 
 // The settings component is awaited (`loadWithPromises`) by `onloadImpl`, which a plain `Component` does

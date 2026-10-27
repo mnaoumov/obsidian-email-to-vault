@@ -57,15 +57,15 @@ import {
  * A file-explorer row, reduced to the collapse toggle.
  */
 interface CollapsibleFileItem {
-  collapsed?: boolean;
-  setCollapsed?: (this: void, isCollapsed: boolean) => Promise<void>;
+  readonly collapsed?: boolean;
+  readonly setCollapsed?: (this: void, isCollapsed: boolean) => Promise<void>;
 }
 
 /**
  * The file-explorer view, reduced to its rows.
  */
 interface FileExplorerView {
-  fileItems: Record<string, CollapsibleFileItem>;
+  readonly fileItems: Record<string, CollapsibleFileItem>;
 }
 
 const WIDTH_IN_PIXELS = 1200;
@@ -263,8 +263,11 @@ interface DescribeWaitParams {
  * point of the split.
  */
 interface MailboxRegistrationContext {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Registration callbacks update the shared polling state.
   hasSettled: boolean;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Registration callbacks record their error for the polling diagnostic.
   registrationError: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Registration setup resets the captured notices before polling.
   seenNotices: string[];
 }
 
@@ -686,7 +689,7 @@ async function registerMailbox(): Promise<string> {
       },
       start({ app, context, pluginId }): void {
         interface MailboxRegistrar {
-          registerRandomEmailAddress: (this: void) => Promise<void>;
+          readonly registerRandomEmailAddress: (this: void) => Promise<void>;
         }
 
         function findByMember(memberName: string): null | object {

@@ -29,43 +29,43 @@ const HTTP_STATUS_BAD_REQUEST = 400;
 const HTTP_STATUS_UNAUTHORIZED = 401;
 
 interface JwtPayload {
-  id: string;
+  readonly id: string;
 }
 
 interface MailTmAddress {
-  address: string;
-  name: string;
+  readonly address: string;
+  readonly name: string;
 }
 
 interface MailTmAttachment {
-  contentType: string;
-  filename: string;
-  id: string;
+  readonly contentType: string;
+  readonly filename: string;
+  readonly id: string;
 }
 
 interface MailTmMessage {
-  createdAt: string;
-  downloadUrl: string;
-  from: MailTmAddress;
-  hasAttachments: boolean;
-  id: string;
-  seen: boolean;
-  size: number;
-  subject: string;
-  to: MailTmAddress[];
-  updatedAt: string;
+  readonly createdAt: string;
+  readonly downloadUrl: string;
+  readonly from: MailTmAddress;
+  readonly hasAttachments: boolean;
+  readonly id: string;
+  readonly seen: boolean;
+  readonly size: number;
+  readonly subject: string;
+  readonly to: MailTmAddress[];
+  readonly updatedAt: string;
 }
 
 interface MailTmMessageFull extends MailTmMessage {
-  attachments?: MailTmAttachment[];
+  readonly attachments?: MailTmAttachment[];
   // Not guaranteed present: a mail from Epson Scan to Cloud came back with no `html` and crashed the note creator (#8).
-  cc?: MailTmAddress[];
-  html?: string[];
-  text?: string;
+  readonly cc?: MailTmAddress[];
+  readonly html?: string[];
+  readonly text?: string;
 }
 
 interface MailTmMessagesResponse {
-  'hydra:member': MailTmMessage[];
+  readonly 'hydra:member': MailTmMessage[];
 }
 
 interface MailTmProviderComponentConstructorParams {
@@ -81,7 +81,7 @@ interface MailTmProviderComponentCreateAccountParams {
 }
 
 interface MailTmTokenResponse {
-  token: string;
+  readonly token: string;
 }
 
 export class MailTmProviderComponent extends ComponentEx implements EmailProvider {

@@ -56,12 +56,18 @@ interface DownloadAttachmentsResult {
 }
 
 interface EmailData {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Attachment links are filled after the note path is known.
   attachmentsString: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded headers, parse errors and inline attachments update the note body.
   body: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the recipient header.
   cc: string;
-  dateString: string;
+  readonly dateString: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the sender header.
   from: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the subject header.
   subject: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the recipient header.
   to: string;
 }
 

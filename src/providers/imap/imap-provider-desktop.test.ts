@@ -126,12 +126,12 @@ vi.mock('mailparser', () => ({
 }));
 
 interface MockPluginSettingsComponentOverrides {
-  emailAddress?: string;
-  emailPasswordSecretKey?: string;
-  imapHost?: string;
-  imapMailbox?: string;
-  imapPort?: number;
-  imapTls?: boolean;
+  readonly emailAddress?: string;
+  readonly emailPasswordSecretKey?: string;
+  readonly imapHost?: string;
+  readonly imapMailbox?: string;
+  readonly imapPort?: number;
+  readonly imapTls?: boolean;
 }
 
 function createAsyncIterable<T>(items: T[]): AsyncIterableIterator<T> {

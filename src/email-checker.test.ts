@@ -35,17 +35,17 @@ interface CreateMockPluginSettingsComponentResult {
 }
 
 interface MockEmailProviderOverrides {
-  deleteMessage?: EmailProvider['deleteMessage'];
-  getMessages?: EmailProvider['getMessages'];
-  markMessageAsSeen?: EmailProvider['markMessageAsSeen'];
+  readonly deleteMessage?: EmailProvider['deleteMessage'];
+  readonly getMessages?: EmailProvider['getMessages'];
+  readonly markMessageAsSeen?: EmailProvider['markMessageAsSeen'];
 }
 
 interface MockPluginSettingsComponentOverrides {
-  emailAddress?: string;
-  emailCheckIntervalInMinutes?: number;
-  lastProcessedEmailTimestamp?: string;
-  shouldDeleteSeenEmails?: boolean;
-  shouldMarkEmailsAsSeen?: boolean;
+  readonly emailAddress?: string;
+  readonly emailCheckIntervalInMinutes?: number;
+  readonly lastProcessedEmailTimestamp?: string;
+  readonly shouldDeleteSeenEmails?: boolean;
+  readonly shouldMarkEmailsAsSeen?: boolean;
 }
 
 type SaveSettingsCallback = (

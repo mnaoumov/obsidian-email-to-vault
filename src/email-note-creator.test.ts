@@ -56,25 +56,25 @@ vi.mock('obsidian', async (importOriginal) => {
 const mockShowNotice = vi.fn();
 
 interface MockEmailProviderOverrides {
-  downloadAttachment?: EmailProvider['downloadAttachment'];
-  getMessage?: EmailProvider['getMessage'];
+  readonly downloadAttachment?: EmailProvider['downloadAttachment'];
+  readonly getMessage?: EmailProvider['getMessage'];
 }
 
 interface MockFullMessageOverrides {
-  subject?: string;
+  readonly subject?: string;
 }
 
 interface MockMessageOverrides {
-  id?: string;
-  seen?: boolean;
-  subject?: string;
+  readonly id?: string;
+  readonly seen?: boolean;
+  readonly subject?: string;
 }
 
 interface MockPluginSettingsOverrides {
-  emailNotePathTemplate?: string;
-  emailNoteTemplate?: string;
-  shouldExtractForwardedEmail?: boolean;
-  shouldStripHiddenElements?: boolean;
+  readonly emailNotePathTemplate?: string;
+  readonly emailNoteTemplate?: string;
+  readonly shouldExtractForwardedEmail?: boolean;
+  readonly shouldStripHiddenElements?: boolean;
 }
 
 function createFullMessage(overrides?: MockFullMessageOverrides): EmailMessageFull {
