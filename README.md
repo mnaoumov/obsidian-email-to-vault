@@ -57,18 +57,22 @@ A copy of the vault ships with every release. You can access it via any of the f
 >
 > In Mail.tm mode, emails are routed through the third-party service [mail.tm](https://mail.tm/) and retained there for up to 7 days. **Do not send sensitive information — use at your own risk.** See [05 Privacy and data handling](<./demo-vault/05 Privacy and data handling.md>).
 
-## Similar plugins
+## See also
 
-- [`E-mail Importer (IMAP)`](https://community.obsidian.md/plugins/imap-mail-importer) — imports the unread mail of an IMAP mailbox as notes with attachments on an interval, as this plugin's IMAP mode does; it has no ready-made mailbox to start from and no templates for the note's path and body.
-- [`MailDump`](https://community.obsidian.md/plugins/maildump) — exports IMAP folders from up to four accounts on a schedule into Markdown digests built for analysis, with optional per-message notes; it is made for reviewing a mailbox in bulk rather than turning each forwarded message into a note.
-- [`Gmail Mailbox`](https://community.obsidian.md/plugins/gmail-mailbox) — syncs Gmail labels through the Gmail API, one note per email plus a thread index per label and a Google Calendar sidebar; it is Gmail only and needs a Google Cloud OAuth client of your own.
-- [`Outlook Teams and Calendar`](https://community.obsidian.md/plugins/outlook-teams-calendar) — syncs Microsoft 365 mail, calendar events and Teams messages through Microsoft Graph, with a thread index per folder; it is desktop only and needs an Azure app registration.
-- [`Send Email into Vault`](https://community.obsidian.md/plugins/send-email-into-vault) — gives you a private address on its own hosted service and fetches what arrives there, with attachments, on desktop and mobile; the service has paid plans after a free trial.
-- [`mail-to-note`](https://community.obsidian.md/plugins/mail-to-note) — polls a personal address on its own hosted service and saves forwarded mail with attachments under a filename pattern; it needs an account and an API key from that service.
-- [`Sync Emails`](https://community.obsidian.md/plugins/taskrobin) — saves mail forwarded to an alias on its own hosted service, with attachments, when you trigger a sync; the service is a subscription after a free trial.
-- [`Messager`](https://community.obsidian.md/plugins/messager) — receives messages sent by WeChat, an HTTP API or email through its own hosted service; it needs an account there, and its advanced features are paid.
-- [`Hints Flow`](https://community.obsidian.md/plugins/hints-plugin) — captures from Telegram, WhatsApp, Slack, email, SMS and more through its own hosted assistant, with a capture template; email is one of many sources, and it needs an account there.
-- [`Obsidian Email Plugin`](https://github.com/vault-bridges/obsidian-email-plugin) — not in the community directory, and in alpha; it pairs the plugin with an SMTP receiving service that you host yourself.
+[My other Obsidian resources](https://github.com/mnaoumov/obsidian-resources)
+
+| Plugin | Features | How `Email to Vault` differs |
+| --- | --- | --- |
+| [`E-mail Importer (IMAP)`](https://community.obsidian.md/plugins/imap-mail-importer) | Scheduled unread IMAP mail import; per-message notes and attachments | Same IMAP goal; ready-made mailbox option; note path/body templates |
+| [`Gmail Mailbox`](https://community.obsidian.md/plugins/gmail-mailbox) | Gmail API; label/thread indexes; Calendar sidebar; own OAuth client required | Alternative integration: IMAP and ready-made mailbox; not Gmail-only |
+| [`Hints Flow`](https://community.obsidian.md/plugins/hints-plugin) | Hosted assistant; Telegram, WhatsApp, Slack, email and SMS; capture templates | Narrower focus: email-to-note; IMAP option |
+| [`mail-to-note`](https://community.obsidian.md/plugins/mail-to-note) | Hosted personal address; attachment import; name pattern; account/API key | Same forwarded-mail goal; own IMAP account option and note body templates |
+| [`MailDump`](https://community.obsidian.md/plugins/maildump) | Scheduled IMAP folder exports; four accounts; digests and optional message notes | Alternative workflow: forwarded messages become individual notes |
+| [`Messager`](https://community.obsidian.md/plugins/messager) | Hosted WeChat, HTTP and email capture; account required; paid advanced features | Narrower focus: email-to-note; IMAP option |
+| [`Obsidian Email Plugin`](https://github.com/vault-bridges/obsidian-email-plugin) | Unlisted alpha; self-hosted SMTP receiving service | Same email-to-note goal; ready-made mailbox or IMAP instead of self-hosted SMTP |
+| [`Outlook Teams and Calendar`](https://community.obsidian.md/plugins/outlook-teams-calendar) | Microsoft Graph mail, events and Teams; desktop-only; Azure app required | Narrower focus: email-to-note; no Teams/calendar integration |
+| [`Send Email into Vault`](https://community.obsidian.md/plugins/send-email-into-vault) | Hosted private address; attachments; desktop/mobile; paid after trial | Same forwarded-mail goal; ready-made mailbox or own IMAP account |
+| [`Sync Emails`](https://community.obsidian.md/plugins/taskrobin) | Hosted forwarding alias; manual sync; attachments; subscription after trial | Same forwarded-mail goal; IMAP option and scheduled imports |
 
 Last searched for similar plugins on 2026-10-26.
 
@@ -105,10 +109,6 @@ Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set u
 <a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
 
 <!-- markdownlint-enable MD033 -->
-
-## My other Obsidian resources
-
-[See my other Obsidian resources](https://github.com/mnaoumov/obsidian-resources).
 
 ## License
 
