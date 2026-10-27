@@ -24,7 +24,7 @@ import { EmailProviderManagerComponent } from './email-provider-manager.ts';
 import { EmailProviderType } from './email-provider-type.ts';
 
 interface ObsidianComponentModule {
-  Component: new () => object;
+  readonly Component: new () => object;
 }
 
 const mocks = vi.hoisted(() => ({

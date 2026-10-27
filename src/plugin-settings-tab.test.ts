@@ -66,10 +66,10 @@ vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (impor
 }));
 
 interface MockPluginSettingsComponentOverrides {
-  editAndSave?: PluginSettingsComponent['editAndSave'];
-  emailAddress?: string;
-  emailPasswordSecretKey?: string;
-  emailProviderType?: EmailProviderType;
+  readonly editAndSave?: PluginSettingsComponent['editAndSave'];
+  readonly emailAddress?: string;
+  readonly emailPasswordSecretKey?: string;
+  readonly emailProviderType?: EmailProviderType;
 }
 
 interface ProviderDropdownBindOptions {

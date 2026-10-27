@@ -89,9 +89,9 @@ const FORWARDED_EMAIL_RFC822 = dedent`
 `.replaceAll('\n', '\r\n');
 
 interface TestAccount {
-  address: string;
-  password: string;
-  token: string;
+  readonly address: string;
+  readonly password: string;
+  readonly token: string;
 }
 
 // Integration tests run in Node.js (no window), so native fetch is reached through globalThis.

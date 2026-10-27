@@ -32,9 +32,9 @@ describe('demo vault provider buttons', () => {
     const result = await evalInObsidian({
       async callback({ app, lib: { waitUntil } }): Promise<ProviderButtonsResult> {
         interface DemoSetup {
-          setDeleteSeenEmails: (this: void, app: unknown, isEnabled: boolean) => Promise<void>;
-          useImapServer: (this: void, app: unknown, host: string) => Promise<void>;
-          useMailTmProvider: (this: void, app: unknown) => Promise<void>;
+          readonly setDeleteSeenEmails: (this: void, app: unknown, isEnabled: boolean) => Promise<void>;
+          readonly useImapServer: (this: void, app: unknown, host: string) => Promise<void>;
+          readonly useMailTmProvider: (this: void, app: unknown) => Promise<void>;
         }
 
         await waitUntil({

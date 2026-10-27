@@ -99,8 +99,11 @@ describe('PluginSettingsTab "Mark emails as seen"', () => {
 });
 
 interface CredentialSettings {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The integration test changes credentials through the settings component.
   emailAddress: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The integration test changes credentials through the settings component.
   emailPasswordSecretKey: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The integration test switches the active provider through settings.
   emailProviderType: string;
 }
 

@@ -28,9 +28,9 @@ interface SendTestEmailOptions {
 }
 
 interface TestAttachment {
-  content: Buffer | string;
-  contentType: string;
-  filename: string;
+  readonly content: Buffer | string;
+  readonly contentType: string;
+  readonly filename: string;
 }
 
 function createImapClient(): ImapFlow {

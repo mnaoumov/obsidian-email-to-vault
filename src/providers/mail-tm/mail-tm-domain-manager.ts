@@ -3,12 +3,12 @@ import { requestUrl } from 'obsidian';
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
 
 interface MailTmDomain {
-  domain: string;
-  isActive: boolean;
+  readonly domain: string;
+  readonly isActive: boolean;
 }
 
 interface MailTmDomainsResponse {
-  'hydra:member': MailTmDomain[];
+  readonly 'hydra:member': MailTmDomain[];
 }
 
 export class MailTmDomainManager {
