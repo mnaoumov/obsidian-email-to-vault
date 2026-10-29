@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2.3.13
+
+- refactor: write the capture note templates as dedent templates
+- chore(deps): bump typescript-dev-toolkit to ^5.3.0
+- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- chore(deps): update vulnerable transitive development dependencies
+- refactor: adopt readonly interface members
+- docs(readme): combine related resources and plugin comparisons
+- docs(readme): add a Similar plugins section
+- fix: re #11
+- test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
+- build(deps): move to obsidian-lib 6 and obsidian-dev-toolkit 5
+- docs: name obsidian-lib where comments said dev-utils
+- docs: shorten the debugging section
+- docs(changelog): escape the issue-title tags so markdownlint and cspell pass
+- docs(changelog): name the issue each released entry resolved
+- chore: replace leftover obsidian-dev-utils references with @mnaoumov/obsidian-lib
+- docs(readme): lead the Debugging section with `Advanced Debug Mode`
+- build(deps): float brace-expansion, sharp and fast-uri past their advisories
+- docs: mark plugin names as code
+- docs(demo-vault): add code buttons to the Mail.tm and IMAP Try it sections
+- chore(github): point questions to Discussions from the new-issue page
+- ci: merge attesting release assets through the toolkit's reusable workflow
+- build(demo-vault): require `CodeScript Toolkit` 13.8.0 for the obsidian-lib demo script
+- refactor(demo-vault): merge importing configureCommunityPlugin from @mnaoumov/obsidian-lib
+- build: merge the move off obsidian-dev-utils onto the @mnaoumov packages
+- docs: merge marking plugin names as code in prose and comments
+- test: merge using the obsidian-typings declarations of Obsidian internals
+- fix: re #10
+
 ## 2.3.12
 
 - fix(settings): merge the Mail.tm credential typing and unregister fixes (re #10 - \[BUG\] "The email address domain is not a valid Mail.tm domain")
