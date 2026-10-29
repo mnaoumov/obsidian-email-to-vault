@@ -66,6 +66,8 @@ The two waits carry **different budgets on purpose**, and the diagnostic says wh
 
 Shot `3` was the third face of the same cause and now names it too. It photographs a folder that has FILLED, so it needs the notes shots `1` and `2` produced as well as its own; when mail was slow it failed on a bare `expected 2 to be greater than 2` that read as a defect in shot `3`. Its assertion now carries a message saying it is an earlier shot's mail that never arrived. (`4` and `5` never waited on new mail and passed throughout.)
 
+**The Mail.tm no-app suite (`mail-tm-provider.no-app.integration.test.ts`) waits on the same delivery and shares `DELIVERY_BUDGET_IN_MILLISECONDS`.** Its polls used to allow 60 s under the `integration-tests:no-app` project's 45 s default, so on a slow day all eight delivery tests failed as bare `Test timed out in 45000ms`. Its per-test budget is now derived in the file (`DELIVERY + 90 s`, set on the top `describe`), and each group's message-count wait is shared, so an undelivered message fails the rest of its group at once with the same diagnostic instead of each test sitting out 450 s.
+
 `registerMailbox` is NOT part of this: it was moved onto `pollInObsidian`, so a registration that fails says so with the service's own error rather than expiring as a transport timeout.
 
 The timings module lives in `scripts/` rather than `src/` deliberately — the coverage `include` is `src/**/*.ts`, so a constants module there would be counted by the coverage report and never loaded by the unit suites that produce it.
