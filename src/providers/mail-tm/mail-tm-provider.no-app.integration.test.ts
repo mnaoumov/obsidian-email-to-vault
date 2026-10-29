@@ -11,6 +11,7 @@ import {
 } from 'vitest';
 import { z } from 'zod';
 
+import { DELIVERY_BUDGET_IN_MILLISECONDS } from '../../../scripts/capture-timings.ts';
 import {
   generatePassword,
   generateUsername
@@ -74,7 +75,24 @@ const mailTmAccountResponseSchema = z.object({
 });
 
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
-const MAX_WAIT_IN_MILLISECONDS = 60_000;
+
+/**
+ * Everything in one test here that is NOT the delivery wait: the SMTP send (whose own connection,
+ * greeting and socket timeouts below add up to 55 s), the follow-up message and attachment fetches,
+ * and one poll interval of overshoot.
+ */
+const TEST_OVERHEAD_IN_MILLISECONDS = 90_000;
+
+/**
+ * The per-test budget for this suite — **derived, never written down**, as the capture suites' is.
+ *
+ * The integration-tests:no-app project's 45 s default sat under the 60 s the polls used to allow,
+ * so their own 
+ot received within … message was unreachable and a slow delivery surfaced as a
+ * bare Test timed out in 45000ms naming the it. The wait is the same inbound Mail.tm delivery the
+ * capture suites wait on, so it shares their measured {@link DELIVERY_BUDGET_IN_MILLISECONDS}.
+ */
+const TEST_TIMEOUT_IN_MILLISECONDS = DELIVERY_BUDGET_IN_MILLISECONDS + TEST_OVERHEAD_IN_MILLISECONDS;
 const SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS = 15_000;
 const SMTP_GREETING_TIMEOUT_IN_MILLISECONDS = 10_000;
 const SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS = 30_000;
@@ -87,6 +105,10 @@ const FORWARDED_EMAIL_RFC822 = dedent`
 
   This is the original forwarded email body.
 `.replaceAll('\n', '\r\n');
+
+const MILLISECONDS_PER_SECOND = 1000;
+
+type MailTmMessage = z.infer<typeof mailTmMessageSchema>;
 
 interface TestAccount {
   readonly address: string;
@@ -132,9 +154,27 @@ async function createSmtpTransport(): Promise<ReturnType<typeof createTransport>
   });
 }
 
+function describeDeliveryTimeout(waitedFor: string, startTime: number, polls: number, messages: readonly MailTmMessage[]): string {
+  const receivedSubjects = messages.map((message) => `"${message.subject}"`).join(', ') || 'nothing';
+  return [
+    `Mail.tm never delivered ${waitedFor} within the ${String(DELIVERY_BUDGET_IN_MILLISECONDS / MILLISECONDS_PER_SECOND)} s delivery budget`
+    + ` (waited ${String(Math.round((Date.now() - startTime) / MILLISECONDS_PER_SECOND))} s over ${String(polls)} polls of ${testAccount.address}).`,
+    `Received so far: ${receivedSubjects}.`,
+    'This wait is INBOUND MAIL DELIVERY over SMTP into a disposable Mail.tm mailbox, which nothing in this repo controls;'
+    + ' send one message to a Mail.tm mailbox by hand and time it before treating this as a regression.'
+  ].join(' ');
+}
+
 async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
   const response = await nativeFetch(url, options);
   return response.json();
+}
+
+async function fetchMessages(token: string): Promise<MailTmMessage[]> {
+  const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return mailTmMessagesResponseSchema.parse(json)['hydra:member'];
 }
 
 function getRequiredEnv(name: string): string {
@@ -145,15 +185,30 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-async function pollForMessages(token: string, expectedCount: number): Promise<z.infer<typeof mailTmMessagesResponseSchema>['hydra:member']> {
-  const startTime = Date.now();
+/**
+ * Every test in a group waits for the same message count, so the wait is shared: the first test pays
+ * for the delivery, and when delivery never comes the rest of the group fails at once with the same
+ * diagnostic instead of each sitting out its own full budget.
+ */
+const messagesByExpectedCount = new Map<number, Promise<MailTmMessage[]>>();
 
-  while (Date.now() - startTime < MAX_WAIT_IN_MILLISECONDS) {
-    const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = mailTmMessagesResponseSchema.parse(json);
-    const messages = data['hydra:member'];
+async function pollForMessages(token: string, expectedCount: number): Promise<MailTmMessage[]> {
+  let promise = messagesByExpectedCount.get(expectedCount);
+  if (!promise) {
+    promise = pollForMessagesUncached(token, expectedCount);
+    messagesByExpectedCount.set(expectedCount, promise);
+  }
+  return promise;
+}
+
+async function pollForMessagesUncached(token: string, expectedCount: number): Promise<MailTmMessage[]> {
+  const startTime = Date.now();
+  let messages: MailTmMessage[] = [];
+  let polls = 0;
+
+  while (Date.now() - startTime < DELIVERY_BUDGET_IN_MILLISECONDS) {
+    polls++;
+    messages = await fetchMessages(token);
 
     if (messages.length >= expectedCount) {
       return messages;
@@ -162,7 +217,7 @@ async function pollForMessages(token: string, expectedCount: number): Promise<z.
     await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
-  throw new Error(`Expected ${String(expectedCount)} messages but did not receive them within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
+  throw new Error(describeDeliveryTimeout(`${String(expectedCount)} messages (got ${String(messages.length)})`, startTime, polls, messages));
 }
 
 async function sendForwardedEmail(baseAddress: string): Promise<void> {
@@ -279,15 +334,15 @@ async function getFullMessage(messageId: string): Promise<z.infer<typeof mailTmM
   return mailTmMessageFullSchema.parse(fullJson);
 }
 
-async function pollForSubject(token: string, subject: string): Promise<z.infer<typeof mailTmMessageSchema>> {
+async function pollForSubject(token: string, subject: string): Promise<MailTmMessage> {
   const startTime = Date.now();
+  let messages: MailTmMessage[] = [];
+  let polls = 0;
 
-  while (Date.now() - startTime < MAX_WAIT_IN_MILLISECONDS) {
-    const json = await fetchJson(`${MAIL_TM_API_BASE_URL}/messages`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = mailTmMessagesResponseSchema.parse(json);
-    const found = data['hydra:member'].find((m) => m.subject === subject);
+  while (Date.now() - startTime < DELIVERY_BUDGET_IN_MILLISECONDS) {
+    polls++;
+    messages = await fetchMessages(token);
+    const found = messages.find((m) => m.subject === subject);
     if (found) {
       return found;
     }
@@ -295,7 +350,7 @@ async function pollForSubject(token: string, subject: string): Promise<z.infer<t
     await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
-  throw new Error(`Message with subject "${subject}" not received within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
+  throw new Error(describeDeliveryTimeout(`a message with subject "${subject}"`, startTime, polls, messages));
 }
 
 async function sendSimpleEmail(baseAddress: string, subject: string): Promise<void> {
@@ -309,7 +364,7 @@ async function sendSimpleEmail(baseAddress: string, subject: string): Promise<vo
   });
 }
 
-describe('Mail.tm API', () => {
+describe('Mail.tm API', { timeout: TEST_TIMEOUT_IN_MILLISECONDS }, () => {
   beforeAll(async () => {
     const domainsJson = await fetchJson(`${MAIL_TM_API_BASE_URL}/domains`);
     const domainsData = mailTmDomainsResponseSchema.parse(domainsJson);
