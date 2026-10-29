@@ -22,6 +22,7 @@
  */
 
 import { sleep as sleepInNode } from '@mnaoumov/typescript-lib/async';
+import dedent from 'dedent';
 import {
   mkdirSync,
   readFileSync,
@@ -91,21 +92,20 @@ const ATTACHMENT_FILE_NAME = 'invoice-march.png';
  */
 const CUSTOM_TEMPLATE_FOLDER = 'Inbox';
 const CUSTOM_TEMPLATE_PATH_TEMPLATE = `${CUSTOM_TEMPLATE_FOLDER}/{{date:YYYY-MM}}/{{subject}}`;
-const CUSTOM_TEMPLATE_NOTE_TEMPLATE = [
-  '---',
-  'tags:',
-  '  - inbox/email',
-  'sender: "{{from}}"',
-  'received: {{date}}',
-  '---',
-  '',
-  '# {{subject}}',
-  '',
-  '{{body}}',
-  '',
-  '{{attachments}}',
-  ''
-].join('\n');
+const CUSTOM_TEMPLATE_NOTE_TEMPLATE = dedent`
+  ---
+  tags:
+    - inbox/email
+  sender: "{{from}}"
+  received: {{date}}
+  ---
+
+  # {{subject}}
+
+  {{body}}
+
+  {{attachments}}\n
+`;
 
 const IMAGES_DIRECTORY = join(process.cwd(), 'images', 'screenshots');
 
