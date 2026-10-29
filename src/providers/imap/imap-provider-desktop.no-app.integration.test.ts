@@ -14,10 +14,34 @@ import {
 } from 'vitest';
 
 const POLL_INTERVAL_IN_MILLISECONDS = 3000;
-const MAX_WAIT_IN_MILLISECONDS = 60_000;
+
+/**
+ * How long one wait allows for a message to cross SMTP into the IMAP mailbox.
+ *
+ * Measured on 2026-10-29 for the `.env` account (Gmail to itself): ten sends were each searchable
+ * 1.2-5.7 s after `sendMail` returned. 60 s is a 10x margin over the worst of those. This is NOT the
+ * Mail.tm delivery budget the capture suites share; that is another route, measured at 261 s.
+ */
+const DELIVERY_BUDGET_IN_MILLISECONDS = 60_000;
+
 const SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS = 15_000;
 const SMTP_GREETING_TIMEOUT_IN_MILLISECONDS = 10_000;
 const SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS = 30_000;
+
+/**
+ * The most one {@link sendTestEmail} can take before nodemailer gives up on its own.
+ */
+const SMTP_SEND_BUDGET_IN_MILLISECONDS = SMTP_CONNECTION_TIMEOUT_IN_MILLISECONDS
+  + SMTP_GREETING_TIMEOUT_IN_MILLISECONDS
+  + SMTP_SOCKET_TIMEOUT_IN_MILLISECONDS;
+
+/**
+ * Everything in a sending hook that is neither a send nor the delivery wait: the IMAP connect, login
+ * and logout of each poll, and one poll interval of overshoot.
+ */
+const HOOK_OVERHEAD_IN_MILLISECONDS = 30_000;
+
+const MILLISECONDS_PER_SECOND = 1000;
 const TEST_SUBJECT_PREFIX = `imap-integration-test-${String(Date.now())}`;
 
 interface SendTestEmailOptions {
@@ -84,30 +108,67 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-async function pollForMessage(subject: string): Promise<number> {
+/**
+ * The budget for a `beforeAll` that sends `sendCount` messages and then waits for them, **derived,
+ * never written down**: the hook's own timeout has to sit above the waits inside it, or the wait's
+ * diagnostic can never be printed and a slow delivery surfaces as a bare hook timeout instead.
+ */
+function getSendingHookTimeoutInMilliseconds(sendCount: number): number {
+  return sendCount * SMTP_SEND_BUDGET_IN_MILLISECONDS + DELIVERY_BUDGET_IN_MILLISECONDS + HOOK_OVERHEAD_IN_MILLISECONDS;
+}
+
+/**
+ * Waits for every one of `subjects` to arrive, under ONE shared {@link DELIVERY_BUDGET_IN_MILLISECONDS}, and
+ * returns their UIDs in the same order.
+ *
+ * Each poll opens its own connection. A connection that keeps INBOX selected across polls never sees
+ * a message delivered after it selected: measured against Gmail on 2026-10-29, such a connection
+ * searched 18 times over 30 s without finding a message a fresh connection then found at once. So
+ * a wait on a held connection only ever succeeded when the mail beat the first search.
+ */
+async function pollForMessages(subjects: readonly string[]): Promise<number[]> {
   const startTime = Date.now();
-  const client = createImapClient();
-  await client.connect();
+  const uidsBySubject = new Map<string, number>();
+  let polls = 0;
 
-  try {
-    const lock = await client.getMailboxLock('INBOX');
+  while (Date.now() - startTime < DELIVERY_BUDGET_IN_MILLISECONDS) {
+    polls++;
+    const client = createImapClient();
+    await client.connect();
     try {
-      while (Date.now() - startTime < MAX_WAIT_IN_MILLISECONDS) {
-        const foundUidList = await client.search({ subject }, { uid: true });
-        if (foundUidList && foundUidList.length > 0) {
-          return foundUidList[0] ?? 0;
+      const lock = await client.getMailboxLock('INBOX');
+      try {
+        for (const subject of subjects) {
+          if (uidsBySubject.has(subject)) {
+            continue;
+          }
+          const foundUidList = await client.search({ subject }, { uid: true });
+          const uid = foundUidList ? foundUidList[0] : undefined;
+          if (uid !== undefined) {
+            uidsBySubject.set(subject, uid);
+          }
         }
-
-        await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
+      } finally {
+        lock.release();
       }
     } finally {
-      lock.release();
+      await client.logout();
     }
-  } finally {
-    await client.logout();
+
+    if (uidsBySubject.size === subjects.length) {
+      return subjects.map((subject) => uidsBySubject.get(subject) ?? 0);
+    }
+
+    await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
-  throw new Error(`Message with subject "${subject}" not received within ${String(MAX_WAIT_IN_MILLISECONDS / 1000)} seconds`);
+  const missingSubjects = subjects.filter((subject) => !uidsBySubject.has(subject)).map((subject) => `"${subject}"`).join(', ');
+  throw new Error(
+    `IMAP never delivered ${missingSubjects} within the ${String(DELIVERY_BUDGET_IN_MILLISECONDS / MILLISECONDS_PER_SECOND)} s delivery budget`
+      + ` (waited ${String(Math.round((Date.now() - startTime) / MILLISECONDS_PER_SECOND))} s over ${String(polls)} polls of INBOX for ${getRequiredEnv('IMAP_USER')}).`
+      + ' This wait is INBOUND MAIL DELIVERY from the SMTP account to the IMAP mailbox, measured at a few seconds;'
+      + ' send one message by hand and time it before treating this as a regression.'
+  );
 }
 
 async function sendTestEmail(subjectSuffix: string, options?: SendTestEmailOptions): Promise<string> {
@@ -155,9 +216,8 @@ describe('IMAP provider integration', () => {
       text: 'Email with attachments'
     });
 
-    normalEmailUid = await pollForMessage(normalEmailSubject);
-    attachmentEmailUid = await pollForMessage(attachmentEmailSubject);
-  });
+    [normalEmailUid = 0, attachmentEmailUid = 0] = await pollForMessages([normalEmailSubject, attachmentEmailSubject]);
+  }, getSendingHookTimeoutInMilliseconds(2));
 
   afterAll(async () => {
     const client = createImapClient();
@@ -378,8 +438,8 @@ describe('IMAP provider integration', () => {
 
     beforeAll(async () => {
       const unseenEmailSubject = await sendTestEmail('unseen-preservation');
-      unseenEmailUid = await pollForMessage(unseenEmailSubject);
-    });
+      [unseenEmailUid = 0] = await pollForMessages([unseenEmailSubject]);
+    }, getSendingHookTimeoutInMilliseconds(1));
 
     it(String.raw`should leave the \Seen flag unset after fetching a message the way the plugin does`, async () => {
       const client = createImapClient();
