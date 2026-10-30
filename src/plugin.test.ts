@@ -7,6 +7,7 @@ import type {
 } from 'obsidian';
 
 import { CommandHandlerComponent } from '@mnaoumov/obsidian-lib/command-handlers/command-handler-component';
+import { OpenBugReportCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-bug-report-command-handler';
 import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 import { OpenSettingsCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-settings-command-handler';
 import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
@@ -295,10 +296,11 @@ describe('Plugin', () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
 
-      // The base separately auto-registers its own handler, so assert the plugin's own registration by its five
+      // The base separately auto-registers its own handler, so assert the plugin's own registration by its six
       // handlers rather than the total call count.
       expect(buildPluginCommandHandlers()).toStrictEqual([
         expect.any(CheckEmailsCommandHandler),
+        expect.any(OpenBugReportCommandHandler),
         expect.any(OpenDemoVaultCommandHandler),
         expect.any(OpenSettingsCommandHandler),
         expect.any(RedownloadAllEmailsCommandHandler),
