@@ -128,7 +128,7 @@ function getSendingHookTimeoutInMilliseconds(sendCount: number): number {
  */
 async function pollForMessages(subjects: readonly string[]): Promise<number[]> {
   const startTime = Date.now();
-  const uidsBySubject = new Map<string, number>();
+  const uidBySubject = new Map<string, number>();
   let polls = 0;
 
   while (Date.now() - startTime < DELIVERY_BUDGET_IN_MILLISECONDS) {
@@ -139,13 +139,13 @@ async function pollForMessages(subjects: readonly string[]): Promise<number[]> {
       const lock = await client.getMailboxLock('INBOX');
       try {
         for (const subject of subjects) {
-          if (uidsBySubject.has(subject)) {
+          if (uidBySubject.has(subject)) {
             continue;
           }
           const foundUidList = await client.search({ subject }, { uid: true });
           const uid = foundUidList ? foundUidList[0] : undefined;
           if (uid !== undefined) {
-            uidsBySubject.set(subject, uid);
+            uidBySubject.set(subject, uid);
           }
         }
       } finally {
@@ -155,14 +155,14 @@ async function pollForMessages(subjects: readonly string[]): Promise<number[]> {
       await client.logout();
     }
 
-    if (uidsBySubject.size === subjects.length) {
-      return subjects.map((subject) => uidsBySubject.get(subject) ?? 0);
+    if (uidBySubject.size === subjects.length) {
+      return subjects.map((subject) => uidBySubject.get(subject) ?? 0);
     }
 
     await sleep({ milliseconds: POLL_INTERVAL_IN_MILLISECONDS });
   }
 
-  const missingSubjects = subjects.filter((subject) => !uidsBySubject.has(subject)).map((subject) => `"${subject}"`).join(', ');
+  const missingSubjects = subjects.filter((subject) => !uidBySubject.has(subject)).map((subject) => `"${subject}"`).join(', ');
   throw new Error(
     `IMAP never delivered ${missingSubjects} within the ${String(DELIVERY_BUDGET_IN_MILLISECONDS / MILLISECONDS_PER_SECOND)} s delivery budget`
       + ` (waited ${String(Math.round((Date.now() - startTime) / MILLISECONDS_PER_SECOND))} s over ${String(polls)} polls of INBOX for ${getRequiredEnv('IMAP_USER')}).`

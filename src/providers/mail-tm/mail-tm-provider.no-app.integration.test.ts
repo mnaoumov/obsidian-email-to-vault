@@ -86,10 +86,9 @@ const TEST_OVERHEAD_IN_MILLISECONDS = 90_000;
 /**
  * The per-test budget for this suite — **derived, never written down**, as the capture suites' is.
  *
- * The integration-tests:no-app project's 45 s default sat under the 60 s the polls used to allow,
- * so their own 
-ot received within … message was unreachable and a slow delivery surfaced as a
- * bare Test timed out in 45000ms naming the it. The wait is the same inbound Mail.tm delivery the
+ * The `integration-tests:no-app` project's 45 s default sat under the 60 s the polls used to allow,
+ * so their own `did not receive them within …` message was unreachable and a slow delivery surfaced
+ * as a bare `Test timed out in 45000ms` naming the `it`. The wait is the same inbound Mail.tm delivery the
  * capture suites wait on, so it shares their measured {@link DELIVERY_BUDGET_IN_MILLISECONDS}.
  */
 const TEST_TIMEOUT_IN_MILLISECONDS = DELIVERY_BUDGET_IN_MILLISECONDS + TEST_OVERHEAD_IN_MILLISECONDS;
