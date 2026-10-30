@@ -1,3 +1,4 @@
+import { OpenBugReportCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-bug-report-command-handler';
 import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 import { OpenSettingsCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-settings-command-handler';
 import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
@@ -77,6 +78,11 @@ export class Plugin extends PluginBase {
     this.addChild(new TemplatesLanguageComponent({ language: TOKENIZED_STRING_LANGUAGE }));
     await this.commandHandlerComponent.registerCommandHandlers(() => [
       new CheckEmailsCommandHandler(emailChecker),
+      new OpenBugReportCommandHandler({
+        app: this.app,
+        gitHubRepo: 'mnaoumov/obsidian-email-to-vault',
+        pluginId: this.manifest.id
+      }),
       new OpenDemoVaultCommandHandler({
         app: this.app,
         pluginId: this.manifest.id,
