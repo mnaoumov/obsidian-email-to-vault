@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2.4.0
+
+- docs(readme): point bug reports at the Report a bug command
+- feat: add a Report a bug command
+- docs: add issue-filing instructions for AI agents
+- chore(github): give the bug form the field ids bug-report links prefill
+- style: fix the spellcheck and format gates on main
+- build(deps): override re2js to ^2.9.1 for GHSA-gg6h-894w-4m9c
+- test: poll the IMAP no-app suite on fresh connections under derived hook budgets
+- test: derive the Mail.tm no-app suite's per-test timeout from its delivery budget
+
 ## 2.3.13
 
 - refactor: write the capture note templates as dedent templates
