@@ -64,9 +64,9 @@ Every frame that photographs a delivered email waits on a real message: sent ove
 | --- | --- | --- |
 | `DELIVERY_BUDGET_IN_MILLISECONDS` | 450 s | `fetchEmails` — one message crossing SMTP into the Mail.tm mailbox. 1.7x the measured 261 s. |
 | `REDOWNLOAD_BUDGET_IN_MILLISECONDS` | 90 s | `waitForNoteUnder` — `redownload-all-emails` re-writing mail ALREADY in the vault. Nothing crosses the network. |
-| `CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS` | 600 s | The vitest per-test budget, `= DELIVERY + 150 s of overhead`. |
+| `CAPTURE_TEST_TIMEOUT_IN_MILLISECONDS` | 600 s | The `vitest` per-test budget, `= DELIVERY + 150 s of overhead`. |
 
-Deriving the last one is the point, and it is not tidiness. **A helper's own budget has to be strictly under the per-test budget, or the helper's message can never be printed.** Before this, `fetchEmails` looped 24 attempts at 5 s — each also running a `check-emails` whose in-Obsidian settle alone is 4 s, so ~230 s of loop against a 180 s test — and its `The plugin never created a note for: …` was **unreachable by construction**: vitest always expired first and reported the `it`. Raise a wait budget and the per-test budget now rises with it, so that cannot silently come back.
+Deriving the last one is the point, and it is not tidiness. **A helper's own budget has to be strictly under the per-test budget, or the helper's message can never be printed.** Before this, `fetchEmails` looped 24 attempts at 5 s — each also running a `check-emails` whose in-Obsidian settle alone is 4 s, so ~230 s of loop against a 180 s test — and its `The plugin never created a note for: …` was **unreachable by construction**: `vitest` always expired first and reported the `it`. Raise a wait budget and the per-test budget now rises with it, so that cannot silently come back.
 
 The two waits carry **different budgets on purpose**, and the diagnostic says which kind of failure you have: a `fetchEmails` timeout names inbound delivery, which this repo does not control and which you should time by hand before calling it a regression; a `waitForNoteUnder` timeout says outright that it **is** a defect here, most likely the settings write or the plugin reload in `applyCustomTemplates`. Each message carries what it waited for, how long, the mailbox, the poll count and the notes actually in the vault.
 

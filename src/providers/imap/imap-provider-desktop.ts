@@ -156,7 +156,7 @@ function checkHasAttachments(bodyStructure?: MessageStructureObject): boolean {
   if (bodyStructure.disposition === 'attachment') {
     return true;
   }
-  return bodyStructure.childNodes ? bodyStructure.childNodes.some((child) => checkHasAttachments(child)) : false;
+  return !!bodyStructure.childNodes && bodyStructure.childNodes.some((child) => checkHasAttachments(child));
 }
 
 function collectAttachments(bodyStructure?: MessageStructureObject): EmailAttachment[] {

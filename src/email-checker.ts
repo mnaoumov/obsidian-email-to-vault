@@ -117,7 +117,7 @@ export class EmailCheckerComponent extends ComponentEx {
 
   private selectNewMessages(messages: EmailMessageSummary[], isTimestampMode: boolean): EmailMessageSummary[] {
     const { lastProcessedEmailTimestamp } = this.pluginSettingsComponent.settings;
-    return isTimestampMode && lastProcessedEmailTimestamp ? messages.filter((m) => m.createdAt > lastProcessedEmailTimestamp) : messages.filter((m) => !m.seen);
+    return messages.filter(isTimestampMode && lastProcessedEmailTimestamp ? (m): boolean => m.createdAt > lastProcessedEmailTimestamp : (m): boolean => !m.seen);
   }
 
   // A command's thrown error reaches the console only, so a password the service rejects showed the user nothing after
