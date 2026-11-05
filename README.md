@@ -33,7 +33,7 @@ Use the built-in disposable mailbox (Mail.tm) for a one-click address that needs
 
 **The documentation is a demo vault.** Every feature has a note explaining what it does and why you would want it, and walking you through it.
 
-**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on GitHub with nothing installed.
+**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on `GitHub` with nothing installed.
 
 A copy of the vault ships with every release. You can access it via any of the following:
 
@@ -65,7 +65,7 @@ A copy of the vault ships with every release. You can access it via any of the f
 | --- | --- | --- |
 | [`E-mail Importer (IMAP)`](https://community.obsidian.md/plugins/imap-mail-importer) | Scheduled unread IMAP mail import; per-message notes and attachments | Same IMAP goal; ready-made mailbox option; note path/body templates |
 | [`Gmail Mailbox`](https://community.obsidian.md/plugins/gmail-mailbox) | Gmail API; label/thread indexes; Calendar sidebar; own OAuth client required | Alternative integration: IMAP and ready-made mailbox; not Gmail-only |
-| [`Hints Flow`](https://community.obsidian.md/plugins/hints-plugin) | Hosted assistant; Telegram, WhatsApp, Slack, email and SMS; capture templates | Narrower focus: email-to-note; IMAP option |
+| [`Hints Flow`](https://community.obsidian.md/plugins/hints-plugin) | Hosted assistant; `Telegram`, WhatsApp, Slack, email and SMS; capture templates | Narrower focus: email-to-note; IMAP option |
 | [`mail-to-note`](https://community.obsidian.md/plugins/mail-to-note) | Hosted personal address; attachment import; name pattern; account/API key | Same forwarded-mail goal; own IMAP account option and note body templates |
 | [`MailDump`](https://community.obsidian.md/plugins/maildump) | Scheduled IMAP folder exports; four accounts; digests and optional message notes | Alternative workflow: forwarded messages become individual notes |
 | [`Messager`](https://community.obsidian.md/plugins/messager) | Hosted WeChat, HTTP and email capture; account required; paid advanced features | Narrower focus: email-to-note; IMAP option |

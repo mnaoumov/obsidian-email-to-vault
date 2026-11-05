@@ -74,12 +74,6 @@ interface CreateMockPluginSettingsComponentResult {
   readonly triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => Promise<void>;
 }
 
-type SaveSettingsCallback = (
-  newState: ReadonlyPluginSettingsState<PluginSettings>,
-  oldState: ReadonlyPluginSettingsState<PluginSettings>,
-  context: unknown
-) => Promisable<void>;
-
 function createMockApp(): App {
   return strictProxy<App>({});
 }
@@ -89,6 +83,11 @@ function createMockMailTmDomainManager(): MailTmDomainManager {
 }
 
 function createMockPluginSettingsComponent(providerType: EmailProviderType = EmailProviderType.MailTm): CreateMockPluginSettingsComponentResult {
+  type SaveSettingsCallback = (
+    newState: ReadonlyPluginSettingsState<PluginSettings>,
+    oldState: ReadonlyPluginSettingsState<PluginSettings>,
+    context: unknown
+  ) => Promisable<void>;
   let saveSettingsCallback: null | SaveSettingsCallback = null;
 
   const pluginSettingsComponent = strictProxy<PluginSettingsComponent>({

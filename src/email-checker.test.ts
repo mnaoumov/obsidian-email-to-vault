@@ -48,12 +48,6 @@ interface MockPluginSettingsComponentOverrides {
   readonly shouldMarkEmailsAsSeen?: boolean;
 }
 
-type SaveSettingsCallback = (
-  newState: ReadonlyPluginSettingsState<PluginSettings>,
-  oldState: ReadonlyPluginSettingsState<PluginSettings>,
-  context: unknown
-) => Promisable<void>;
-
 function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailProvider {
   return strictProxy<EmailProvider>({
     deleteMessage: overrides?.deleteMessage ?? vi.fn(),
@@ -72,6 +66,11 @@ function createMockNoteCreator(): EmailNoteCreator {
 }
 
 function createMockPluginSettingsComponent(overrides?: MockPluginSettingsComponentOverrides): CreateMockPluginSettingsComponentResult {
+  type SaveSettingsCallback = (
+    newState: ReadonlyPluginSettingsState<PluginSettings>,
+    oldState: ReadonlyPluginSettingsState<PluginSettings>,
+    context: unknown
+  ) => Promisable<void>;
   let saveSettingsCallback: null | SaveSettingsCallback = null;
 
   const settings = castTo<PluginSettings>({

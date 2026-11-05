@@ -162,7 +162,7 @@ describe('desktop store screenshots', () => {
   it('1 - an email, in the vault, as a note', async () => {
     await sendEmail({ subject: RECEIPT_SUBJECT, text: 'Order 4471 is on its way. Tracking: PX-88213.' });
     const notePath = await fetchEmails(RECEIPT_SUBJECT);
-    const content = await openNote(notePath, 'preview');
+    const content = await openNote(notePath);
     expect(content).toContain(RECEIPT_SUBJECT);
     await shoot(1, 'Mail it to your vault and it arrives as a note');
   });
@@ -174,7 +174,7 @@ describe('desktop store screenshots', () => {
       text: 'The invoice for March is attached.'
     });
     const notePath = await fetchEmails(ATTACHMENT_SUBJECT);
-    const content = await openNote(notePath, 'preview');
+    const content = await openNote(notePath);
     expect(content).toContain(ATTACHMENT_FILE_NAME);
     const paths = await listFiles();
     expect(paths.some((path) => path.endsWith(ATTACHMENT_FILE_NAME))).toBe(true);
@@ -185,7 +185,7 @@ describe('desktop store screenshots', () => {
     await sendEmail({ subject: BOOKING_SUBJECT, text: 'Table for two, 14 March at 19:30.' });
     await fetchEmails(BOOKING_SUBJECT);
     const notePath = await findEmailNote(BOOKING_SUBJECT);
-    await openNote(notePath, 'preview');
+    await openNote(notePath);
     const paths = await listFiles();
     const emailNotePaths = paths.filter((path) => path.startsWith(`${EMAILS_FOLDER}/`));
     // Named, because this is the THIRD face of one cause. This shot photographs a folder that has
@@ -205,7 +205,7 @@ describe('desktop store screenshots', () => {
     await applyCustomTemplates();
     await runCommand('redownload-all-emails');
     const notePath = await waitForNoteUnder(CUSTOM_TEMPLATE_FOLDER);
-    const content = await openNote(notePath, 'preview');
+    const content = await openNote(notePath);
     // The new template's own frontmatter, so the frame cannot be the old note
     // photographed in a new folder.
     expect(content).toContain('tags:');
@@ -508,15 +508,14 @@ async function openCommandPalette(query: string): Promise<string[]> {
 }
 
 /**
- * Opens a note in the given mode, with the file tree fully expanded.
+ * Opens a note in Reading view, with the file tree fully expanded.
  *
  * @param notePath - Vault-relative path of the note.
- * @param mode - `preview` for the rendered note, `source` for its Markdown.
  * @returns The note's Markdown.
  */
-async function openNote(notePath: string, mode: string): Promise<string> {
+async function openNote(notePath: string): Promise<string> {
   return await evalInObsidian({
-    async callback({ app, lib: { pressKey, waitUntil }, mode: viewMode, notePath: path }) {
+    async callback({ app, lib: { pressKey, waitUntil }, notePath: path }) {
       /*
        * Under the transport's ~30s per-closure cap, not at it.
        * At 20_000 the render ceiling took this closure to 25_000, of which 5_000 is settles that are
@@ -551,7 +550,7 @@ async function openNote(notePath: string, mode: string): Promise<string> {
       const leaf = app.workspace.getLeaf(false);
       await leaf.openFile(file);
       await leaf.setViewState({
-        state: { file: path, mode: viewMode, source: viewMode === 'source' },
+        state: { file: path, mode: 'preview', source: false },
         type: 'markdown'
       });
 
@@ -577,7 +576,7 @@ async function openNote(notePath: string, mode: string): Promise<string> {
 
       return await app.vault.read(file);
     },
-    input: { mode, notePath },
+    input: { notePath },
     vaultPath: vaultPath()
   });
 }

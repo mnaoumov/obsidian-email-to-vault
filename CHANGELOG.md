@@ -14,31 +14,31 @@
 ## 2.3.13
 
 - refactor: write the capture note templates as dedent templates
-- chore(deps): bump typescript-dev-toolkit to ^5.3.0
-- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- chore(deps): bump `typescript-dev-toolkit` to ^5.3.0
+- build(deps): bump `obsidian-dev-toolkit` to ^7.1.1 and `typescript-dev-toolkit` to ^5.1.0
 - chore(deps): update vulnerable transitive development dependencies
 - refactor: adopt readonly interface members
 - docs(readme): combine related resources and plugin comparisons
 - docs(readme): add a Similar plugins section
 - fix: re #11
 - test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
-- build(deps): move to obsidian-lib 6 and obsidian-dev-toolkit 5
-- docs: name obsidian-lib where comments said dev-utils
+- build(deps): move to `obsidian-lib` 6 and `obsidian-dev-toolkit` 5
+- docs: name `obsidian-lib` where comments said dev-utils
 - docs: shorten the debugging section
-- docs(changelog): escape the issue-title tags so markdownlint and cspell pass
+- docs(changelog): escape the issue-title tags so `markdownlint` and `cspell` pass
 - docs(changelog): name the issue each released entry resolved
-- chore: replace leftover obsidian-dev-utils references with @mnaoumov/obsidian-lib
+- chore: replace leftover `obsidian-dev-utils` references with @mnaoumov/obsidian-lib
 - docs(readme): lead the Debugging section with `Advanced Debug Mode`
 - build(deps): float brace-expansion, sharp and fast-uri past their advisories
 - docs: mark plugin names as code
 - docs(demo-vault): add code buttons to the Mail.tm and IMAP Try it sections
 - chore(github): point questions to Discussions from the new-issue page
 - ci: merge attesting release assets through the toolkit's reusable workflow
-- build(demo-vault): require `CodeScript Toolkit` 13.8.0 for the obsidian-lib demo script
+- build(demo-vault): require `CodeScript Toolkit` 13.8.0 for the `obsidian-lib` demo script
 - refactor(demo-vault): merge importing configureCommunityPlugin from @mnaoumov/obsidian-lib
-- build: merge the move off obsidian-dev-utils onto the @mnaoumov packages
+- build: merge the move off `obsidian-dev-utils` onto the @mnaoumov packages
 - docs: merge marking plugin names as code in prose and comments
-- test: merge using the obsidian-typings declarations of Obsidian internals
+- test: merge using the `obsidian-typings` declarations of Obsidian internals
 - fix: re #10
 
 ## 2.3.12
@@ -61,15 +61,15 @@
 
 ## 2.3.8
 
-- chore(cspell): merge the lintable dictionary word
+- chore(`cspell`): merge the lintable dictionary word
 - test(screenshots): merge the harness-side caret hiding
 - test(screenshots): merge the hidden palette caret for frame 5
-- chore(deps): merge the obsidian-integration-testing ^17 float and the re-shot frames
+- chore(deps): merge the `obsidian-integration-testing` ^17 float and the re-shot frames
 - fix(forward): merge the localized and HTML Outlook forward headers (re #9 - \[BUG\] Extract forward email doesn't extract emails + Feature request)
 - fix(mail-tm): merge the missing-body-fields default (re #8 - Issue when using Epson scan to cloud)
-- chore(deps): merge the obsidian-test-mocks ^7.0.0 float
+- chore(deps): merge the `obsidian-test-mocks` ^7.0.0 float
 - fix(test): merge the headless demo-vault toolkit install
-- chore: adopt the npm run gate branch gate
+- chore: adopt the `npm` run gate branch gate
 - fix(deps): restore the lockfile's missing resolved and integrity fields
 - docs(contributing): name the default branch contributors should base a PR on
 - fix(screenshots): size both capture waits above live mail, and make each wait report itself
@@ -82,7 +82,7 @@
 - fix(deps): float devalue to 5.9.4, clearing GHSA-9rgm-9g3h-6x36
 - test: open both mailbox notes on the exact marker line
 - test: bring the desktop capture render ceiling in line, and say what the mailbox wait costs
-- build(markdownlint): forbid hard-wrapped markdown paragraphs
+- build(`markdownlint`): forbid hard-wrapped markdown paragraphs
 - chore(deps): drop the dead markdown-it override
 - chore(deps): drop the dead js-yaml override
 - fix(deps): override smol-toml to clear a denial-of-service advisory
@@ -93,7 +93,7 @@
 - docs: replace the private tracker references with what they pointed at
 - test(integration): take the palette frame with the soft keyboard up
 - test: size openNote's wait ceiling under the cap, and drop the disable it needed
-- refactor: use the shared Templates language component from obsidian-dev-utils
+- refactor: use the shared Templates language component from `obsidian-dev-utils`
 - refactor(android): drive the Android suites with trusted input
 - docs: name the unversioned demo-vault asset and the folder it unzips into
 - chore: make the LICENSE copyright line lintable and guard it against the year roll-over
@@ -103,7 +103,7 @@
 ## 2.3.7
 
 - chore(deps): sweep caret-ranged dependencies to latest
-- fix(deps): move to obsidian-integration-testing 11 and obsidian-dev-utils 96.5.2
+- fix(deps): move to `obsidian-integration-testing` 11 and `obsidian-dev-utils` 96.5.2
 - fix(deps): drop the brace-expansion file: override that breaks a clean install
 
 ## 2.3.6
@@ -113,14 +113,14 @@
 ## 2.3.5
 
 - docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
-- docs(readme): render the same in Obsidian's plugin page as on GitHub
+- docs(readme): render the same in Obsidian's plugin page as on `GitHub`
 - chore: update libs
 - test: unblock the no-app integration suite by bypassing nodemailer's c-ares DNS
-- chore: update obsidian-dev-utils to 94.6.1
-- chore: update obsidian-dev-utils to 94.6.0
+- chore: update `obsidian-dev-utils` to 94.6.1
+- chore: update `obsidian-dev-utils` to 94.6.0
 - fix: override deepmerge-ts to clear GHSA-ggr8-5vv4-36mx
 - test: gate the demo vault by clicking every code button
-- chore: teach cspell the advisory wording
+- chore: teach `cspell` the advisory wording
 - chore: update libs
 - docs(demo-vault): give the demo vault its code buttons
 - docs: add store screenshots and surface them in the README
@@ -128,11 +128,11 @@
 ## 2.3.4
 
 - docs: make the demo vault the documentation, in the standard layout
-- feat(demo-vault): migrate to obsidian-dev-utils 93.3.1 and adopt the authoring convention
+- feat(demo-vault): migrate to `obsidian-dev-utils` 93.3.1 and adopt the authoring convention
 
 ## 2.3.3
 
-- chore: update libs and adopt obsidian-integration-testing 10
+- chore: update libs and adopt `obsidian-integration-testing` 10
 
 ## 2.3.2
 
@@ -142,14 +142,14 @@
 
 - chore: update libs
 - chore: update libs
-- chore(vitest): adopt the shared Obsidian plugin vitest configuration
-- refactor(prism): register the template language through obsidian-dev-utils' SyntaxHighlightingComponent
+- chore(`vitest`): adopt the shared Obsidian plugin `vitest` configuration
+- refactor(prism): register the template language through `obsidian-dev-utils`' SyntaxHighlightingComponent
 
 ## 2.3.0
 
 - fix: unblock the release gate
 - refactor(settings): move the settings tab onto the declarative settings API
-- chore: update libs and clear the npm audit
+- chore: update libs and clear the `npm` audit
 - docs: fix the demo vault download instructions
 
 ## 2.2.1
@@ -174,7 +174,7 @@
 ## 2.1.2
 
 - docs: standardize demo-vault README
-- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the obsidian-dev-utils harness)
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the `obsidian-dev-utils` harness)
 - docs(demo-vault): create the `Email to Vault` demo vault
 - chore: update libs
 - docs: update
@@ -183,7 +183,7 @@
 ## 2.1.1
 
 - chore: update libs
-- chore: update obsidian-dev-utils to 85.0.0
+- chore: update `obsidian-dev-utils` to 85.0.0
 - refactor: pass params objects to email providers and note-creator helpers
 
 ## 2.1.0
