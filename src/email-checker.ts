@@ -10,6 +10,13 @@ import type { EmailMessageSummary } from './providers/email-provider-types.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailProviderAuthenticationError } from './providers/email-provider-authentication-error.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
+import { getTransientNetworkErrorCode } from './transient-network-error.ts';
+
+// Each further transient failure in a row multiplies the gap between scheduled checks by this factor, up to the maximum.
+const SCHEDULED_BACKOFF_GROWTH_FACTOR = 2;
+// Repeated transient failures stretch the scheduled check to at most this many intervals apart.
+const MAX_SCHEDULED_BACKOFF_FACTOR = 8;
 
 interface EmailCheckerComponentConstructorParams {
   readonly emailNoteCreator: EmailNoteCreator;
@@ -18,11 +25,13 @@ interface EmailCheckerComponentConstructorParams {
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 export class EmailCheckerComponent extends ComponentEx {
+  private consecutiveScheduledTransientFailures = 0;
   private readonly emailNoteCreator: EmailNoteCreator;
   private readonly emailProvider: EmailProvider;
   private intervalId: null | number = null;
   private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
+  private scheduledTicksToSkip = 0;
 
   public constructor(params: EmailCheckerComponentConstructorParams) {
     super();
@@ -32,8 +41,11 @@ export class EmailCheckerComponent extends ComponentEx {
     this.emailNoteCreator = params.emailNoteCreator;
   }
 
+  /**
+   * Checks for new emails on the user's request: every failure the user can act on is shown as a notice.
+   */
   public async checkEmails(): Promise<void> {
-    await this.showAuthenticationErrors(() => this.checkEmailsUnguarded());
+    await this.showExpectedErrors(() => this.checkEmailsUnguarded());
   }
 
   public override onload(): void {
@@ -50,7 +62,7 @@ export class EmailCheckerComponent extends ComponentEx {
   }
 
   public async redownloadEmails(count?: number): Promise<void> {
-    await this.showAuthenticationErrors(async () => {
+    await this.showExpectedErrors(async () => {
       const messages = await this.emailProvider.getMessages();
       const toProcess = count ? messages.slice(0, count) : messages;
       for (const message of toProcess) {
@@ -58,6 +70,29 @@ export class EmailCheckerComponent extends ComponentEx {
       }
       this.pluginNoticeComponent.showNotice(`Redownloaded ${String(toProcess.length)} email(s)`);
     });
+  }
+
+  // A scheduled check that hits a dropped connection is not an error: it logs one warning per run of failures, shows
+  // no notice, and the next tick tries again. Repeated failures back off, so an offline device is not polled at the
+  // full rate. Authentication errors are still shown, and any other error still propagates.
+  private async checkEmailsOnSchedule(): Promise<void> {
+    if (this.scheduledTicksToSkip > 0) {
+      this.scheduledTicksToSkip--;
+      return;
+    }
+
+    try {
+      await this.showAuthenticationErrors(() => this.checkEmailsUnguarded());
+    } catch (error) {
+      const code = getTransientNetworkErrorCode(error);
+      if (code === null) {
+        throw error;
+      }
+      this.recordScheduledTransientFailure(code);
+      return;
+    }
+
+    this.consecutiveScheduledTransientFailures = 0;
   }
 
   private async checkEmailsUnguarded(): Promise<void> {
@@ -100,18 +135,36 @@ export class EmailCheckerComponent extends ComponentEx {
     return intervalInMinutes * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
   }
 
+  private getProviderName(): string {
+    return this.pluginSettingsComponent.settings.emailProviderType === EmailProviderType.Imap ? 'IMAP' : 'Mail.tm';
+  }
+
+  private recordScheduledTransientFailure(code: string): void {
+    this.consecutiveScheduledTransientFailures++;
+    const backoffFactor = Math.min(SCHEDULED_BACKOFF_GROWTH_FACTOR ** (this.consecutiveScheduledTransientFailures - 1), MAX_SCHEDULED_BACKOFF_FACTOR);
+    this.scheduledTicksToSkip = backoffFactor - 1;
+    if (this.consecutiveScheduledTransientFailures === 1) {
+      console.warn(
+        `Email to Vault: the scheduled email check could not reach the ${this.getProviderName()} server (${code}). It will keep trying, less often while the failures last.`
+      );
+    }
+  }
+
   private scheduleCheckEmails(): void {
     if (this.intervalId !== null) {
       window.clearInterval(this.intervalId);
       this.intervalId = null;
     }
 
+    this.consecutiveScheduledTransientFailures = 0;
+    this.scheduledTicksToSkip = 0;
+
     const intervalInMilliseconds = this.getCheckIntervalInMilliseconds();
     if (intervalInMilliseconds === 0) {
       return;
     }
     this.intervalId = this.pluginSettingsComponent.registerInterval(
-      window.setInterval(convertAsyncToSync(this.checkEmails.bind(this)), intervalInMilliseconds)
+      window.setInterval(convertAsyncToSync(this.checkEmailsOnSchedule.bind(this)), intervalInMilliseconds)
     );
   }
 
@@ -130,6 +183,21 @@ export class EmailCheckerComponent extends ComponentEx {
         throw error;
       }
       this.pluginNoticeComponent.showNotice(error.message);
+    }
+  }
+
+  // A command the user ran must say that it failed, and a dropped connection is not a bug to leave in the console.
+  private async showExpectedErrors(action: () => Promise<void>): Promise<void> {
+    try {
+      await this.showAuthenticationErrors(action);
+    } catch (error) {
+      const code = getTransientNetworkErrorCode(error);
+      if (code === null) {
+        throw error;
+      }
+      this.pluginNoticeComponent.showNotice(
+        `Could not reach the ${this.getProviderName()} server (${code}). Check your internet connection and try again.`
+      );
     }
   }
 
