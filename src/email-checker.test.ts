@@ -3,9 +3,17 @@ import type { ReadonlyPluginSettingsState } from '@mnaoumov/obsidian-lib/compone
 import type { AsyncEventRef } from '@mnaoumov/typescript-lib/async-events';
 import type { Promisable } from 'type-fest';
 
-import { noopAsync } from '@mnaoumov/typescript-lib/function';
+import {
+  registerAsyncErrorEventHandler,
+  startAsyncErrorIgnoreContext
+} from '@mnaoumov/typescript-lib/error';
+import {
+  noop,
+  noopAsync
+} from '@mnaoumov/typescript-lib/function';
 import { castTo } from '@mnaoumov/typescript-lib/object-utils';
 import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
+import { setImmediate } from 'node:timers/promises';
 import {
   beforeEach,
   describe,
@@ -21,6 +29,7 @@ import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailProviderAuthenticationError } from './providers/email-provider-authentication-error.ts';
+import { EmailProviderType } from './providers/email-provider-type.ts';
 
 const mockShowNotice = vi.fn();
 
@@ -43,6 +52,7 @@ interface MockEmailProviderOverrides {
 interface MockPluginSettingsComponentOverrides {
   readonly emailAddress?: string;
   readonly emailCheckIntervalInMinutes?: number;
+  readonly emailProviderType?: EmailProviderType;
   readonly lastProcessedEmailTimestamp?: string;
   readonly shouldDeleteSeenEmails?: boolean;
   readonly shouldMarkEmailsAsSeen?: boolean;
@@ -76,6 +86,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
   const settings = castTo<PluginSettings>({
     emailAddress: overrides?.emailAddress ?? 'test@mail.tm',
     emailCheckIntervalInMinutes: overrides?.emailCheckIntervalInMinutes ?? 10,
+    emailProviderType: overrides?.emailProviderType ?? EmailProviderType.MailTm,
     lastProcessedEmailTimestamp: overrides?.lastProcessedEmailTimestamp ?? '',
     shouldDeleteSeenEmails: overrides?.shouldDeleteSeenEmails ?? false,
     shouldMarkEmailsAsSeen: overrides?.shouldMarkEmailsAsSeen ?? true
@@ -642,6 +653,186 @@ describe('EmailChecker', () => {
       await expect(createChecker(rejectWithOtherError).redownloadEmails()).rejects.toThrow('Network down');
     });
   });
+  describe('transient network errors', () => {
+    const MANUAL_FAILURE_NOTICE = 'Could not reach the Mail.tm server (net::ERR_CONNECTION_CLOSED). Check your internet connection and try again.';
+
+    async function flushPromises(): Promise<void> {
+      await setImmediate();
+    }
+
+    async function rejectWithConnectionClosed(): Promise<never> {
+      await noopAsync();
+      throw new Error('net::ERR_CONNECTION_CLOSED');
+    }
+
+    interface ScheduledChecker {
+      readonly checker: EmailCheckerComponent;
+      readonly getMessages: ReturnType<typeof vi.fn<EmailProvider['getMessages']>>;
+      readonly tick: () => Promise<void>;
+    }
+
+    function createScheduledChecker(emailProviderType = EmailProviderType.MailTm): ScheduledChecker {
+      let tickCallback: (() => void) | null = null;
+      vi.stubGlobal('window', {
+        clearInterval: vi.fn(),
+        setInterval: vi.fn((callback: () => void) => {
+          tickCallback = callback;
+          return 1;
+        })
+      });
+
+      const getMessages = vi.fn<EmailProvider['getMessages']>(rejectWithConnectionClosed);
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailProviderType });
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: createMockNoteCreator(),
+        emailProvider: createMockEmailProvider({ getMessages }),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+      checker.load();
+
+      return {
+        checker,
+        getMessages,
+        async tick(): Promise<void> {
+          if (!tickCallback) {
+            throw new Error('No interval was scheduled');
+          }
+          tickCallback();
+          await flushPromises();
+        }
+      };
+    }
+
+    function getFailureNotices(): unknown[] {
+      return mockShowNotice.mock.calls.map((call: unknown[]) => call[0]).filter((message) => message !== 'Checking emails...');
+    }
+
+    it('should not report an unhandled error when a scheduled check hits a dropped connection', async () => {
+      const asyncErrors: unknown[] = [];
+      using _handler = registerAsyncErrorEventHandler((asyncError) => {
+        asyncErrors.push(asyncError);
+      });
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { tick } = createScheduledChecker();
+
+      await tick();
+
+      expect(asyncErrors).toEqual([]);
+      expect(getFailureNotices()).toEqual([]);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0]?.[0]).toContain('Mail.tm server (net::ERR_CONNECTION_CLOSED)');
+    });
+
+    it('should run the next tick normally once the connection is back', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { getMessages, tick } = createScheduledChecker();
+
+      await tick();
+      getMessages.mockImplementation(async () => {
+        await noopAsync();
+        return [];
+      });
+      await tick();
+
+      expect(getMessages).toHaveBeenCalledTimes(2);
+      expect(mockShowNotice).toHaveBeenLastCalledWith('No new emails');
+    });
+
+    it('should back off when scheduled checks keep failing, and warn once per run of failures', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { getMessages, tick } = createScheduledChecker();
+
+      const TICKS = 20;
+      for (let index = 0; index < TICKS; index++) {
+        await tick();
+      }
+
+      // Checks at ticks 1, 2, 4, 8, 16 (backoff 1, 2, 4, 8 intervals), then every 8th tick.
+      const EXPECTED_CHECKS = 5;
+      expect(getMessages).toHaveBeenCalledTimes(EXPECTED_CHECKS);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reset the backoff after a successful check', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { getMessages, tick } = createScheduledChecker();
+
+      // Failures at ticks 1 and 2, then tick 3 is skipped.
+      await tick();
+      await tick();
+      await tick();
+      expect(getMessages).toHaveBeenCalledTimes(2);
+
+      getMessages.mockImplementation(async () => {
+        await noopAsync();
+        return [];
+      });
+      await tick();
+      expect(getMessages).toHaveBeenCalledTimes(3);
+
+      getMessages.mockImplementation(rejectWithConnectionClosed);
+      await tick();
+      await tick();
+      expect(getMessages).toHaveBeenCalledTimes(5);
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('should name the IMAP server when the IMAP provider is active', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { tick } = createScheduledChecker(EmailProviderType.Imap);
+
+      await tick();
+
+      expect(warnSpy.mock.calls[0]?.[0]).toContain('IMAP server (net::ERR_CONNECTION_CLOSED)');
+    });
+
+    it('should still show an authentication error raised by a scheduled check', async () => {
+      const { getMessages, tick } = createScheduledChecker();
+      getMessages.mockImplementation(async () => {
+        await noopAsync();
+        throw new EmailProviderAuthenticationError('Paste the right password');
+      });
+
+      await tick();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('Paste the right password');
+    });
+
+    it('should still report any other error raised by a scheduled check', async () => {
+      const asyncErrors: unknown[] = [];
+      using _handler = registerAsyncErrorEventHandler((asyncError) => {
+        asyncErrors.push(asyncError);
+      });
+      using _ignore = startAsyncErrorIgnoreContext();
+      const { getMessages, tick } = createScheduledChecker();
+      getMessages.mockImplementation(async () => {
+        await noopAsync();
+        throw new Error('Unexpected response');
+      });
+
+      await tick();
+
+      expect(asyncErrors).toHaveLength(1);
+    });
+
+    it('should tell the user when a manual check hits a dropped connection', async () => {
+      const { checker } = createScheduledChecker();
+
+      await expect(checker.checkEmails()).resolves.toBeUndefined();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith(MANUAL_FAILURE_NOTICE);
+    });
+
+    it('should tell the user when downloading emails again hits a dropped connection', async () => {
+      const { checker } = createScheduledChecker();
+
+      await expect(checker.redownloadEmails()).resolves.toBeUndefined();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith(MANUAL_FAILURE_NOTICE);
+    });
+  });
+
   describe('onload', () => {
     it('should not schedule when interval is 0', () => {
       const emailProvider = createMockEmailProvider();
