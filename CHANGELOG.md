@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2.4.1
+
+This release has 2 fixes and 4 documentation changes. 4 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### Fixed
+
+- skip a scheduled email check that cannot reach the server
+- **deps:** clear the glob cancellation advisory with a glob 14 override
+
+### Documentation
+
+- **changelog:** regroup the published release notes for readers
+- note that an unreachable server skips a scheduled check
+- make issue attachments optional and strongly encouraged
+- link to the Obsidian resources page
+
 ## 2.4.0
 
 This release has 1 new feature and 2 documentation changes. 5 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
