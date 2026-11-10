@@ -29,6 +29,7 @@ import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailProviderAuthenticationError } from './providers/email-provider-authentication-error.ts';
+import { EmailProviderRateLimitError } from './providers/email-provider-rate-limit-error.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 
 const mockShowNotice = vi.fn();
@@ -830,6 +831,125 @@ describe('EmailChecker', () => {
       await expect(checker.redownloadEmails()).resolves.toBeUndefined();
 
       expect(mockShowNotice).toHaveBeenLastCalledWith(MANUAL_FAILURE_NOTICE);
+    });
+  });
+
+  describe('rate limits', () => {
+    const RATE_LIMIT_NOTICE_PREFIX = 'The Mail.tm server refused the request because it was asked too often (HTTP 429).';
+    const SECONDS_PER_MINUTE = 60;
+    const MILLISECONDS_PER_SECOND = 1000;
+
+    function rejectWithRateLimit(retryAfterInMilliseconds: null | number): EmailProvider['getMessages'] {
+      return async () => {
+        await noopAsync();
+        throw new EmailProviderRateLimitError('Mail.tm is limiting requests from this device (HTTP 429)', retryAfterInMilliseconds);
+      };
+    }
+
+    interface ScheduledChecker {
+      readonly checker: EmailCheckerComponent;
+      readonly getMessages: ReturnType<typeof vi.fn<EmailProvider['getMessages']>>;
+      readonly tick: () => Promise<void>;
+    }
+
+    function createScheduledChecker(retryAfterInMilliseconds: null | number): ScheduledChecker {
+      let tickCallback: (() => void) | null = null;
+      vi.stubGlobal('window', {
+        clearInterval: vi.fn(),
+        setInterval: vi.fn((callback: () => void) => {
+          tickCallback = callback;
+          return 1;
+        })
+      });
+
+      const getMessages = vi.fn<EmailProvider['getMessages']>(rejectWithRateLimit(retryAfterInMilliseconds));
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent();
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: createMockNoteCreator(),
+        emailProvider: createMockEmailProvider({ getMessages }),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+      checker.load();
+
+      return {
+        checker,
+        getMessages,
+        async tick(): Promise<void> {
+          if (!tickCallback) {
+            throw new Error('No interval was scheduled');
+          }
+          tickCallback();
+          await setImmediate();
+        }
+      };
+    }
+
+    it('should skip a scheduled check that hits the rate limit without an unhandled error or a notice', async () => {
+      const asyncErrors: unknown[] = [];
+      using _handler = registerAsyncErrorEventHandler((asyncError) => {
+        asyncErrors.push(asyncError);
+      });
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { tick } = createScheduledChecker(null);
+
+      await tick();
+
+      expect(asyncErrors).toEqual([]);
+      expect(mockShowNotice.mock.calls.map((call: unknown[]) => call[0])).toEqual(['Checking emails...']);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0]?.[0]).toContain('was refused by the Mail.tm server for asking too often (HTTP 429)');
+    });
+
+    it('should back off like a dropped connection when the server gives no Retry-After', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { getMessages, tick } = createScheduledChecker(null);
+
+      // Failures at ticks 1 and 2, tick 3 skipped, failure at tick 4.
+      const TICKS = 4;
+      for (let index = 0; index < TICKS; index++) {
+        await tick();
+      }
+
+      const EXPECTED_CHECKS = 3;
+      expect(getMessages).toHaveBeenCalledTimes(EXPECTED_CHECKS);
+    });
+
+    it('should wait out a Retry-After longer than the backoff', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(noop);
+      // 25 minutes against the 10-minute interval: the next check is three intervals later, at tick 4.
+      const RETRY_AFTER_IN_MINUTES = 25;
+      const { getMessages, tick } = createScheduledChecker(RETRY_AFTER_IN_MINUTES * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND);
+
+      await tick();
+      await tick();
+      await tick();
+      expect(getMessages).toHaveBeenCalledTimes(1);
+
+      await tick();
+      const EXPECTED_CHECKS = 2;
+      expect(getMessages).toHaveBeenCalledTimes(EXPECTED_CHECKS);
+    });
+
+    it.each([
+      { expected: 'Try again in 30 seconds.', retryAfterInMilliseconds: 29_001 },
+      { expected: 'Try again in 1 second.', retryAfterInMilliseconds: 1000 },
+      { expected: 'Try again in a moment.', retryAfterInMilliseconds: 0 },
+      { expected: 'Try again in a moment.', retryAfterInMilliseconds: null }
+    ])('should tell the user when a manual check hits the rate limit ($retryAfterInMilliseconds ms)', async ({ expected, retryAfterInMilliseconds }) => {
+      const { checker } = createScheduledChecker(retryAfterInMilliseconds);
+
+      await expect(checker.checkEmails()).resolves.toBeUndefined();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith(`${RATE_LIMIT_NOTICE_PREFIX} ${expected}`);
+    });
+
+    it('should tell the user when downloading emails again hits the rate limit', async () => {
+      const { checker } = createScheduledChecker(null);
+
+      await expect(checker.redownloadEmails()).resolves.toBeUndefined();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith(`${RATE_LIMIT_NOTICE_PREFIX} Try again in a moment.`);
     });
   });
 

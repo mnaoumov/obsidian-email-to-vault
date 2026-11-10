@@ -1,6 +1,5 @@
-import { requestUrl } from 'obsidian';
-
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
+import { requestMailTm } from './mail-tm-request.ts';
 
 interface MailTmDomain {
   readonly domain: string;
@@ -24,7 +23,7 @@ export class MailTmDomainManager {
   }
 
   private async getAvailableDomains(): Promise<MailTmDomain[]> {
-    const response = await requestUrl({
+    const response = await requestMailTm({
       method: 'GET',
       url: `${MAIL_TM_API_BASE_URL}/domains`
     });
