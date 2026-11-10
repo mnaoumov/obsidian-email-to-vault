@@ -648,7 +648,7 @@ describe('Mail.tm API', { timeout: TEST_TIMEOUT_IN_MILLISECONDS }, () => {
       expect(afterRead.seen).toBe(false);
 
       // MailTmProviderComponent.markMessageAsSeen issues a merge-patch with `{ seen: true }`.
-      await nativeFetch(`${MAIL_TM_API_BASE_URL}/messages/${message.id}`, {
+      await fetchJson(`${MAIL_TM_API_BASE_URL}/messages/${message.id}`, {
         body: JSON.stringify({ seen: true }),
         headers: {
           'Authorization': `Bearer ${testAccount.token}`,
