@@ -114,6 +114,7 @@ describe('MailTmProvider', () => {
       expect(mockRequestUrl).toHaveBeenCalledWith({
         headers: { Authorization: 'Bearer jwt-token' },
         method: 'DELETE',
+        throw: false,
         url: 'https://api.mail.tm/messages/msg-to-delete'
       });
     });
@@ -142,6 +143,7 @@ describe('MailTmProvider', () => {
       expect(mockRequestUrl).toHaveBeenCalledWith({
         headers: { Authorization: 'Bearer jwt-token' },
         method: 'GET',
+        throw: false,
         url: 'https://api.mail.tm/messages/msg1/attachment/att1'
       });
     });
@@ -168,6 +170,7 @@ describe('MailTmProvider', () => {
         contentType: 'application/merge-patch+json',
         headers: { Authorization: 'Bearer jwt-token' },
         method: 'PATCH',
+        throw: false,
         url: 'https://api.mail.tm/messages/msg1'
       });
     });
@@ -213,7 +216,17 @@ describe('MailTmProvider', () => {
         status: 400
       }));
 
-      await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 400');
+      await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Mail.tm request failed with status 400: POST https://api.mail.tm/accounts');
+    });
+
+    it('should throw when account creation answers a success other than 201', async () => {
+      const manager = createManager();
+
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({
+        status: 200
+      }));
+
+      await expect(manager.registerRandomEmailAddress()).rejects.toThrow('Failed to create Mail.tm account: 200');
     });
   });
 
@@ -353,7 +366,7 @@ describe('MailTmProvider', () => {
         status: 500
       }));
 
-      await expect(manager.unregisterEmailAddress()).rejects.toThrow('Failed to get Mail.tm token: 500');
+      await expect(manager.unregisterEmailAddress()).rejects.toThrow('Mail.tm request failed with status 500: POST https://api.mail.tm/token');
       expect(editAndSaveFunction).not.toHaveBeenCalled();
     });
   });
@@ -613,7 +626,7 @@ describe('MailTmProvider', () => {
 
       const promise = manager.getMessages();
       await expect(promise).rejects.not.toBeInstanceOf(EmailProviderAuthenticationError);
-      await expect(promise).rejects.toThrow('Failed to get Mail.tm token: 503');
+      await expect(promise).rejects.toThrow('Mail.tm request failed with status 503: POST https://api.mail.tm/token');
       expect(manager.isPasswordRejected).toBe(false);
     });
   });

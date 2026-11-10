@@ -10,6 +10,7 @@ import type { EmailMessageSummary } from './providers/email-provider-types.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailProviderAuthenticationError } from './providers/email-provider-authentication-error.ts';
+import { EmailProviderRateLimitError } from './providers/email-provider-rate-limit-error.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
 import { getTransientNetworkErrorCode } from './transient-network-error.ts';
 
@@ -23,6 +24,11 @@ interface EmailCheckerComponentConstructorParams {
   readonly emailProvider: EmailProvider;
   readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
+}
+interface ScheduledTransientFailure {
+  // What happened, completing "the scheduled email check ...".
+  readonly reason: string;
+  readonly retryAfterInMilliseconds: null | number;
 }
 export class EmailCheckerComponent extends ComponentEx {
   private consecutiveScheduledTransientFailures = 0;
@@ -84,11 +90,18 @@ export class EmailCheckerComponent extends ComponentEx {
     try {
       await this.showAuthenticationErrors(() => this.checkEmailsUnguarded());
     } catch (error) {
+      if (error instanceof EmailProviderRateLimitError) {
+        this.recordScheduledTransientFailure({
+          reason: `was refused by the ${this.getProviderName()} server for asking too often (HTTP 429)`,
+          retryAfterInMilliseconds: error.retryAfterInMilliseconds
+        });
+        return;
+      }
       const code = getTransientNetworkErrorCode(error);
       if (code === null) {
         throw error;
       }
-      this.recordScheduledTransientFailure(code);
+      this.recordScheduledTransientFailure({ reason: `could not reach the ${this.getProviderName()} server (${code})`, retryAfterInMilliseconds: null });
       return;
     }
 
@@ -139,14 +152,16 @@ export class EmailCheckerComponent extends ComponentEx {
     return this.pluginSettingsComponent.settings.emailProviderType === EmailProviderType.Imap ? 'IMAP' : 'Mail.tm';
   }
 
-  private recordScheduledTransientFailure(code: string): void {
+  // The skip is the backoff, stretched when the server asked for a longer wait than that (`Retry-After`).
+  private recordScheduledTransientFailure(failure: ScheduledTransientFailure): void {
     this.consecutiveScheduledTransientFailures++;
     const backoffFactor = Math.min(SCHEDULED_BACKOFF_GROWTH_FACTOR ** (this.consecutiveScheduledTransientFailures - 1), MAX_SCHEDULED_BACKOFF_FACTOR);
-    this.scheduledTicksToSkip = backoffFactor - 1;
+    const retryAfterFactor = failure.retryAfterInMilliseconds === null
+      ? 0
+      : Math.ceil(failure.retryAfterInMilliseconds / this.getCheckIntervalInMilliseconds());
+    this.scheduledTicksToSkip = Math.max(backoffFactor, retryAfterFactor) - 1;
     if (this.consecutiveScheduledTransientFailures === 1) {
-      console.warn(
-        `Email to Vault: the scheduled email check could not reach the ${this.getProviderName()} server (${code}). It will keep trying, less often while the failures last.`
-      );
+      console.warn(`Email to Vault: the scheduled email check ${failure.reason}. It will keep trying, less often while the failures last.`);
     }
   }
 
@@ -191,6 +206,12 @@ export class EmailCheckerComponent extends ComponentEx {
     try {
       await this.showAuthenticationErrors(action);
     } catch (error) {
+      if (error instanceof EmailProviderRateLimitError) {
+        this.pluginNoticeComponent.showNotice(
+          `The ${this.getProviderName()} server refused the request because it was asked too often (HTTP 429). Try again ${formatRetryAfter(error.retryAfterInMilliseconds)}.`
+        );
+        return;
+      }
       const code = getTransientNetworkErrorCode(error);
       if (code === null) {
         throw error;
@@ -218,4 +239,13 @@ export class EmailCheckerComponent extends ComponentEx {
       settings.lastProcessedEmailTimestamp = newTimestamp;
     });
   }
+}
+
+function formatRetryAfter(retryAfterInMilliseconds: null | number): string {
+  const MILLISECONDS_PER_SECOND = 1000;
+  if (retryAfterInMilliseconds === null || retryAfterInMilliseconds <= 0) {
+    return 'in a moment';
+  }
+  const seconds = Math.ceil(retryAfterInMilliseconds / MILLISECONDS_PER_SECOND);
+  return `in ${String(seconds)} second${seconds === 1 ? '' : 's'}`;
 }

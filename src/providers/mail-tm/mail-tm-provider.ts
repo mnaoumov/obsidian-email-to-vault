@@ -1,7 +1,6 @@
 import type { App } from 'obsidian';
 
 import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
-import { requestUrl } from 'obsidian';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
@@ -20,12 +19,12 @@ import {
 } from '../../string-generators.ts';
 import { EmailProviderAuthenticationError } from '../email-provider-authentication-error.ts';
 import { MAIL_TM_API_BASE_URL } from './mail-tm-constants.ts';
+import { requestMailTm } from './mail-tm-request.ts';
 
 // A JWT is `header.payload.signature`; only the first two parts are needed, and the limit keeps a
 // signature containing `.` from producing extra segments.
 const JWT_HEADER_AND_PAYLOAD_PART_COUNT = 2;
 const HTTP_STATUS_CREATED = 201;
-const HTTP_STATUS_BAD_REQUEST = 400;
 const HTTP_STATUS_UNAUTHORIZED = 401;
 
 interface JwtPayload {
@@ -113,7 +112,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
 
   public async deleteMessage(messageId: string): Promise<void> {
     const token = await this.getToken();
-    await requestUrl({
+    await requestMailTm({
       headers: { Authorization: `Bearer ${token}` },
       method: 'DELETE',
       url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}`
@@ -124,7 +123,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
   public async downloadAttachment(params: EmailProviderDownloadAttachmentParams): Promise<ArrayBuffer> {
     const { attachmentId, messageId } = params;
     const token = await this.getToken();
-    const response = await requestUrl({
+    const response = await requestMailTm({
       headers: { Authorization: `Bearer ${token}` },
       method: 'GET',
       url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}/attachment/${attachmentId}`
@@ -134,7 +133,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
 
   public async getMessage(messageId: string): Promise<EmailMessageFull> {
     const token = await this.getToken();
-    const response = await requestUrl({
+    const response = await requestMailTm({
       headers: { Authorization: `Bearer ${token}` },
       method: 'GET',
       url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}`
@@ -145,7 +144,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
 
   public async getMessages(): Promise<EmailMessageSummary[]> {
     const token = await this.getToken();
-    const response = await requestUrl({
+    const response = await requestMailTm({
       headers: { Authorization: `Bearer ${token}` },
       method: 'GET',
       url: `${MAIL_TM_API_BASE_URL}/messages`
@@ -156,7 +155,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
 
   public async markMessageAsSeen(messageId: string): Promise<void> {
     const token = await this.getToken();
-    await requestUrl({
+    await requestMailTm({
       body: JSON.stringify({ seen: true }),
       contentType: 'application/merge-patch+json',
       headers: { Authorization: `Bearer ${token}` },
@@ -195,7 +194,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     const token = await this.tryGetToken();
     if (token !== null) {
       const accountId = extractAccountIdFromToken(token);
-      await requestUrl({
+      await requestMailTm({
         headers: { Authorization: `Bearer ${token}` },
         method: 'DELETE',
         url: `${MAIL_TM_API_BASE_URL}/accounts/${accountId}`
@@ -216,7 +215,7 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
   }
 
   private async createAccount(params: MailTmProviderComponentCreateAccountParams): Promise<void> {
-    const response = await requestUrl({
+    const response = await requestMailTm({
       body: JSON.stringify({
         address: params.address,
         password: params.password
@@ -264,21 +263,17 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
       return null;
     }
 
-    const response = await requestUrl({
+    const response = await requestMailTm({
+      allowedErrorStatuses: [HTTP_STATUS_UNAUTHORIZED],
       body: JSON.stringify({ address, password }),
       contentType: 'application/json',
       method: 'POST',
-      throw: false,
       url: `${MAIL_TM_API_BASE_URL}/token`
     });
 
     if (response.status === HTTP_STATUS_UNAUTHORIZED) {
       this._isPasswordRejected = true;
       return null;
-    }
-
-    if (response.status >= HTTP_STATUS_BAD_REQUEST) {
-      throw new Error(`Failed to get Mail.tm token: ${String(response.status)}`);
     }
 
     this._isPasswordRejected = false;
