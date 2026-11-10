@@ -106,6 +106,9 @@ const FORWARDED_EMAIL_RFC822 = dedent`
 `.replaceAll('\n', '\r\n');
 
 const MILLISECONDS_PER_SECOND = 1000;
+const HTTP_STATUS_TOO_MANY_REQUESTS = 429;
+const RATE_LIMIT_INITIAL_DELAY_IN_MILLISECONDS = 1000;
+const RATE_LIMIT_MAX_ATTEMPTS = 6;
 
 type MailTmMessage = z.infer<typeof mailTmMessageSchema>;
 
@@ -165,8 +168,37 @@ function describeDeliveryTimeout(waitedFor: string, startTime: number, polls: nu
 }
 
 async function fetchJson(url: string, options?: RequestInit): Promise<unknown> {
-  const response = await nativeFetch(url, options);
+  const response = await fetchMailTm(url, options);
+  if (!response.ok) {
+    throw new Error(`Mail.tm answered ${String(response.status)} ${response.statusText} for ${options?.method ?? 'GET'} ${url}: ${await response.text()}`);
+  }
   return response.json();
+}
+
+/**
+ * Fetches from the Mail.tm API, waiting out its rate limit.
+ *
+ * The API answers a burst with `429 Too Many Requests` and an empty body, and this suite's requests
+ * come in bursts (the schema checks, then a poll every few seconds). Handed straight to `response.json()`,
+ * that empty body failed whole groups as a bare `Unexpected end of JSON input`, which named neither the
+ * status nor the endpoint. A 429 is retried after the `Retry-After` the API sends, or a doubling delay
+ * when it sends none; anything else is returned for the caller to judge.
+ */
+async function fetchMailTm(url: string, options?: RequestInit): Promise<Response> {
+  let delayInMilliseconds = RATE_LIMIT_INITIAL_DELAY_IN_MILLISECONDS;
+
+  for (let attempt = 1;; attempt++) {
+    const response = await nativeFetch(url, options);
+    if (response.status !== HTTP_STATUS_TOO_MANY_REQUESTS || attempt >= RATE_LIMIT_MAX_ATTEMPTS) {
+      return response;
+    }
+
+    const retryAfterInSeconds = Number(response.headers.get('Retry-After'));
+    await sleep({
+      milliseconds: retryAfterInSeconds > 0 ? retryAfterInSeconds * MILLISECONDS_PER_SECOND : delayInMilliseconds
+    });
+    delayInMilliseconds *= 2;
+  }
 }
 
 async function fetchMessages(token: string): Promise<MailTmMessage[]> {
@@ -320,7 +352,7 @@ async function sendNormalEmail(baseAddress: string): Promise<void> {
 let testAccount: TestAccount;
 
 async function fetchAttachmentContent(messageId: string, attachmentId: string): Promise<Response> {
-  return nativeFetch(
+  return fetchMailTm(
     `${MAIL_TM_API_BASE_URL}/messages/${messageId}/attachment/${attachmentId}`,
     { headers: { Authorization: `Bearer ${testAccount.token}` } }
   );
@@ -396,7 +428,7 @@ describe('Mail.tm API', { timeout: TEST_TIMEOUT_IN_MILLISECONDS }, () => {
 
   afterAll(async () => {
     if (testAccount.token) {
-      await nativeFetch(`${MAIL_TM_API_BASE_URL}/me`, {
+      await fetchMailTm(`${MAIL_TM_API_BASE_URL}/me`, {
         headers: { Authorization: `Bearer ${testAccount.token}` },
         method: 'DELETE'
       });
