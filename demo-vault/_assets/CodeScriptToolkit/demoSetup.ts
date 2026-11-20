@@ -1,10 +1,10 @@
 import type { App } from 'obsidian';
 
+import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
 import {
   Notice,
   Platform
 } from 'obsidian';
-import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
 
 // Not every headline feature gets a button here: the feature fetches real mail from a live service over the
 // network, so no button can produce an email for you. What the buttons DO remove is everything either
@@ -25,18 +25,18 @@ const IMAP_PROVIDER = 'imap';
 const IMAP_TLS_PORT = 993;
 
 interface DemoSettingsPatch {
-  emailCheckIntervalInMinutes?: number;
-  emailNotePathTemplate?: string;
-  emailNoteTemplate?: string;
-  emailProviderType?: string;
-  imapHost?: string;
-  imapMailbox?: string;
-  imapPort?: number;
-  imapTls?: boolean;
-  shouldDeleteSeenEmails?: boolean;
-  shouldExtractForwardedEmail?: boolean;
-  shouldMarkEmailsAsSeen?: boolean;
-  shouldStripHiddenElements?: boolean;
+  readonly emailCheckIntervalInMinutes?: number;
+  readonly emailNotePathTemplate?: string;
+  readonly emailNoteTemplate?: string;
+  readonly emailProviderType?: string;
+  readonly imapHost?: string;
+  readonly imapMailbox?: string;
+  readonly imapPort?: number;
+  readonly imapTls?: boolean;
+  readonly shouldDeleteSeenEmails?: boolean;
+  readonly shouldExtractForwardedEmail?: boolean;
+  readonly shouldMarkEmailsAsSeen?: boolean;
+  readonly shouldStripHiddenElements?: boolean;
 }
 
 const DEFAULT_NOTE_TEMPLATE = [
@@ -64,31 +64,9 @@ const MINIMAL_NOTE_TEMPLATE = [
 ].join('\n');
 
 /**
- * Opens the plugin's own settings tab, where the **Create Mailbox** button lives.
- *
- * Manual equivalent: **Email to Vault: Open settings**, or find the plugin under
- * **Settings -> Community plugins**.
- */
-export function openPluginSettings(app: App): void {
-  app.commands.executeCommandById(`${PLUGIN_ID}:open-settings`);
-}
-
-/**
- * Runs the fetch.
- *
- * It only does something once a mailbox is configured and a message is waiting — the network half is
- * yours, and no button can stand in for it.
- *
- * Manual equivalent: **Email to Vault: Check emails** in the Command Palette.
- */
-export function checkEmails(app: App): void {
-  app.commands.executeCommandById(`${PLUGIN_ID}:check-emails`);
-}
-
-/**
  * Applies a settings patch, live, through the plugin's own settings component.
  *
- * Manual equivalent: edit the same field in **Settings -> Community plugins -> Email to Vault**.
+ * Manual equivalent: edit the same field in **Settings -> Community plugins ->** `Email to Vault`.
  */
 export async function changeSettings(
   app: App,
@@ -100,16 +78,51 @@ export async function changeSettings(
 }
 
 /**
- * Selects the disposable Mail.tm provider, the default — and turns **Delete seen emails** back off, so this
- * is also the reset after trying IMAP mode.
+ * Runs the fetch.
  *
- * Manual equivalent: under **Provider**, set **Email provider** to **Mail.tm**.
+ * It only does something once a mailbox is configured and a message is waiting — the network half is
+ * yours, and no button can stand in for it.
+ *
+ * Manual equivalent: `Email to Vault: Check emails` in the Command Palette.
  */
-export async function useMailTmProvider(app: App): Promise<void> {
+// eslint-disable-next-line unicorn/consistent-boolean-name -- Named after the `Check emails` command it runs, and called by name from the vault's buttons.
+export function checkEmails(app: App): void {
+  app.commands.executeCommandById(`${PLUGIN_ID}:check-emails`);
+}
+
+/**
+ * Opens the plugin's own settings tab, where the **Create Mailbox** button lives.
+ *
+ * Manual equivalent: `Email to Vault: Open settings`, or find the plugin under
+ * **Settings -> Community plugins**.
+ */
+export function openPluginSettings(app: App): void {
+  app.commands.executeCommandById(`${PLUGIN_ID}:open-settings`);
+}
+
+/**
+ * Restores the shipped templates.
+ *
+ * Manual equivalent: restore **Email note template** and **Email note path template** to their
+ * documented defaults.
+ */
+export async function restoreDefaultTemplates(app: App): Promise<void> {
+  await changeSettings(app, {
+    emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD}} {{subject}}',
+    emailNoteTemplate: DEFAULT_NOTE_TEMPLATE
+  });
+}
+
+/**
+ * Turns **Delete seen emails** on or off.
+ *
+ * Manual equivalent: the **Delete seen emails** toggle in the plugin's settings.
+ */
+export async function setDeleteSeenEmails(app: App, isEnabled: boolean): Promise<void> {
   await changeSettings(
     app,
-    { emailProviderType: MAIL_TM_PROVIDER, shouldDeleteSeenEmails: false },
-    'Email provider: Mail.tm. Register an address in the Mail.tm group of the settings.'
+    { shouldDeleteSeenEmails: isEnabled },
+    `Delete seen emails: ${isEnabled ? 'on' : 'off'}.`
   );
 }
 
@@ -134,15 +147,16 @@ export async function useImapServer(app: App, host: string): Promise<void> {
 }
 
 /**
- * Turns **Delete seen emails** on or off.
+ * Selects the disposable Mail.tm provider, the default — and turns **Delete seen emails** back off, so this
+ * is also the reset after trying IMAP mode.
  *
- * Manual equivalent: the **Delete seen emails** toggle in the plugin's settings.
+ * Manual equivalent: under **Provider**, set **Email provider** to **Mail.tm**.
  */
-export async function setDeleteSeenEmails(app: App, isEnabled: boolean): Promise<void> {
+export async function useMailTmProvider(app: App): Promise<void> {
   await changeSettings(
     app,
-    { shouldDeleteSeenEmails: isEnabled },
-    `Delete seen emails: ${isEnabled ? 'on' : 'off'}.`
+    { emailProviderType: MAIL_TM_PROVIDER, shouldDeleteSeenEmails: false },
+    'Email provider: Mail.tm. Register an address in the Mail.tm group of the settings.'
   );
 }
 
@@ -154,17 +168,4 @@ export async function setDeleteSeenEmails(app: App, isEnabled: boolean): Promise
  */
 export async function useMinimalNoteTemplate(app: App): Promise<void> {
   await changeSettings(app, { emailNoteTemplate: MINIMAL_NOTE_TEMPLATE });
-}
-
-/**
- * Restores the shipped templates.
- *
- * Manual equivalent: restore **Email note template** and **Email note path template** to their
- * documented defaults.
- */
-export async function restoreDefaultTemplates(app: App): Promise<void> {
-  await changeSettings(app, {
-    emailNotePathTemplate: 'Emails/{{date:YYYY-MM-DD}} {{subject}}',
-    emailNoteTemplate: DEFAULT_NOTE_TEMPLATE
-  });
 }

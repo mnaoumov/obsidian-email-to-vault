@@ -370,7 +370,7 @@ describe('IMAP provider integration', () => {
 
         if (message && message.bodyStructure) {
           const attachmentPart = findAttachmentPart(message.bodyStructure);
-          expect(attachmentPart).toBeDefined();
+          expect(attachmentPart).not.toBeNull();
 
           if (attachmentPart) {
             const downloadResult = await client.download(String(attachmentEmailUid), attachmentPart, { uid: true });
@@ -470,7 +470,7 @@ describe('IMAP provider integration', () => {
   });
 });
 
-function findAttachmentPart(node: MessageStructureObject): string | undefined {
+function findAttachmentPart(node: MessageStructureObject): null | string {
   if (node.disposition === 'attachment' && node.part) {
     return node.part;
   }
@@ -482,5 +482,5 @@ function findAttachmentPart(node: MessageStructureObject): string | undefined {
       }
     }
   }
-  return undefined;
+  return null;
 }

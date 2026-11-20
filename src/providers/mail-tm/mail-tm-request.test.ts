@@ -114,7 +114,7 @@ describe('parseRetryAfterInMilliseconds', () => {
   });
 
   it('should return null for a missing, empty or unreadable value', () => {
-    expect(parseRetryAfterInMilliseconds(undefined, NOW)).toBeNull();
+    expect(parseRetryAfterInMilliseconds(null, NOW)).toBeNull();
     expect(parseRetryAfterInMilliseconds(' '.repeat(3), NOW)).toBeNull();
     expect(parseRetryAfterInMilliseconds('soon', NOW)).toBeNull();
   });
