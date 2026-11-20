@@ -200,7 +200,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
         this.settingEx({
           desc: createFragment((f) => {
             f.appendText('The plugin is powered by ');
-            f.createEl('a', { href: 'https://mail.tm/', text: 'mail.tm' });
+            f.createEl('a', { href: 'https://mail.tm/', text: 'Mail.tm' });
             f.appendText(' — a temporary email service. Emails are stored for up to 7 days. See ');
             f.createEl('a', { href: 'https://github.com/mnaoumov/obsidian-email-to-vault#privacy--data-handling', text: 'Privacy & data handling' });
             f.appendText(' for details.');

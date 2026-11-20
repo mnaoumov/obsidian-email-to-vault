@@ -4,7 +4,7 @@ import { defineEslintConfigs } from '@mnaoumov/obsidian-dev-toolkit/linters/esli
 import { defineConfig } from 'eslint/config';
 
 export const configs: Linter.Config[] = defineEslintConfigs({
-  customConfigs() {
+  customConfigs(context) {
     return defineConfig([
       {
         rules: {
@@ -12,7 +12,7 @@ export const configs: Linter.Config[] = defineEslintConfigs({
             'error',
             {
               acronyms: ['HTML', 'IMAP', 'TLS', 'SSL'],
-              brands: ['mail.tm']
+              brands: ['Mail.tm']
             }
           ]
         }
@@ -28,6 +28,13 @@ export const configs: Linter.Config[] = defineEslintConfigs({
         rules: {
           'no-restricted-globals': 'off',
           'obsidianmd/no-global-this': 'off'
+        }
+      },
+      {
+        // Scoped like the toolkit's own in-house block, the only one that loads the `typescript-dev-toolkit` plugin.
+        files: context.allFiles(),
+        rules: {
+          'typescript-dev-toolkit/no-undefined-return-type': 'error'
         }
       }
     ]);

@@ -34,7 +34,7 @@ export interface RequestMailTmParams extends RequestUrlParam {
  * @param now - The current time, in milliseconds since the epoch.
  * @returns The delay in milliseconds (never negative), or `null` when the value is missing or unreadable.
  */
-export function parseRetryAfterInMilliseconds(value: string | undefined, now: number): null | number {
+export function parseRetryAfterInMilliseconds(value: null | string, now: number): null | number {
   const trimmed = value?.trim() ?? '';
   if (trimmed === '') {
     return null;
@@ -75,12 +75,12 @@ export async function requestMailTm(params: RequestMailTmParams): Promise<Reques
 }
 
 // `requestUrl` does not promise the case of header names, and HTTP header names are case-insensitive.
-function getHeader(response: RequestUrlResponse, name: string): string | undefined {
+function getHeader(response: RequestUrlResponse, name: string): null | string {
   const lowerCaseName = name.toLowerCase();
   for (const [key, value] of Object.entries(response.headers)) {
     if (key.toLowerCase() === lowerCaseName) {
       return value;
     }
   }
-  return undefined;
+  return null;
 }
