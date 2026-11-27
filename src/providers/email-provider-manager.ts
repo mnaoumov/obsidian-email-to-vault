@@ -87,6 +87,10 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
     );
   }
 
+  public async testConnection(): Promise<void> {
+    return this.getActiveProvider().testConnection();
+  }
+
   private activateProvider(type: EmailProviderType): void {
     if (this.activeProvider) {
       this.removeChild(this.activeProvider);

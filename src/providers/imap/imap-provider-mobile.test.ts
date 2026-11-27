@@ -130,6 +130,15 @@ describe('ImapProviderMobile', () => {
     });
   });
 
+  describe('testConnection', () => {
+    it('should fail instead of reporting success, and show no notice of its own', async () => {
+      const provider = new ImapProviderMobileComponent(strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }));
+
+      await expect(provider.testConnection()).rejects.toThrow('IMAP is not available on mobile devices');
+      expect(mockShowNotice).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteMessage', () => {
     it('should show notice', async () => {
       const provider = new ImapProviderMobileComponent(strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }));

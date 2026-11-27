@@ -13,6 +13,12 @@ export interface EmailProvider {
   readonly getMessage: (messageId: string) => Promise<EmailMessageFull>;
   readonly getMessages: () => Promise<EmailMessageSummary[]>;
   readonly markMessageAsSeen: (messageId: string) => Promise<void>;
+  /**
+   * Logs in to the mail service with the saved settings and touches no message.
+   *
+   * Resolves when the service accepted the login, and rejects with the reason otherwise.
+   */
+  readonly testConnection: () => Promise<void>;
 }
 
 export interface EmailProviderDownloadAttachmentParams {

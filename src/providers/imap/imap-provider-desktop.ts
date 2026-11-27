@@ -22,6 +22,16 @@ import type {
   EmailProviderDownloadAttachmentParams
 } from '../email-provider.ts';
 
+import { EmailProviderAuthenticationError } from '../email-provider-authentication-error.ts';
+
+// The few `ImapFlowError` fields read here. The package does not export that type from its entry point.
+interface ImapFlowErrorLike {
+  readonly authenticationFailed?: boolean;
+  readonly code?: string;
+  readonly response?: unknown;
+  readonly responseText?: unknown;
+}
+
 export class ImapProviderDesktopComponent extends ComponentEx implements EmailProvider {
   public constructor(
     private readonly app: App,
@@ -135,12 +145,35 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     });
   }
 
+  // Asking `STATUS` of the configured mailbox proves more than the login: a wrong mailbox name fails here too, rather
+  // than at the next check. It reads counts only, so no message is fetched, flagged or moved.
+  public async testConnection(): Promise<void> {
+    const mailbox = this.pluginSettingsComponent.settings.imapMailbox;
+    await this.withConnection(async (client) => {
+      let status: Awaited<ReturnType<ImapFlow['status']>>;
+      try {
+        status = await client.status(mailbox, { messages: true });
+      } catch (error) {
+        // `status()` raises `NotFound` only after a `LIST` confirmed that the mailbox does not exist.
+        if ((error as ImapFlowErrorLike).code === 'NotFound') {
+          throw new Error(`The IMAP server has no mailbox named "${mailbox}". Check the "Mailbox" setting.`, { cause: error });
+        }
+        throw error;
+      }
+      if (status === false) {
+        throw new Error(`The IMAP server accepted the login but would not report on the mailbox "${mailbox}".`);
+      }
+    });
+  }
+
   private async withConnection<T>(callback: (client: ImapFlow) => Promise<T>): Promise<T> {
     const settings = this.pluginSettingsComponent.settings;
     const password = this.app.secretStorage.getSecret(settings.emailPasswordSecretKey);
 
     if (!settings.emailAddress || !password) {
-      throw new Error('Email address or password not configured');
+      throw new EmailProviderAuthenticationError(
+        'Email address or password not configured. Enter both in the IMAP section of the plugin settings.'
+      );
     }
 
     const options: ImapFlowOptions = {
@@ -155,7 +188,19 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     };
     const client = new ImapFlow(options);
 
-    await client.connect();
+    try {
+      await client.connect();
+    } catch (error) {
+      // A rejected login is something the user fixes in the settings, so it is said in their words and shown, rather
+      // than left in the console as a bare `Command failed`.
+      if ((error as ImapFlowErrorLike).authenticationFailed) {
+        throw new EmailProviderAuthenticationError(
+          `The IMAP server ${settings.imapHost} rejected the login for ${settings.emailAddress}${formatServerText(error)}. Check the email address and password in the plugin settings.`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
     try {
       return await callback(client);
     } finally {
@@ -186,6 +231,20 @@ function collectAttachments(bodyStructure?: MessageStructureObject): EmailAttach
   const attachments: EmailAttachment[] = [];
   walkBodyStructure(bodyStructure, attachments);
   return attachments;
+}
+
+// What the server said when it refused, as `: "<text>"`, or nothing when it said nothing readable. A rejected
+// `LOGIN` carries the text as `responseText`; an `AUTHENTICATE` failure carries it as a string `response`.
+function formatServerText(error: unknown): string {
+  const { response, responseText } = error as ImapFlowErrorLike;
+  let text = '';
+  if (typeof responseText === 'string') {
+    text = responseText;
+  } else if (typeof response === 'string') {
+    text = response;
+  }
+  text = text.trim();
+  return text ? `: "${text}"` : '';
 }
 
 function mapAddress(addr?: MessageAddressObject): EmailAddress {

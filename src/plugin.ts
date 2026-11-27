@@ -10,6 +10,7 @@ import { PluginEventSourceImpl } from '@mnaoumov/obsidian-lib/plugin/plugin-even
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
 import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
+import { TestConnectionCommandHandler } from './command-handlers/test-connection-command-handler.ts';
 import { EmailCheckStatusBarComponent } from './email-check-status-bar-component.ts';
 import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
@@ -72,6 +73,7 @@ export class Plugin extends PluginBase {
       })
     );
     const pluginSettingsTab = new PluginSettingsTab({
+      emailChecker,
       emailProviderManager,
       plugin: this,
       pluginId: this.manifest.id,
@@ -106,7 +108,8 @@ export class Plugin extends PluginBase {
       new RedownloadRecentEmailsCommandHandler({
         app: this.app,
         emailChecker
-      })
+      }),
+      new TestConnectionCommandHandler(emailChecker)
     ]);
   }
 }

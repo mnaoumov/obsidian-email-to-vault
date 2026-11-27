@@ -53,7 +53,8 @@ const mocks = vi.hoisted(() => ({
       await noopAsync();
       return [];
     }),
-    markMessageAsSeen: vi.fn(async () => noopAsync())
+    markMessageAsSeen: vi.fn(async () => noopAsync()),
+    testConnection: vi.fn(async () => noopAsync())
   } satisfies EmailProvider,
   mockMobileProvider: {
     deleteMessage: vi.fn(async () => noopAsync()),
@@ -85,7 +86,8 @@ const mocks = vi.hoisted(() => ({
       await noopAsync();
       return [];
     }),
-    markMessageAsSeen: vi.fn(async () => noopAsync())
+    markMessageAsSeen: vi.fn(async () => noopAsync()),
+    testConnection: vi.fn(async () => noopAsync())
   } satisfies EmailProvider
 }));
 
@@ -98,6 +100,7 @@ vi.mock('./imap-provider-desktop.ts', () => {
       public getMessage = mocks.mockDesktopProvider.getMessage;
       public getMessages = mocks.mockDesktopProvider.getMessages;
       public markMessageAsSeen = mocks.mockDesktopProvider.markMessageAsSeen;
+      public testConnection = mocks.mockDesktopProvider.testConnection;
     }
   };
 });
@@ -111,6 +114,7 @@ vi.mock('./imap-provider-mobile.ts', () => {
       public getMessage = mocks.mockMobileProvider.getMessage;
       public getMessages = mocks.mockMobileProvider.getMessages;
       public markMessageAsSeen = mocks.mockMobileProvider.markMessageAsSeen;
+      public testConnection = mocks.mockMobileProvider.testConnection;
     }
   };
 });
@@ -229,6 +233,19 @@ describe('ImapProvider', () => {
       await provider.markMessageAsSeen('42');
 
       expect(mocks.mockDesktopProvider.markMessageAsSeen).toHaveBeenCalledWith('42');
+    });
+
+    it('should delegate testConnection to platform provider', async () => {
+      const provider = new ImapProviderComponent({
+        app: createMockApp(),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
+        pluginSettingsComponent: createMockPluginSettingsComponent()
+      });
+      await provider.loadWithPromises();
+
+      await provider.testConnection();
+
+      expect(mocks.mockDesktopProvider.testConnection).toHaveBeenCalledOnce();
     });
 
     it('should delegate deleteMessage to platform provider', async () => {

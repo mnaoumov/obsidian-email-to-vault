@@ -9,6 +9,8 @@ import type {
 } from '../email-provider-types.ts';
 import type { EmailProvider } from '../email-provider.ts';
 
+const IMAP_NOT_AVAILABLE_MESSAGE = 'IMAP is not available on mobile devices';
+
 export class ImapProviderMobileComponent extends ComponentEx implements EmailProvider {
   public constructor(private readonly pluginNoticeComponent: PluginNoticeComponent) {
     super();
@@ -48,8 +50,14 @@ export class ImapProviderMobileComponent extends ComponentEx implements EmailPro
     await noopAsync();
   }
 
+  // Unlike the other calls, a test must not report success after the notice, so it fails with the same words instead.
+  public async testConnection(): Promise<void> {
+    await noopAsync();
+    throw new Error(IMAP_NOT_AVAILABLE_MESSAGE);
+  }
+
   private showNotice(): void {
-    this.pluginNoticeComponent.showNotice('IMAP is not available on mobile devices');
+    this.pluginNoticeComponent.showNotice(IMAP_NOT_AVAILABLE_MESSAGE);
   }
 }
 

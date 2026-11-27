@@ -31,6 +31,7 @@ import {
   vi
 } from 'vitest';
 
+import type { EmailCheckerComponent } from './email-checker.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { Plugin } from './plugin.ts';
 import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
@@ -92,6 +93,12 @@ let dropdownOnChangeSpy: MockInstance<DropdownComponent['onChange']>;
 let passwordOnChangeSpy: MockInstance<PasswordComponent['onChange']>;
 let passwordSetValueSpy: MockInstance<PasswordComponent['setValue']>;
 
+function createMockEmailChecker(): EmailCheckerComponent {
+  return strictProxy<EmailCheckerComponent>({
+    testConnection: vi.fn(async () => noopAsync())
+  });
+}
+
 function createMockEmailProviderManager(mailTmProvider?: MailTmProviderComponent): EmailProviderManagerComponent {
   const provider = mailTmProvider ?? createMockMailTmProvider();
   return strictProxy<EmailProviderManagerComponent>({
@@ -152,6 +159,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
 
 function createTab(overrides?: MockPluginSettingsComponentOverrides, mailTmProvider?: MailTmProviderComponent): PluginSettingsTab {
   return new PluginSettingsTab({
+    emailChecker: createMockEmailChecker(),
     emailProviderManager: createMockEmailProviderManager(mailTmProvider),
     plugin: createMockPlugin(),
     pluginId: 'email-to-vault',
@@ -225,6 +233,7 @@ describe('PluginSettingsTab', () => {
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: manager,
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -241,6 +250,7 @@ describe('PluginSettingsTab', () => {
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: manager,
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -354,6 +364,7 @@ describe('PluginSettingsTab', () => {
       const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
       const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -374,6 +385,7 @@ describe('PluginSettingsTab', () => {
       const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
       const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -394,6 +406,7 @@ describe('PluginSettingsTab', () => {
       const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
       const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -453,6 +466,7 @@ describe('PluginSettingsTab', () => {
       const plugin = createMockPlugin();
       const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
@@ -474,6 +488,7 @@ describe('PluginSettingsTab', () => {
         emailPasswordSecretKey: ''
       });
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -497,6 +512,7 @@ describe('PluginSettingsTab', () => {
         emailPasswordSecretKey: ''
       });
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
@@ -514,6 +530,7 @@ describe('PluginSettingsTab', () => {
     it('should not recreate password secret key if already set', async () => {
       const pluginSettingsComponent = createMockPluginSettingsComponent();
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin: createMockPlugin(),
         pluginId: 'email-to-vault',
@@ -542,6 +559,7 @@ describe('PluginSettingsTab', () => {
       const setDisabledSpy = vi.spyOn(PasswordComponent.prototype, 'setDisabled');
       const plugin = createMockPlugin();
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(createMockMailTmProvider(true)),
         plugin,
         pluginId: 'email-to-vault',
@@ -564,6 +582,7 @@ describe('PluginSettingsTab', () => {
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
@@ -587,6 +606,7 @@ describe('PluginSettingsTab', () => {
       const plugin = createMockPlugin();
       vi.mocked(plugin.app.secretStorage.getSecret).mockReturnValue(null);
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: createMockEmailProviderManager(),
         plugin,
         pluginId: 'email-to-vault',
@@ -608,6 +628,7 @@ describe('PluginSettingsTab', () => {
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: manager,
         plugin,
         pluginId: 'email-to-vault',
@@ -625,6 +646,7 @@ describe('PluginSettingsTab', () => {
       const manager = createMockEmailProviderManager();
       vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
       const tab = new PluginSettingsTab({
+        emailChecker: createMockEmailChecker(),
         emailProviderManager: manager,
         plugin,
         pluginId: 'email-to-vault',
@@ -637,6 +659,77 @@ describe('PluginSettingsTab', () => {
       await onChange('imap-password');
 
       expect(plugin.app.secretStorage.setSecret).toHaveBeenCalledWith('test-key', 'imap-password');
+    });
+  });
+
+  describe('test connection', () => {
+    function getTestConnectionClick(): ($event: MouseEvent) => unknown {
+      const setButtonTextSpy = vi.mocked(ButtonComponent.prototype.setButtonText);
+      const index = setButtonTextSpy.mock.calls.findIndex((call) => call[0] === 'Test connection');
+      expect(index).toBeGreaterThanOrEqual(0);
+      const button = setButtonTextSpy.mock.contexts[index];
+      const clickIndex = buttonOnClickSpy.mock.contexts.indexOf(ensureNonNullable(button));
+      return ensureNonNullable(buttonOnClickSpy.mock.calls[clickIndex])[0];
+    }
+
+    beforeEach(() => {
+      vi.spyOn(ButtonComponent.prototype, 'setButtonText');
+    });
+
+    it('should test the connection from the IMAP group, disabling the button while it runs', async () => {
+      const emailChecker = createMockEmailChecker();
+      const setDisabledSpy = vi.spyOn(ButtonComponent.prototype, 'setDisabled');
+      const manager = createMockEmailProviderManager();
+      vi.mocked(manager.getMailTmProvider).mockReturnValue(null);
+      const tab = new PluginSettingsTab({
+        emailChecker,
+        emailProviderManager: manager,
+        plugin: createMockPlugin(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({ emailProviderType: EmailProviderType.Imap })
+      });
+      renderRows(tab);
+
+      await getTestConnectionClick()(new MouseEvent('click'));
+
+      expect(emailChecker.testConnection).toHaveBeenCalledOnce();
+      expect(setDisabledSpy.mock.calls.map((call) => call[0])).toEqual([true, false]);
+    });
+
+    it('should enable the button again when the test throws', async () => {
+      const emailChecker = createMockEmailChecker();
+      vi.mocked(emailChecker.testConnection).mockRejectedValue(new Error('boom'));
+      const setDisabledSpy = vi.spyOn(ButtonComponent.prototype, 'setDisabled');
+      const tab = new PluginSettingsTab({
+        emailChecker,
+        emailProviderManager: createMockEmailProviderManager(),
+        plugin: createMockPlugin(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({ emailAddress: 'user@mail.tm' })
+      });
+      renderRows(tab);
+
+      await expect(getTestConnectionClick()(new MouseEvent('click'))).rejects.toThrow('boom');
+
+      expect(setDisabledSpy).toHaveBeenLastCalledWith(false);
+    });
+
+    it('should offer the test in the Mail.tm group once an address is registered', () => {
+      const tab = createTab({ emailAddress: 'user@mail.tm' });
+
+      renderRows(tab);
+
+      expect(ButtonComponent.prototype.setButtonText).toHaveBeenCalledWith('Test connection');
+    });
+
+    it('should not offer the test in the Mail.tm group before an address is registered', () => {
+      const tab = createTab();
+
+      renderRows(tab);
+
+      expect(ButtonComponent.prototype.setButtonText).not.toHaveBeenCalledWith('Test connection');
     });
   });
 });

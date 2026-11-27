@@ -27,6 +27,10 @@ interface EmailCheckerComponentConstructorParams {
   readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
+interface ErrorWithResponseText extends Error {
+  readonly responseText?: unknown;
+}
+
 interface ScheduledTransientFailure {
   // What happened, completing "the scheduled email check ...".
   readonly reason: string;
@@ -102,6 +106,28 @@ export class EmailCheckerComponent extends ComponentEx {
       }
       this.pluginNoticeComponent.showNotice(`Redownloaded ${String(toProcess.length)} email(s)`);
     });
+  }
+
+  /**
+   * Logs in to the configured provider and says whether that worked, importing nothing.
+   *
+   * Every failure is shown, never thrown: the point of the test is to put the server's answer in front of the user
+   * at once, instead of after the next check interval in the console. Modelled on the "Test connection" button of the
+   * E-mail Importer (IMAP) plugin (0BSD).
+   */
+  public async testConnection(): Promise<void> {
+    const providerName = this.getProviderName();
+    this.pluginNoticeComponent.showNotice(`Testing the connection to the ${providerName} server...`);
+    try {
+      await this.showExpectedErrors(async () => {
+        await this.emailProvider.testConnection();
+        this.pluginNoticeComponent.showNotice(
+          `Connected to the ${providerName} server as ${this.pluginSettingsComponent.settings.emailAddress}.`
+        );
+      });
+    } catch (error) {
+      this.pluginNoticeComponent.showNotice(`The connection test failed: ${describeError(error)}`);
+    }
   }
 
   // A scheduled check that hits a dropped connection is not an error: it logs one warning per run of failures, shows
@@ -318,6 +344,17 @@ export class EmailCheckerComponent extends ComponentEx {
       handler();
     }
   }
+}
+
+// The error's own message, followed by the server's text when the library kept it apart (imapflow's `Command failed`
+// carries the server's words in `responseText`).
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+  const { responseText } = error as ErrorWithResponseText;
+  const serverText = typeof responseText === 'string' ? responseText.trim() : '';
+  return serverText && !error.message.includes(serverText) ? `${error.message} (${serverText})` : error.message;
 }
 
 function formatRetryAfter(retryAfterInMilliseconds: null | number): string {

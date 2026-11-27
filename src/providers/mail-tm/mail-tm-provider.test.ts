@@ -259,6 +259,33 @@ describe('MailTmProvider', () => {
     });
   });
 
+  describe('testConnection', () => {
+    it('should ask for a token and nothing else', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({ json: { token: 'jwt-token' } }));
+
+      await manager.testConnection();
+
+      expect(mockRequestUrl).toHaveBeenCalledOnce();
+      expect(mockRequestUrl).toHaveBeenCalledWith(expect.objectContaining({ method: 'POST', url: 'https://api.mail.tm/token' }));
+    });
+
+    it('should fail in the user\'s words when Mail.tm rejects the password', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'wrong'
+      });
+      mockRequestUrl.mockResolvedValueOnce(castTo<RequestUrlResponse>({ status: 401 }));
+
+      await expect(manager.testConnection()).rejects.toThrow('mail.tm did not accept the password saved on this device for me@mail.tm.');
+    });
+  });
+
   describe('unregisterEmailAddress', () => {
     it('should delete account without clearing secret when key is empty', async () => {
       const setSecretFunction = vi.fn();
