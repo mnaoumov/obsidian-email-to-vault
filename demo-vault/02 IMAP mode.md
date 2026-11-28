@@ -84,7 +84,7 @@ await require('/demoSetup.ts').useMailTmProvider(app);
      - your login username.
    - **Email password**
      - your password. For Gmail with 2FA, create an [App password](https://myaccount.google.com/apppasswords) rather than using your account password.
-4. Optionally enable **Delete seen emails** to remove each message from the server once it has been saved.
+4. Optionally enable **Delete seen emails** to remove each message from the server once it has been saved, or set **Archive mailbox** to a folder that already exists, such as `Archive`, to move each message there instead. With an archive mailbox, every email in **Mailbox** is imported, read or not, and keeps its read state when it moves, so point **Mailbox** at a folder you file mail into rather than at a full inbox.
 5. Run a fetch command (see [03 Email notes and commands](<./03 Email notes and commands.md>)) or wait for the automatic check. Matching emails become notes in your vault.
 
 ## Notes
