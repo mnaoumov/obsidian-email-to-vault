@@ -48,6 +48,7 @@ interface MockEmailProviderOverrides {
   readonly deleteMessage?: EmailProvider['deleteMessage'];
   readonly getMessages?: EmailProvider['getMessages'];
   readonly markMessageAsSeen?: EmailProvider['markMessageAsSeen'];
+  readonly testConnection?: EmailProvider['testConnection'];
 }
 
 interface MockPluginSettingsComponentOverrides {
@@ -66,7 +67,8 @@ function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailP
       await noopAsync();
       return [];
     }),
-    markMessageAsSeen: overrides?.markMessageAsSeen ?? vi.fn()
+    markMessageAsSeen: overrides?.markMessageAsSeen ?? vi.fn(),
+    testConnection: overrides?.testConnection ?? vi.fn(async () => noopAsync())
   });
 }
 
@@ -615,6 +617,101 @@ describe('EmailChecker', () => {
 
       expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(1);
       expect(mockShowNotice).toHaveBeenCalledWith('Redownloaded 1 email(s)');
+    });
+  });
+
+  describe('testConnection', () => {
+    function createChecker(testConnection: EmailProvider['testConnection'], emailProviderType = EmailProviderType.MailTm): EmailCheckerComponent {
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent({ emailProviderType });
+      return new EmailCheckerComponent({
+        emailNoteCreator: createMockNoteCreator(),
+        emailProvider: createMockEmailProvider({ testConnection }),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+    }
+
+    function rejectWith(error: unknown): EmailProvider['testConnection'] {
+      return async () => {
+        await noopAsync();
+        throw error;
+      };
+    }
+
+    it('should say it is testing, then that it connected', async () => {
+      const testConnection = vi.fn(async () => noopAsync());
+
+      await createChecker(testConnection).testConnection();
+
+      expect(testConnection).toHaveBeenCalledOnce();
+      expect(mockShowNotice.mock.calls).toEqual([
+        ['Testing the connection to the Mail.tm server...'],
+        ['Connected to the Mail.tm server as test@mail.tm.']
+      ]);
+    });
+
+    it('should name the IMAP server for the IMAP provider', async () => {
+      await createChecker(vi.fn(async () => noopAsync()), EmailProviderType.Imap).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('Connected to the IMAP server as test@mail.tm.');
+    });
+
+    it('should show an authentication error as it is', async () => {
+      await createChecker(rejectWith(new EmailProviderAuthenticationError('Paste the right password'))).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('Paste the right password');
+    });
+
+    it('should say the server could not be reached', async () => {
+      await createChecker(rejectWith(new Error('net::ERR_NAME_NOT_RESOLVED'))).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith(
+        'Could not reach the Mail.tm server (net::ERR_NAME_NOT_RESOLVED). Check your internet connection and try again.'
+      );
+    });
+
+    it('should say the server refused for asking too often', async () => {
+      await createChecker(rejectWith(new EmailProviderRateLimitError('Too many requests', null))).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith(
+        'The Mail.tm server refused the request because it was asked too often (HTTP 429). Try again in a moment.'
+      );
+    });
+
+    it('should show any other error instead of throwing it', async () => {
+      await expect(createChecker(rejectWith(new Error('Unexpected answer'))).testConnection()).resolves.toBeUndefined();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('The connection test failed: Unexpected answer');
+    });
+
+    it('should add the server text the library kept apart from the message', async () => {
+      const error = Object.assign(new Error('Command failed'), { responseText: 'Mailbox is locked ' });
+
+      await createChecker(rejectWith(error)).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('The connection test failed: Command failed (Mailbox is locked)');
+    });
+
+    it('should not repeat server text the message already holds', async () => {
+      const error = Object.assign(new Error('Command failed: Mailbox is locked'), { responseText: 'Mailbox is locked' });
+
+      await createChecker(rejectWith(error)).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('The connection test failed: Command failed: Mailbox is locked');
+    });
+
+    it('should ignore blank or non-string server text', async () => {
+      await createChecker(rejectWith(Object.assign(new Error('Blank'), { responseText: '  ' }))).testConnection();
+      expect(mockShowNotice).toHaveBeenLastCalledWith('The connection test failed: Blank');
+
+      await createChecker(rejectWith(Object.assign(new Error('Numeric'), { responseText: 42 }))).testConnection();
+      expect(mockShowNotice).toHaveBeenLastCalledWith('The connection test failed: Numeric');
+    });
+
+    it('should show a thrown non-error value', async () => {
+      await createChecker(rejectWith('plain failure')).testConnection();
+
+      expect(mockShowNotice).toHaveBeenLastCalledWith('The connection test failed: plain failure');
     });
   });
 

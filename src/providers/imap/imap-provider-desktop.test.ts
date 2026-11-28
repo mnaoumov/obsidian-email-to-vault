@@ -3,7 +3,8 @@ import type {
   MailboxLockObject,
   MailboxObject,
   MessageAddressObject,
-  MessageStructureObject
+  MessageStructureObject,
+  StatusObject
 } from 'imapflow';
 import type { App } from 'obsidian';
 
@@ -20,6 +21,7 @@ import {
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 
+import { EmailProviderAuthenticationError } from '../email-provider-authentication-error.ts';
 import { ImapProviderDesktopComponent } from './imap-provider-desktop.ts';
 
 type MockMailbox = false | Pick<MailboxObject, 'exists'>;
@@ -86,6 +88,10 @@ const mocks = vi.hoisted(() => ({
     messageFlagsAdd: vi.fn(async () => {
       await noopAsync();
       return true;
+    }),
+    status: vi.fn(async (): Promise<false | StatusObject> => {
+      await noopAsync();
+      return { messages: 3, path: 'INBOX' };
     })
   },
   mockGetMailbox: vi.fn((): MockMailbox => ({ exists: 1 })),
@@ -104,6 +110,7 @@ vi.mock('imapflow', () => {
     public mailbox: MockMailbox;
     public messageDelete: ReturnType<typeof vi.fn>;
     public messageFlagsAdd: ReturnType<typeof vi.fn>;
+    public status: ReturnType<typeof vi.fn>;
 
     public constructor() {
       this.connect = mocks.mockClientDefaults.connect;
@@ -115,6 +122,7 @@ vi.mock('imapflow', () => {
       this.logout = mocks.mockClientDefaults.logout;
       this.messageDelete = mocks.mockClientDefaults.messageDelete;
       this.messageFlagsAdd = mocks.mockClientDefaults.messageFlagsAdd;
+      this.status = mocks.mockClientDefaults.status;
       mocks.mockLatestClient = castTo<Record<string, ReturnType<typeof vi.fn>>>(this);
     }
   }
@@ -768,11 +776,82 @@ describe('ImapProvider', () => {
     });
   });
 
+  describe('testConnection', () => {
+    it('should ask STATUS of the configured mailbox and log out', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent({ imapMailbox: 'Archive' }));
+
+      await provider.testConnection();
+
+      expect(mocks.mockLatestClient?.['status']).toHaveBeenCalledWith('Archive', { messages: true });
+      expect(mocks.mockLatestClient?.['logout']).toHaveBeenCalledOnce();
+      expect(mocks.mockLatestClient?.['fetch']).not.toHaveBeenCalled();
+    });
+
+    it('should name a mailbox the server does not have', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent({ imapMailbox: 'Nope' }));
+      mocks.mockClientDefaults.status.mockRejectedValueOnce(Object.assign(new Error('Mailbox doesn\'t exist: Nope'), { code: 'NotFound' }));
+
+      await expect(provider.testConnection()).rejects.toThrow('The IMAP server has no mailbox named "Nope". Check the "Mailbox" setting.');
+    });
+
+    it('should rethrow any other STATUS error', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.status.mockRejectedValueOnce(new Error('Connection not available'));
+
+      await expect(provider.testConnection()).rejects.toThrow('Connection not available');
+    });
+
+    it('should fail when the server will not report on the mailbox', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.status.mockResolvedValueOnce(false);
+
+      await expect(provider.testConnection()).rejects.toThrow('The IMAP server accepted the login but would not report on the mailbox "INBOX".');
+    });
+  });
+
   describe('withConnection', () => {
-    it('should throw when credentials are missing', async () => {
+    it('should throw an authentication error when credentials are missing', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(null), createMockPluginSettingsComponent());
 
-      await expect(provider.getMessages()).rejects.toThrow('Email address or password not configured');
+      const promise = provider.getMessages();
+      await expect(promise).rejects.toBeInstanceOf(EmailProviderAuthenticationError);
+      await expect(promise).rejects.toThrow('Email address or password not configured');
+    });
+
+    it('should say which server rejected the login, quoting its text', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.connect.mockRejectedValueOnce(
+        Object.assign(new Error('Command failed'), { authenticationFailed: true, responseText: ' Invalid credentials (Failure) ' })
+      );
+
+      const promise = provider.testConnection();
+      await expect(promise).rejects.toBeInstanceOf(EmailProviderAuthenticationError);
+      await expect(promise).rejects.toThrow(
+        'The IMAP server imap.example.com rejected the login for user@example.com: "Invalid credentials (Failure)". Check the email address and password in the plugin settings.'
+      );
+    });
+
+    it('should quote a string response when there is no response text', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.connect.mockRejectedValueOnce(
+        Object.assign(new Error('Authentication failed'), { authenticationFailed: true, response: 'AUTHENTICATE failed' })
+      );
+
+      await expect(provider.getMessages()).rejects.toThrow('rejected the login for user@example.com: "AUTHENTICATE failed".');
+    });
+
+    it('should leave the quote out when the server said nothing readable', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.connect.mockRejectedValueOnce(Object.assign(new Error('Authentication failed'), { authenticationFailed: true, response: {} }));
+
+      await expect(provider.getMessages()).rejects.toThrow('rejected the login for user@example.com. Check the email address');
+    });
+
+    it('should rethrow a connect error that is not a rejected login', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.connect.mockRejectedValueOnce(Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' }));
+
+      await expect(provider.getMessages()).rejects.toThrow('getaddrinfo ENOTFOUND');
     });
 
     it('should throw when email address is empty', async () => {

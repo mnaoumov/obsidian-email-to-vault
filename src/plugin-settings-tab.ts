@@ -2,7 +2,8 @@ import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/pl
 import type { PluginSettingsTabBaseConstructorParams } from '@mnaoumov/obsidian-lib/plugin/plugin-settings-tab';
 import type {
   SettingDefinitionGroup,
-  SettingDefinitionItem
+  SettingDefinitionItem,
+  SettingGroupItem
 } from 'obsidian';
 
 import { appendCodeBlock } from '@mnaoumov/obsidian-lib/html-element';
@@ -10,6 +11,7 @@ import { confirm } from '@mnaoumov/obsidian-lib/modals/confirm';
 import { PluginSettingsTabBase } from '@mnaoumov/obsidian-lib/plugin/plugin-settings-tab';
 import { convertAsyncToSync } from '@mnaoumov/typescript-lib/async';
 
+import type { EmailCheckerComponent } from './email-checker.ts';
 import type { PluginSettings } from './plugin-settings.ts';
 import type { EmailProviderManagerComponent } from './providers/email-provider-manager.ts';
 
@@ -27,12 +29,14 @@ interface PasswordDescriptionParams {
 }
 
 interface PluginSettingsTabConstructorParams extends PluginSettingsTabBaseConstructorParams<PluginSettings> {
+  readonly emailChecker: EmailCheckerComponent;
   readonly emailProviderManager: EmailProviderManagerComponent;
   readonly pluginId: string;
   readonly pluginNoticeComponent: PluginNoticeComponent;
 }
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
+  private readonly emailChecker: EmailCheckerComponent;
   private readonly emailProviderManager: EmailProviderManagerComponent;
   private mailTmCredentialLock: MailTmCredentialLock | null = null;
   private readonly pluginId: string;
@@ -40,6 +44,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
 
   public constructor(params: PluginSettingsTabConstructorParams) {
     super(params);
+    this.emailChecker = params.emailChecker;
     this.emailProviderManager = params.emailProviderManager;
     this.pluginId = params.pluginId;
     this.pluginNoticeComponent = params.pluginNoticeComponent;
@@ -161,6 +166,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             });
           }
         }),
+        this.buildTestConnectionSetting(),
         this.settingEx({
           desc: 'Whether to delete emails from the mailbox after being saved as notes.',
           name: 'Delete seen emails',
@@ -314,6 +320,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               });
           }
         }),
+        // Before registering there is no mailbox to log in to.
+        ...isRegistered ? [this.buildTestConnectionSetting()] : [],
         this.settingEx({
           desc: createFragment((f) => {
             f.appendText('Whether to delete emails from the mailbox after being saved as notes.');
@@ -483,6 +491,27 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }
         })
       ]
+    });
+  }
+
+  private buildTestConnectionSetting(): SettingGroupItem {
+    return this.settingEx({
+      desc: 'Log in to the mail server with the settings above and say whether it worked. No email is imported.',
+      name: 'Test connection',
+      render: (setting) => {
+        setting.addButton((button) => {
+          button
+            .setButtonText('Test connection')
+            .onClick(convertAsyncToSync(async () => {
+              button.setDisabled(true);
+              try {
+                await this.emailChecker.testConnection();
+              } finally {
+                button.setDisabled(false);
+              }
+            }));
+        });
+      }
     });
   }
 

@@ -24,6 +24,8 @@ Open **Settings -> Community plugins -> `Email to Vault`** to configure the plug
   - use TLS/SSL for the connection.
 - `imapMailbox`
   - the mailbox folder to read, e.g. `INBOX`.
+- **Test connection** (button)
+  - logs in with the settings above and asks the server about `imapMailbox`, so a wrong mailbox name is caught too. Nothing is imported. The registered Mail.tm group has the same button.
 
 ## Fetching
 

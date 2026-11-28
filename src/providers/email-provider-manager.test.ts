@@ -57,6 +57,7 @@ vi.mock('./mail-tm/mail-tm-provider.ts', async () => {
     });
 
     public markMessageAsSeen = vi.fn(async () => noopAsync());
+    public testConnection = vi.fn(async () => noopAsync());
 
     public constructor() {
       super();
@@ -322,6 +323,22 @@ describe('EmailProviderManager', () => {
       await manager.markMessageAsSeen('msg-1');
 
       expect(mocks.mockMailTmProviderInstance?.['markMessageAsSeen']).toHaveBeenCalledWith('msg-1');
+    });
+
+    it('should delegate testConnection to active provider', async () => {
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
+      const manager = new EmailProviderManagerComponent({
+        app: createMockApp(),
+        mailTmDomainManager: createMockMailTmDomainManager(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
+        pluginSettingsComponent
+      });
+      manager.load();
+
+      await manager.testConnection();
+
+      expect(mocks.mockMailTmProviderInstance?.['testConnection']).toHaveBeenCalledOnce();
     });
 
     it('should throw when no active provider', async () => {

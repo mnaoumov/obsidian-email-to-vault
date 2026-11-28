@@ -73,4 +73,8 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
       this._platformImapProvider = new mobileModule.ImapProviderMobileComponent(this.pluginNoticeComponent);
     }
   }
+
+  public async testConnection(): Promise<void> {
+    await this.platformImapProvider.testConnection();
+  }
 }

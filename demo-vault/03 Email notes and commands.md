@@ -17,6 +17,8 @@ Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.m
   - re-import every email currently in the mailbox, even ones already saved.
 - **`Email to Vault`: Redownload recent emails**
   - re-import recent emails, so you can recover a note you deleted without reprocessing the whole mailbox.
+- **`Email to Vault`: Test connection**
+  - log in to the configured server and say whether it worked, importing nothing. A wrong host, port, password or IMAP mailbox name shows up at once, in plain words, instead of after the next check. The same button sits in the IMAP and Mail.tm settings.
 - **`Email to Vault`: Open settings**
   - jump straight to the plugin's settings tab.
 

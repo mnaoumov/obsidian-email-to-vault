@@ -28,6 +28,7 @@ import {
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
 import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
+import { TestConnectionCommandHandler } from './command-handlers/test-connection-command-handler.ts';
 import { EmailCheckStatusBarComponent } from './email-check-status-bar-component.ts';
 import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
@@ -121,6 +122,10 @@ vi.mock('./command-handlers/redownload-recent-emails-command-handler.ts', () => 
   RedownloadRecentEmailsCommandHandler: vi.fn()
 }));
 
+vi.mock('./command-handlers/test-connection-command-handler.ts', () => ({
+  TestConnectionCommandHandler: vi.fn()
+}));
+
 vi.mock('./plugin-settings-tab.ts', () => ({
   PluginSettingsTab: vi.fn()
 }));
@@ -140,6 +145,7 @@ const MockPluginSettingsTab = vi.mocked(PluginSettingsTab);
 const MockTemplatesLanguageComponent = vi.mocked(TemplatesLanguageComponent);
 const MockRedownloadAllEmailsCommandHandler = vi.mocked(RedownloadAllEmailsCommandHandler);
 const MockRedownloadRecentEmailsCommandHandler = vi.mocked(RedownloadRecentEmailsCommandHandler);
+const MockTestConnectionCommandHandler = vi.mocked(TestConnectionCommandHandler);
 
 const manifest: PluginManifest = {
   author: 'test',
@@ -252,6 +258,7 @@ describe('Plugin', () => {
       await plugin.onload();
 
       expect(MockPluginSettingsTab).toHaveBeenCalledWith({
+        emailChecker: instanceOf(MockEmailChecker),
         emailProviderManager: instanceOf(MockEmailProviderManager),
         plugin,
         pluginId: 'email-to-vault',
@@ -286,6 +293,14 @@ describe('Plugin', () => {
       expect(MockRedownloadAllEmailsCommandHandler).toHaveBeenCalledWith(
         instanceOf(MockEmailChecker)
       );
+    });
+
+    it('should create TestConnectionCommandHandler with emailChecker', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
+      buildPluginCommandHandlers();
+
+      expect(MockTestConnectionCommandHandler).toHaveBeenCalledWith(instanceOf(MockEmailChecker));
     });
 
     it('should create RedownloadRecentEmailsCommandHandler with app and emailChecker', async () => {
@@ -323,7 +338,8 @@ describe('Plugin', () => {
         expect.any(OpenDemoVaultCommandHandler),
         expect.any(OpenSettingsCommandHandler),
         expect.any(RedownloadAllEmailsCommandHandler),
-        expect.any(RedownloadRecentEmailsCommandHandler)
+        expect.any(RedownloadRecentEmailsCommandHandler),
+        expect.any(TestConnectionCommandHandler)
       ]);
     });
   });

@@ -192,6 +192,11 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     });
   }
 
+  // Getting a token is the whole login: it fails in the user's words when the address or password is missing or wrong.
+  public async testConnection(): Promise<void> {
+    await this.getToken();
+  }
+
   /**
    * Deletes the mailbox on Mail.tm and forgets it on this device.
    *
