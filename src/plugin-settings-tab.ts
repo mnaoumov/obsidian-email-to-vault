@@ -397,6 +397,25 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }
         }),
         this.settingEx({
+          desc: createFragment((f) => {
+            f.appendText('Whether to save each email exactly as the server holds it, as an .eml file beside the note, so the note can be rebuilt from it later.');
+            f.createEl('br');
+            f.appendText('The file is placed like the email\'s attachments and linked from the note: where ');
+            appendCodeBlock(f, '{{originalEmail}}');
+            f.appendText(' stands in the note template, otherwise at the top of ');
+            appendCodeBlock(f, '{{attachments}}');
+            f.appendText('.');
+            f.createEl('br');
+            f.appendText('Applies to emails saved from now on. The file keeps a second copy of the email\'s personal data in the vault.');
+          }),
+          name: 'Save original email',
+          render: (setting) => {
+            setting.addToggle((toggle) => {
+              this.bind({ propertyName: 'shouldSaveOriginalEmail', valueComponent: toggle });
+            });
+          }
+        }),
+        this.settingEx({
           desc: 'Whether to remove hidden HTML elements (display:none, visibility:hidden, opacity:0, aria-hidden) before converting to markdown.',
           name: 'Strip hidden elements',
           render: (setting) => {

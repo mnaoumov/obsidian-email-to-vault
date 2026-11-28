@@ -42,6 +42,8 @@ const OUTLOOK_HEADER_FIELD_BY_LABEL = new Map<string, OutlookHeaderField>(
   OUTLOOK_HEADER_LABELS.flatMap(([field, labels]) => labels.map((label) => [label, field] as const))
 );
 
+const ORIGINAL_EMAIL_TOKEN_PATTERN = /\{\{originalEmail(?::[^}]+)?\}\}/;
+
 const LEADING_BLANK_LINES_PATTERN = /^(?:[ \t]*\r?\n)+/;
 
 const HEADER_FROM_PATTERN = /From: (?<value>.+)/;
@@ -65,6 +67,8 @@ interface EmailData {
   readonly dateString: string;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the sender header.
   from: string;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The original email link is filled after the note path is known.
+  originalEmailLink: string;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the subject header.
   subject: string;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Forwarded email extraction replaces the recipient header.
@@ -99,9 +103,16 @@ export class EmailNoteCreator {
 
     const { attachmentLinks, savedAttachments } = await this.downloadAttachments(fullMessage, filePath);
     emailData.body = replaceInlineAttachmentRefs(emailData.body, savedAttachments);
-    emailData.attachmentsString = attachmentLinks;
 
-    const content = fillTemplate({ emailData, template: this.pluginSettingsComponent.settings.emailNoteTemplate });
+    const template = this.pluginSettingsComponent.settings.emailNoteTemplate;
+    emailData.originalEmailLink = await this.saveOriginalEmail(fullMessage.id, filePath);
+    // A template that does not place the link itself still gets it, at the top of the attachments.
+    const shouldListOriginalEmailInAttachments = !!emailData.originalEmailLink && !ORIGINAL_EMAIL_TOKEN_PATTERN.test(template);
+    emailData.attachmentsString = shouldListOriginalEmailInAttachments
+      ? [emailData.originalEmailLink, attachmentLinks].filter(Boolean).join('\n')
+      : attachmentLinks;
+
+    const content = fillTemplate({ emailData, template });
 
     await this.ensureFolderExists(filePath);
     await this.app.vault.create(filePath, content);
@@ -154,6 +165,7 @@ export class EmailNoteCreator {
       cc: ccFormatted,
       dateString: momentFunction(fullMessage.createdAt).format(),
       from: fromFormatted,
+      originalEmailLink: '',
       subject: fullMessage.subject,
       to: toFormatted
     };
@@ -177,6 +189,24 @@ export class EmailNoteCreator {
       data.body = prependHtmlParseError(data.body, this.pluginNoticeComponent);
     }
     return data;
+  }
+
+  private async saveOriginalEmail(messageId: string, notePath: string): Promise<string> {
+    if (!this.pluginSettingsComponent.settings.shouldSaveOriginalEmail) {
+      return '';
+    }
+
+    const source = await this.emailProvider.downloadMessageSource(messageId);
+    // A provider that cannot reach the message (IMAP on mobile) hands back nothing; an empty file would only mislead.
+    if (source.byteLength === 0) {
+      return '';
+    }
+
+    const noteFilename = extractFilename(notePath);
+    const emlFilename = `${noteFilename.slice(0, noteFilename.lastIndexOf('.'))}.eml`;
+    const emlPath = await this.app.fileManager.getAvailablePathForAttachment(emlFilename, notePath);
+    await this.app.vault.createBinary(emlPath, source);
+    return `[[${extractFilename(emlPath)}]]`;
   }
 }
 
@@ -262,6 +292,7 @@ function extractEmailFromRfc822(emlContent: string): EmailData {
     cc: HEADER_CC_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     dateString: normalizeDate(HEADER_DATE_PATTERN.exec(headers)?.groups?.['value'] ?? ''),
     from: HEADER_FROM_PATTERN.exec(headers)?.groups?.['value'] ?? '',
+    originalEmailLink: '',
     subject: HEADER_SUBJECT_PATTERN.exec(headers)?.groups?.['value'] ?? '',
     to: HEADER_TO_PATTERN.exec(headers)?.groups?.['value'] ?? ''
   };
@@ -490,34 +521,36 @@ interface FillTemplateParams {
   readonly template: string;
 }
 
+function assertNotInPathTemplate(tokenLabel: string, isPathTemplate: boolean): void {
+  if (isPathTemplate) {
+    throw new Error(`${tokenLabel} token is not supported in path template`);
+  }
+}
+
+function assertNoTokenFormat(tokenLabel: string, format: string): void {
+  if (format) {
+    throw new Error(`${tokenLabel} token does not support format: ${format}`);
+  }
+}
+
 function extractTokenValue(params: ExtractTokenValueParams): string {
   const { emailData, format, isPathTemplate, token } = params;
   let value: string;
   switch (token) {
     case 'attachments': {
-      if (format) {
-        throw new Error(`Attachments token does not support format: ${format}`);
-      }
-      if (isPathTemplate) {
-        throw new Error('Attachments token is not supported in path template');
-      }
+      assertNoTokenFormat('Attachments', format);
+      assertNotInPathTemplate('Attachments', isPathTemplate);
       value = emailData.attachmentsString;
       break;
     }
     case 'body': {
-      if (format) {
-        throw new Error(`Body token does not support format: ${format}`);
-      }
-      if (isPathTemplate) {
-        throw new Error('Body token is not supported in path template');
-      }
+      assertNoTokenFormat('Body', format);
+      assertNotInPathTemplate('Body', isPathTemplate);
       value = emailData.body;
       break;
     }
     case 'cc': {
-      if (format) {
-        throw new Error(`CC token does not support format: ${format}`);
-      }
+      assertNoTokenFormat('CC', format);
       value = emailData.cc;
       break;
     }
@@ -526,23 +559,23 @@ function extractTokenValue(params: ExtractTokenValueParams): string {
       break;
     }
     case 'from': {
-      if (format) {
-        throw new Error(`From token does not support format: ${format}`);
-      }
+      assertNoTokenFormat('From', format);
       value = emailData.from;
       break;
     }
+    case 'originalEmail': {
+      assertNoTokenFormat('Original email', format);
+      assertNotInPathTemplate('Original email', isPathTemplate);
+      value = emailData.originalEmailLink;
+      break;
+    }
     case 'subject': {
-      if (format) {
-        throw new Error(`Subject token does not support format: ${format}`);
-      }
+      assertNoTokenFormat('Subject', format);
       value = emailData.subject || (isPathTemplate ? 'Untitled' : '');
       break;
     }
     case 'to': {
-      if (format) {
-        throw new Error(`To token does not support format: ${format}`);
-      }
+      assertNoTokenFormat('To', format);
       value = emailData.to;
       break;
     }

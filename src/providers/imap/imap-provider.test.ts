@@ -29,6 +29,10 @@ const mocks = vi.hoisted(() => ({
       await noopAsync();
       return new ArrayBuffer(0);
     }),
+    downloadMessageSource: vi.fn(async () => {
+      await noopAsync();
+      return new ArrayBuffer(0);
+    }),
     getMessage: vi.fn(async (): Promise<EmailMessageFull> => {
       await noopAsync();
       return {
@@ -54,6 +58,10 @@ const mocks = vi.hoisted(() => ({
   mockMobileProvider: {
     deleteMessage: vi.fn(async () => noopAsync()),
     downloadAttachment: vi.fn(async () => {
+      await noopAsync();
+      return new ArrayBuffer(0);
+    }),
+    downloadMessageSource: vi.fn(async () => {
       await noopAsync();
       return new ArrayBuffer(0);
     }),
@@ -86,6 +94,7 @@ vi.mock('./imap-provider-desktop.ts', () => {
     ImapProviderDesktopComponent: class MockImapProviderDesktopComponent {
       public deleteMessage = mocks.mockDesktopProvider.deleteMessage;
       public downloadAttachment = mocks.mockDesktopProvider.downloadAttachment;
+      public downloadMessageSource = mocks.mockDesktopProvider.downloadMessageSource;
       public getMessage = mocks.mockDesktopProvider.getMessage;
       public getMessages = mocks.mockDesktopProvider.getMessages;
       public markMessageAsSeen = mocks.mockDesktopProvider.markMessageAsSeen;
@@ -98,6 +107,7 @@ vi.mock('./imap-provider-mobile.ts', () => {
     ImapProviderMobileComponent: class MockImapProviderMobileComponent {
       public deleteMessage = mocks.mockMobileProvider.deleteMessage;
       public downloadAttachment = mocks.mockMobileProvider.downloadAttachment;
+      public downloadMessageSource = mocks.mockMobileProvider.downloadMessageSource;
       public getMessage = mocks.mockMobileProvider.getMessage;
       public getMessages = mocks.mockMobileProvider.getMessages;
       public markMessageAsSeen = mocks.mockMobileProvider.markMessageAsSeen;
@@ -193,6 +203,19 @@ describe('ImapProvider', () => {
       await provider.downloadAttachment({ attachmentId: '2', messageId: '42' });
 
       expect(mocks.mockDesktopProvider.downloadAttachment).toHaveBeenCalledWith({ attachmentId: '2', messageId: '42' });
+    });
+
+    it('should delegate downloadMessageSource to platform provider', async () => {
+      const provider = new ImapProviderComponent({
+        app: createMockApp(),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
+        pluginSettingsComponent: createMockPluginSettingsComponent()
+      });
+      await provider.loadWithPromises();
+
+      await provider.downloadMessageSource('42');
+
+      expect(mocks.mockDesktopProvider.downloadMessageSource).toHaveBeenCalledWith('42');
     });
 
     it('should delegate markMessageAsSeen to platform provider', async () => {
