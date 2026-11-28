@@ -4,11 +4,13 @@ import { registerAsyncEvent } from '@mnaoumov/obsidian-lib/components/async-even
 import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
 import { convertAsyncToSync } from '@mnaoumov/typescript-lib/async';
 
+import type { EmailCheckStatus } from './email-check-status.ts';
 import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { EmailMessageSummary } from './providers/email-provider-types.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
+import { INITIAL_EMAIL_CHECK_STATUS } from './email-check-status.ts';
 import { EmailProviderAuthenticationError } from './providers/email-provider-authentication-error.ts';
 import { EmailProviderRateLimitError } from './providers/email-provider-rate-limit-error.ts';
 import { EmailProviderType } from './providers/email-provider-type.ts';
@@ -38,6 +40,8 @@ export class EmailCheckerComponent extends ComponentEx {
   private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
   private scheduledTicksToSkip = 0;
+  private status = INITIAL_EMAIL_CHECK_STATUS;
+  private readonly statusChangedHandlers = new Set<() => void>();
 
   public constructor(params: EmailCheckerComponentConstructorParams) {
     super();
@@ -54,6 +58,15 @@ export class EmailCheckerComponent extends ComponentEx {
     await this.showExpectedErrors(() => this.checkEmailsUnguarded());
   }
 
+  /**
+   * Gets the state of the last email check and when the next one is due.
+   *
+   * @returns The status.
+   */
+  public getStatus(): EmailCheckStatus {
+    return this.status;
+  }
+
   public override onload(): void {
     super.onload();
     this.scheduleCheckEmails();
@@ -65,6 +78,19 @@ export class EmailCheckerComponent extends ComponentEx {
         }
       })
     );
+  }
+
+  /**
+   * Calls the handler each time the status changes.
+   *
+   * @param handler - The handler.
+   * @returns A function that stops the calls.
+   */
+  public onStatusChanged(handler: () => void): () => void {
+    this.statusChangedHandlers.add(handler);
+    return () => {
+      this.statusChangedHandlers.delete(handler);
+    };
   }
 
   public async redownloadEmails(count?: number): Promise<void> {
@@ -82,6 +108,19 @@ export class EmailCheckerComponent extends ComponentEx {
   // no notice, and the next tick tries again. Repeated failures back off, so an offline device is not polled at the
   // full rate. Authentication errors are still shown, and any other error still propagates.
   private async checkEmailsOnSchedule(): Promise<void> {
+    const tickAt = Date.now();
+    const intervalId = this.intervalId;
+    try {
+      await this.checkEmailsOnScheduleUnguarded();
+    } finally {
+      // A settings change during the check rescheduled the timer, and that already set the next check.
+      if (this.intervalId === intervalId) {
+        this.updateStatus({ nextCheckAt: new Date(tickAt + (this.scheduledTicksToSkip + 1) * this.getCheckIntervalInMilliseconds()) });
+      }
+    }
+  }
+
+  private async checkEmailsOnScheduleUnguarded(): Promise<void> {
     if (this.scheduledTicksToSkip > 0) {
       this.scheduledTicksToSkip--;
       return;
@@ -115,30 +154,39 @@ export class EmailCheckerComponent extends ComponentEx {
     }
 
     this.pluginNoticeComponent.showNotice('Checking emails...');
+    this.updateStatus({ isChecking: true });
 
-    const messages = await this.emailProvider.getMessages();
-    const isTimestampMode = !settings.shouldMarkEmailsAsSeen && !settings.shouldDeleteSeenEmails;
-    const newMessages = this.selectNewMessages(messages, isTimestampMode);
-
-    for (const message of newMessages) {
-      await this.emailNoteCreator.saveEmailAsNote(message);
-      if (settings.shouldDeleteSeenEmails) {
-        await this.emailProvider.deleteMessage(message.id);
-      } else if (settings.shouldMarkEmailsAsSeen) {
-        await this.emailProvider.markMessageAsSeen(message.id);
-      }
+    let newEmailCount: number;
+    try {
+      newEmailCount = await this.saveNewEmails();
+    } catch (error) {
+      this.updateStatus({ isChecking: false, lastCheckAt: new Date(), lastError: this.describeError(error) });
+      throw error;
     }
 
-    if (isTimestampMode) {
-      await this.updateLastProcessedTimestamp(messages);
-    }
+    this.updateStatus({ isChecking: false, lastCheckAt: new Date(), lastError: null, lastNewEmailCount: newEmailCount });
 
-    if (newMessages.length === 0) {
+    if (newEmailCount === 0) {
       this.pluginNoticeComponent.showNotice('No new emails');
       return;
     }
 
-    this.pluginNoticeComponent.showNotice(`Saved ${String(newMessages.length)} new email(s)`);
+    this.pluginNoticeComponent.showNotice(`Saved ${String(newEmailCount)} new email(s)`);
+  }
+
+  // The status bar has room for one line, so this names what failed rather than what to do about it.
+  private describeError(error: unknown): string {
+    if (error instanceof EmailProviderAuthenticationError) {
+      return error.message;
+    }
+    if (error instanceof EmailProviderRateLimitError) {
+      return `the ${this.getProviderName()} server refused the request because it was asked too often (HTTP 429)`;
+    }
+    const code = getTransientNetworkErrorCode(error);
+    if (code !== null) {
+      return `could not reach the ${this.getProviderName()} server (${code})`;
+    }
+    return error instanceof Error ? error.message : 'an unexpected error, see the developer console';
   }
 
   private getCheckIntervalInMilliseconds(): number {
@@ -165,6 +213,28 @@ export class EmailCheckerComponent extends ComponentEx {
     }
   }
 
+  private async saveNewEmails(): Promise<number> {
+    const settings = this.pluginSettingsComponent.settings;
+    const messages = await this.emailProvider.getMessages();
+    const isTimestampMode = !settings.shouldMarkEmailsAsSeen && !settings.shouldDeleteSeenEmails;
+    const newMessages = this.selectNewMessages(messages, isTimestampMode);
+
+    for (const message of newMessages) {
+      await this.emailNoteCreator.saveEmailAsNote(message);
+      if (settings.shouldDeleteSeenEmails) {
+        await this.emailProvider.deleteMessage(message.id);
+      } else if (settings.shouldMarkEmailsAsSeen) {
+        await this.emailProvider.markMessageAsSeen(message.id);
+      }
+    }
+
+    if (isTimestampMode) {
+      await this.updateLastProcessedTimestamp(messages);
+    }
+
+    return newMessages.length;
+  }
+
   private scheduleCheckEmails(): void {
     if (this.intervalId !== null) {
       window.clearInterval(this.intervalId);
@@ -176,8 +246,10 @@ export class EmailCheckerComponent extends ComponentEx {
 
     const intervalInMilliseconds = this.getCheckIntervalInMilliseconds();
     if (intervalInMilliseconds === 0) {
+      this.updateStatus({ nextCheckAt: null });
       return;
     }
+    this.updateStatus({ nextCheckAt: new Date(Date.now() + intervalInMilliseconds) });
     this.intervalId = this.pluginSettingsComponent.registerInterval(
       window.setInterval(convertAsyncToSync(this.checkEmailsOnSchedule.bind(this)), intervalInMilliseconds)
     );
@@ -238,6 +310,13 @@ export class EmailCheckerComponent extends ComponentEx {
     await this.pluginSettingsComponent.editAndSave((settings) => {
       settings.lastProcessedEmailTimestamp = newTimestamp;
     });
+  }
+
+  private updateStatus(changes: Partial<EmailCheckStatus>): void {
+    this.status = { ...this.status, ...changes };
+    for (const handler of this.statusChangedHandlers) {
+      handler();
+    }
   }
 }
 
