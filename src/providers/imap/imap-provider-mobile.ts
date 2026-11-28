@@ -25,6 +25,12 @@ export class ImapProviderMobileComponent extends ComponentEx implements EmailPro
     return new ArrayBuffer(0);
   }
 
+  public async downloadMessageSource(): Promise<ArrayBuffer> {
+    this.showNotice();
+    await noopAsync();
+    return new ArrayBuffer(0);
+  }
+
   public async getMessage(messageId: string): Promise<EmailMessageFull> {
     this.showNotice();
     await noopAsync();

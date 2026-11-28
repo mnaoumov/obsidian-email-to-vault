@@ -149,6 +149,35 @@ describe('MailTmProvider', () => {
     });
   });
 
+  describe('downloadMessageSource', () => {
+    it('should fetch the raw message from the download endpoint with auth token', async () => {
+      const manager = createManager({
+        emailAddress: 'me@mail.tm',
+        emailPasswordSecretKey: 'secret-key',
+        secretStorageGetSecret: () => 'password123'
+      });
+
+      const mockArrayBuffer = new ArrayBuffer(8);
+      mockRequestUrl
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          json: { token: 'jwt-token' }
+        }))
+        .mockResolvedValueOnce(castTo<RequestUrlResponse>({
+          arrayBuffer: mockArrayBuffer
+        }));
+
+      const result = await manager.downloadMessageSource('msg1');
+
+      expect(result).toBe(mockArrayBuffer);
+      expect(mockRequestUrl).toHaveBeenCalledWith({
+        headers: { Authorization: 'Bearer jwt-token' },
+        method: 'GET',
+        throw: false,
+        url: 'https://api.mail.tm/messages/msg1/download'
+      });
+    });
+  });
+
   describe('markMessageAsSeen', () => {
     it('should send PATCH request with seen: true', async () => {
       const manager = createManager({

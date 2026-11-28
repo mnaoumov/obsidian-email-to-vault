@@ -101,6 +101,17 @@ describe('ImapProviderMobile', () => {
     });
   });
 
+  describe('downloadMessageSource', () => {
+    it('should return empty ArrayBuffer and show notice', async () => {
+      const provider = new ImapProviderMobileComponent(strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }));
+
+      const result = await provider.downloadMessageSource();
+
+      expect(result.byteLength).toBe(0);
+      expect(mockShowNotice).toHaveBeenCalledWith('IMAP is not available on mobile devices');
+    });
+  });
+
   describe('markMessageAsSeen', () => {
     it('should show notice', async () => {
       const provider = new ImapProviderMobileComponent(strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }));

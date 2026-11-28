@@ -58,6 +58,21 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     });
   }
 
+  public async downloadMessageSource(messageId: string): Promise<ArrayBuffer> {
+    return this.withConnection(async (client) => {
+      const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
+      try {
+        const message = await client.fetchOne(messageId, { source: true }, { uid: true });
+        if (!message || !message.source) {
+          throw new Error(`Message ${messageId} not found`);
+        }
+        return bufferToArrayBuffer(message.source);
+      } finally {
+        lock.release();
+      }
+    });
+  }
+
   public async getMessage(messageId: string): Promise<EmailMessageFull> {
     return this.withConnection(async (client) => {
       const lock = await client.getMailboxLock(this.pluginSettingsComponent.settings.imapMailbox);
@@ -149,6 +164,11 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
   }
 }
 
+function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
+  // Copies the bytes: a small Buffer is a view into Node's shared pool, so its own `buffer` holds other data around it.
+  return new Uint8Array(buffer).buffer;
+}
+
 function checkHasAttachments(bodyStructure?: MessageStructureObject): boolean {
   if (!bodyStructure) {
     return false;
@@ -220,8 +240,7 @@ async function streamToArrayBuffer(stream: AsyncIterable<Buffer>): Promise<Array
   for await (const chunk of stream) {
     chunks.push(Buffer.from(chunk));
   }
-  const buffer = Buffer.concat(chunks);
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  return bufferToArrayBuffer(Buffer.concat(chunks));
 }
 
 function walkBodyStructure(node: MessageStructureObject, attachments: EmailAttachment[]): void {

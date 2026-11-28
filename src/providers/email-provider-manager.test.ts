@@ -41,6 +41,11 @@ vi.mock('./mail-tm/mail-tm-provider.ts', async () => {
       return new ArrayBuffer(0);
     });
 
+    public downloadMessageSource = vi.fn(async () => {
+      await noopAsync();
+      return new ArrayBuffer(0);
+    });
+
     public getMessage = vi.fn(async () => {
       await noopAsync();
       return {} as EmailMessageFull;
@@ -253,6 +258,22 @@ describe('EmailProviderManager', () => {
       await manager.downloadAttachment({ attachmentId: 'att-1', messageId: 'msg-1' });
 
       expect(mocks.mockMailTmProviderInstance?.['downloadAttachment']).toHaveBeenCalledWith({ attachmentId: 'att-1', messageId: 'msg-1' });
+    });
+
+    it('should delegate downloadMessageSource to active provider', async () => {
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
+      const manager = new EmailProviderManagerComponent({
+        app: createMockApp(),
+        mailTmDomainManager: createMockMailTmDomainManager(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
+        pluginSettingsComponent
+      });
+      manager.load();
+
+      await manager.downloadMessageSource('msg-1');
+
+      expect(mocks.mockMailTmProviderInstance?.['downloadMessageSource']).toHaveBeenCalledWith('msg-1');
     });
 
     it('should delegate getMessage to active provider', async () => {

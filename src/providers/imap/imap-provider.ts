@@ -48,6 +48,10 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
     return this.platformImapProvider.downloadAttachment({ attachmentId, messageId });
   }
 
+  public async downloadMessageSource(messageId: string): Promise<ArrayBuffer> {
+    return this.platformImapProvider.downloadMessageSource(messageId);
+  }
+
   public async getMessage(messageId: string): Promise<EmailMessageFull> {
     return this.platformImapProvider.getMessage(messageId);
   }

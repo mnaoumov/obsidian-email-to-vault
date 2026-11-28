@@ -722,6 +722,32 @@ describe('ImapProvider', () => {
     });
   });
 
+  describe('downloadMessageSource', () => {
+    it('should return the full message source', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(createSampleFetchMessage({ source: Buffer.from('From: a@b.com\r\n\r\nbody') }));
+
+      const result = await provider.downloadMessageSource('42');
+
+      expect(mocks.mockLatestClient?.['fetchOne']).toHaveBeenCalledWith('42', { source: true }, { uid: true });
+      expect(new TextDecoder().decode(result)).toBe('From: a@b.com\r\n\r\nbody');
+    });
+
+    it('should throw when the message is not found', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(false);
+
+      await expect(provider.downloadMessageSource('42')).rejects.toThrow('Message 42 not found');
+    });
+
+    it('should throw when the server returns no source', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
+      mocks.mockClientDefaults.fetchOne.mockResolvedValue(createSampleFetchMessage());
+
+      await expect(provider.downloadMessageSource('42')).rejects.toThrow('Message 42 not found');
+    });
+  });
+
   describe('markMessageAsSeen', () => {
     it(String.raw`should add \Seen flag`, async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());

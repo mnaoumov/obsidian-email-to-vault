@@ -44,5 +44,7 @@ Open **Settings -> Community plugins -> `Email to Vault`** to configure the plug
   - the content template for each note (frontmatter plus body and attachments).
 - `shouldExtractForwardedEmail`
   - treat forwarded emails as direct messages by extracting the original sender, recipients, CC, and subject. It reads Gmail's forward header, and Outlook's in English, Italian, French, German, Spanish, Portuguese, Dutch, Polish and Russian.
+- `shouldSaveOriginalEmail`
+  - save each new email exactly as the server holds it (the raw RFC 822 message) as an `.eml` file named after the note, placed like the email's attachments, so the note can be rebuilt from it later. The note links it where `{{originalEmail}}` stands in the note template, otherwise at the top of `{{attachments}}`. Off by default, because the file keeps a second copy of the email's personal data in the vault.
 - `shouldStripHiddenElements`
   - remove hidden HTML elements (`display:none`, `visibility:hidden`, `opacity:0`, `aria-hidden`) before converting the email to markdown.

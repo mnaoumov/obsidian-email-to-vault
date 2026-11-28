@@ -57,6 +57,7 @@ const mockShowNotice = vi.fn();
 
 interface MockEmailProviderOverrides {
   readonly downloadAttachment?: EmailProvider['downloadAttachment'];
+  readonly downloadMessageSource?: EmailProvider['downloadMessageSource'];
   readonly getMessage?: EmailProvider['getMessage'];
 }
 
@@ -74,6 +75,7 @@ interface MockPluginSettingsOverrides {
   readonly emailNotePathTemplate?: string;
   readonly emailNoteTemplate?: string;
   readonly shouldExtractForwardedEmail?: boolean;
+  readonly shouldSaveOriginalEmail?: boolean;
   readonly shouldStripHiddenElements?: boolean;
 }
 
@@ -130,6 +132,7 @@ function createMockApp(): ObsidianApp {
 function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailProvider {
   return strictProxy<EmailProvider>({
     downloadAttachment: overrides?.downloadAttachment ?? vi.fn(),
+    downloadMessageSource: overrides?.downloadMessageSource ?? vi.fn(),
     getMessage: overrides?.getMessage ?? vi.fn()
   });
 }
@@ -140,6 +143,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsOverrid
       emailNotePathTemplate: overrides?.emailNotePathTemplate ?? 'Emails/{{date:YYYY-MM-DD HH-mm}} {{subject}}',
       emailNoteTemplate: overrides?.emailNoteTemplate ?? new PluginSettings().emailNoteTemplate,
       shouldExtractForwardedEmail: overrides?.shouldExtractForwardedEmail ?? false,
+      shouldSaveOriginalEmail: overrides?.shouldSaveOriginalEmail ?? false,
       shouldStripHiddenElements: overrides?.shouldStripHiddenElements ?? true
     }
   });
@@ -2272,6 +2276,121 @@ describe('EmailNoteCreator', () => {
       const content = await saveForwardedEmail({ subject, template: '{{subject}}', text: 'Plain body without forward headers' });
 
       expect(content).toBe(expectedSubject);
+    });
+  });
+
+  describe('original email', () => {
+    const EML_SOURCE = 'From: a@b.com\r\nSubject: Test\r\n\r\nbody';
+
+    interface SaveWithOriginalEmailParams {
+      readonly source?: string;
+      readonly template: string;
+    }
+
+    interface SaveWithOriginalEmailResult {
+      readonly app: ObsidianApp;
+      readonly content: unknown;
+      readonly emailProvider: EmailProvider;
+    }
+
+    async function saveWithOriginalEmail(params: SaveWithOriginalEmailParams): Promise<SaveWithOriginalEmailResult> {
+      const emailProvider = createMockEmailProvider({
+        downloadMessageSource: vi.fn(async () => {
+          await noopAsync();
+          return new TextEncoder().encode(params.source ?? EML_SOURCE).buffer;
+        }),
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage();
+        })
+      });
+      const app = createMockApp();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({
+          emailNotePathTemplate: 'Emails/Note',
+          emailNoteTemplate: params.template,
+          shouldSaveOriginalEmail: true
+        })
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      return { app, content: vi.mocked(app.vault.create).mock.calls[0]?.[1], emailProvider };
+    }
+
+    it('should not download the source when the setting is off', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage();
+        })
+      });
+      const app = createMockApp();
+      const noteCreator = new EmailNoteCreator({
+        app,
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({ emailNoteTemplate: '[{{originalEmail}}] [{{attachments}}]' })
+      });
+
+      await noteCreator.saveEmailAsNote(createMessage());
+
+      expect(emailProvider.downloadMessageSource).not.toHaveBeenCalled();
+      expect(app.vault.createBinary).not.toHaveBeenCalled();
+      expect(app.vault.create).toHaveBeenCalledWith(expect.any(String), '[] []');
+    });
+
+    it('should save the source as an .eml named after the note, placed like an attachment', async () => {
+      const { app, emailProvider } = await saveWithOriginalEmail({ template: '{{body}}' });
+
+      expect(emailProvider.downloadMessageSource).toHaveBeenCalledWith('msg1');
+      expect(app.fileManager.getAvailablePathForAttachment).toHaveBeenCalledWith('Note.eml', 'Emails/Note.md');
+      const [emlPath, emlData] = vi.mocked(app.vault.createBinary).mock.calls[0] ?? [];
+      expect(emlPath).toBe('Emails/Note.eml');
+      expect(new TextDecoder().decode(emlData)).toBe(EML_SOURCE);
+    });
+
+    it('should render the link where the originalEmail token stands, and keep it out of the attachments', async () => {
+      const { content } = await saveWithOriginalEmail({ template: 'original: "{{originalEmail}}"\n[{{attachments}}]' });
+
+      expect(content).toBe('original: "[[Note.eml]]"\n[]');
+    });
+
+    it('should list the link at the top of the attachments when the template has no originalEmail token', async () => {
+      const { content } = await saveWithOriginalEmail({ template: '{{body}}\n\n{{attachments}}' });
+
+      expect(content).toBe('body\n\n[[Note.eml]]');
+    });
+
+    it('should save nothing when the provider returns an empty source', async () => {
+      const { app, content } = await saveWithOriginalEmail({ source: '', template: '[{{originalEmail}}] [{{attachments}}]' });
+
+      expect(app.vault.createBinary).not.toHaveBeenCalled();
+      expect(content).toBe('[] []');
+    });
+
+    it('should reject a format on the originalEmail token', async () => {
+      await expect(saveWithOriginalEmail({ template: '{{originalEmail:X}}' })).rejects.toThrow('Original email token does not support format: X');
+    });
+
+    it('should reject the originalEmail token in the path template', async () => {
+      const emailProvider = createMockEmailProvider({
+        getMessage: vi.fn(async () => {
+          await noopAsync();
+          return createFullMessage();
+        })
+      });
+      const noteCreator = new EmailNoteCreator({
+        app: createMockApp(),
+        emailProvider,
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent: createMockPluginSettingsComponent({ emailNotePathTemplate: 'Emails/{{originalEmail}}' })
+      });
+
+      await expect(noteCreator.saveEmailAsNote(createMessage())).rejects.toThrow('Original email token is not supported in path template');
     });
   });
 });

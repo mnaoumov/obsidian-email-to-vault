@@ -24,7 +24,8 @@ Once a mailbox is configured (via [01 Create a mailbox](<./01 Create a mailbox.m
 
 - The note's location and file name come from the **Email note path template** (`emailNotePathTemplate`), which defaults to `Emails/{{date:YYYY-MM-DD}} {{subject}}`. So an email lands in the `Emails/` folder, named by its date and subject.
 - The note's body comes from the **Email note template** (`emailNoteTemplate`), which by default writes the `from`, `to`, `cc`, `subject`, and `date` into frontmatter, followed by the email body and any attachments.
-- Both templates support the variables `{{from}}`, `{{to}}`, `{{cc}}`, `{{subject}}`, `{{body}}`, `{{attachments}}`, and `{{date:FORMAT}}` (using [Moment.js format](https://momentjs.com/docs/#/displaying/format/)).
+- Both templates support the variables `{{from}}`, `{{to}}`, `{{cc}}`, `{{subject}}`, `{{body}}`, `{{attachments}}`, and `{{date:FORMAT}}` (using [Moment.js format](https://momentjs.com/docs/#/displaying/format/)). `{{body}}` and `{{attachments}}` work in the note template only.
+- The note template also supports `{{originalEmail}}`: a link to the saved `.eml` file when **Save original email** (`shouldSaveOriginalEmail`) is on, and empty otherwise. A template without it gets the link at the top of `{{attachments}}`.
 
 ![An email saved as a note, with its metadata in frontmatter](<./_assets/images/note.png>)
 

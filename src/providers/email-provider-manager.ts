@@ -54,6 +54,10 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
     return this.getActiveProvider().downloadAttachment({ attachmentId, messageId });
   }
 
+  public async downloadMessageSource(messageId: string): Promise<ArrayBuffer> {
+    return this.getActiveProvider().downloadMessageSource(messageId);
+  }
+
   public getMailTmProvider(): MailTmProviderComponent | null {
     return this.activeProvider instanceof MailTmProviderComponent ? this.activeProvider : null;
   }

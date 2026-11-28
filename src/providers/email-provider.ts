@@ -6,6 +6,10 @@ import type {
 export interface EmailProvider {
   readonly deleteMessage: (messageId: string) => Promise<void>;
   readonly downloadAttachment: (params: EmailProviderDownloadAttachmentParams) => Promise<ArrayBuffer>;
+  /**
+   * Downloads the message exactly as the server holds it: the raw RFC 822 source, headers and every MIME part.
+   */
+  readonly downloadMessageSource: (messageId: string) => Promise<ArrayBuffer>;
   readonly getMessage: (messageId: string) => Promise<EmailMessageFull>;
   readonly getMessages: () => Promise<EmailMessageSummary[]>;
   readonly markMessageAsSeen: (messageId: string) => Promise<void>;

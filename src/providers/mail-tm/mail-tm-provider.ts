@@ -131,6 +131,16 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     return response.arrayBuffer;
   }
 
+  public async downloadMessageSource(messageId: string): Promise<ArrayBuffer> {
+    const token = await this.getToken();
+    const response = await requestMailTm({
+      headers: { Authorization: `Bearer ${token}` },
+      method: 'GET',
+      url: `${MAIL_TM_API_BASE_URL}/messages/${messageId}/download`
+    });
+    return response.arrayBuffer;
+  }
+
   public async getMessage(messageId: string): Promise<EmailMessageFull> {
     const token = await this.getToken();
     const response = await requestMailTm({

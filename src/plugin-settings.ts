@@ -36,6 +36,7 @@ export class PluginSettings {
   public shouldDeleteSeenEmails = false;
   public shouldExtractForwardedEmail = true;
   public shouldMarkEmailsAsSeen = true;
+  public shouldSaveOriginalEmail = false;
   public shouldShowStatusBarItem = true;
   public shouldStripHiddenElements = true;
 }
