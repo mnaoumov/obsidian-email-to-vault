@@ -1,3 +1,16 @@
+.email-to-vault-status-bar-item {
+  gap: var(--size-2-2);
+
+  .email-to-vault-status-bar-icon {
+    display: flex;
+
+    svg {
+      width: var(--icon-xs);
+      height: var(--icon-xs);
+    }
+  }
+}
+
 .email-to-vault {
   &.plugin-settings-tab {
     .email-note-template .obsidian-lib.code-highlighter-component textarea {

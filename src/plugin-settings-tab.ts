@@ -421,6 +421,19 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               this.bind({ propertyName: 'shouldMarkEmailsAsSeen', valueComponent: toggle });
             });
           }
+        }),
+        this.settingEx({
+          desc: createFragment((f) => {
+            f.appendText('Whether to show when emails were last checked, how many were saved, any error, and when the next check is due, in the status bar.');
+            f.createEl('br');
+            f.appendText('Click the status bar item to check emails now. Desktop only: the mobile app has no status bar.');
+          }),
+          name: 'Show status bar item',
+          render: (setting) => {
+            setting.addToggle((toggle) => {
+              this.bind({ propertyName: 'shouldShowStatusBarItem', valueComponent: toggle });
+            });
+          }
         })
       ]
     });

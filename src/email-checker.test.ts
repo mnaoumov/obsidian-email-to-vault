@@ -1090,4 +1090,232 @@ describe('EmailChecker', () => {
       expect(mockClearInterval).toHaveBeenCalled();
     });
   });
+
+  describe('status', () => {
+    const NOW = new Date('2026-11-27T10:00:00.000Z');
+    const TEN_MINUTES_IN_MILLISECONDS = 600_000;
+    const UNSEEN_MESSAGE = {
+      createdAt: '2026-01-01T00:00:00+00:00',
+      from: { address: 'a@b.com', name: '' },
+      hasAttachments: false,
+      id: 'msg1',
+      seen: false,
+      subject: 'Test',
+      to: []
+    };
+
+    interface StatusChecker {
+      readonly checker: EmailCheckerComponent;
+      readonly tick: () => Promise<void>;
+      readonly triggerSaveSettings: CreateMockPluginSettingsComponentResult['triggerSaveSettings'];
+    }
+
+    interface StatusCheckerOptions {
+      readonly emailAddress?: string;
+      readonly emailCheckIntervalInMinutes?: number;
+      readonly getMessages?: EmailProvider['getMessages'];
+    }
+
+    function createStatusChecker(options?: StatusCheckerOptions): StatusChecker {
+      let tickCallback: (() => void) | null = null;
+      let nextIntervalId = 1;
+      vi.stubGlobal('window', {
+        clearInterval: vi.fn(),
+        setInterval: vi.fn((callback: () => void) => {
+          tickCallback = callback;
+          return nextIntervalId++;
+        })
+      });
+
+      const { pluginSettingsComponent, triggerSaveSettings } = createMockPluginSettingsComponent({
+        ...(options?.emailAddress !== undefined && { emailAddress: options.emailAddress }),
+        ...(options?.emailCheckIntervalInMinutes !== undefined && { emailCheckIntervalInMinutes: options.emailCheckIntervalInMinutes })
+      });
+      const checker = new EmailCheckerComponent({
+        emailNoteCreator: createMockNoteCreator(),
+        emailProvider: createMockEmailProvider(options?.getMessages ? { getMessages: options.getMessages } : undefined),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+        pluginSettingsComponent
+      });
+
+      return {
+        checker,
+        async tick(): Promise<void> {
+          if (!tickCallback) {
+            throw new Error('No interval was scheduled');
+          }
+          tickCallback();
+          await setImmediate();
+        },
+        triggerSaveSettings
+      };
+    }
+
+    function rejectWith(error: unknown): EmailProvider['getMessages'] {
+      return async () => {
+        await noopAsync();
+        throw error;
+      };
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+      return (): void => {
+        vi.useRealTimers();
+      };
+    });
+
+    it('should start with nothing checked and nothing scheduled', () => {
+      const { checker } = createStatusChecker();
+
+      expect(checker.getStatus()).toEqual({
+        isChecking: false,
+        lastCheckAt: null,
+        lastError: null,
+        lastNewEmailCount: null,
+        nextCheckAt: null
+      });
+    });
+
+    it('should schedule the next check one interval after load', () => {
+      const { checker } = createStatusChecker();
+
+      checker.load();
+
+      expect(checker.getStatus().nextCheckAt).toEqual(new Date(NOW.getTime() + TEN_MINUTES_IN_MILLISECONDS));
+    });
+
+    it('should have no next check when automatic checks are off', () => {
+      const { checker } = createStatusChecker({ emailCheckIntervalInMinutes: 0 });
+
+      checker.load();
+
+      expect(checker.getStatus().nextCheckAt).toBeNull();
+    });
+
+    it('should record a successful check and its new email count, saying it is checking meanwhile', async () => {
+      const { checker } = createStatusChecker({
+        getMessages: async () => {
+          await noopAsync();
+          return [UNSEEN_MESSAGE];
+        }
+      });
+      const checkingStates: boolean[] = [];
+      checker.onStatusChanged(() => {
+        checkingStates.push(checker.getStatus().isChecking);
+      });
+
+      await checker.checkEmails();
+
+      expect(checkingStates).toEqual([true, false]);
+      expect(checker.getStatus()).toMatchObject({
+        isChecking: false,
+        lastCheckAt: NOW,
+        lastError: null,
+        lastNewEmailCount: 1
+      });
+    });
+
+    it('should stop calling a handler once it is removed', async () => {
+      const { checker } = createStatusChecker();
+      const handler = vi.fn();
+      const removeHandler = checker.onStatusChanged(handler);
+      removeHandler();
+
+      await checker.checkEmails();
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('should leave the status alone when there is no email address', async () => {
+      const { checker } = createStatusChecker({ emailAddress: '' });
+
+      await checker.checkEmails();
+
+      expect(checker.getStatus().lastCheckAt).toBeNull();
+    });
+
+    it.each([
+      ['an authentication error', new EmailProviderAuthenticationError('Paste the right password'), 'Paste the right password'],
+      [
+        'a rate limit',
+        new EmailProviderRateLimitError('limited', null),
+        'the Mail.tm server refused the request because it was asked too often (HTTP 429)'
+      ],
+      ['a dropped connection', new Error('net::ERR_CONNECTION_CLOSED'), 'could not reach the Mail.tm server (net::ERR_CONNECTION_CLOSED)']
+    ])('should record %s as the last error', async (_name, error, expectedError) => {
+      const { checker } = createStatusChecker({ getMessages: rejectWith(error) });
+
+      await checker.checkEmails();
+
+      expect(checker.getStatus()).toMatchObject({ isChecking: false, lastCheckAt: NOW, lastError: expectedError });
+    });
+
+    it('should record an unexpected error and still throw it', async () => {
+      const { checker } = createStatusChecker({ getMessages: rejectWith(new Error('Unexpected response')) });
+
+      await expect(checker.checkEmails()).rejects.toThrow('Unexpected response');
+
+      expect(checker.getStatus().lastError).toBe('Unexpected response');
+    });
+
+    it('should record a thrown value that is not an error', async () => {
+      const { checker } = createStatusChecker({ getMessages: rejectWith('boom') });
+
+      await expect(checker.checkEmails()).rejects.toBe('boom');
+
+      expect(checker.getStatus().lastError).toBe('an unexpected error, see the developer console');
+    });
+
+    it('should clear the last error after a successful check', async () => {
+      let shouldFail = true;
+      const { checker } = createStatusChecker({
+        getMessages: async () => {
+          await noopAsync();
+          if (shouldFail) {
+            throw new EmailProviderAuthenticationError('Paste the right password');
+          }
+          return [];
+        }
+      });
+
+      await checker.checkEmails();
+      shouldFail = false;
+      await checker.checkEmails();
+
+      expect(checker.getStatus()).toMatchObject({ lastError: null, lastNewEmailCount: 0 });
+    });
+
+    it('should push the next check out by the backoff after scheduled failures', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(noop);
+      const { checker, tick } = createStatusChecker({ getMessages: rejectWith(new Error('net::ERR_CONNECTION_CLOSED')) });
+      checker.load();
+
+      await tick();
+      expect(checker.getStatus().nextCheckAt).toEqual(new Date(NOW.getTime() + TEN_MINUTES_IN_MILLISECONDS));
+      expect(checker.getStatus().lastError).toBe('could not reach the Mail.tm server (net::ERR_CONNECTION_CLOSED)');
+
+      await tick();
+      expect(checker.getStatus().nextCheckAt).toEqual(new Date(NOW.getTime() + 2 * TEN_MINUTES_IN_MILLISECONDS));
+    });
+
+    it('should keep the next check a reschedule set while a scheduled check was running', async () => {
+      let triggerReschedule: () => Promise<void> = noopAsync;
+      const { checker, tick, triggerSaveSettings } = createStatusChecker({
+        getMessages: async () => {
+          await triggerReschedule();
+          return [];
+        }
+      });
+      checker.load();
+      triggerReschedule = async (): Promise<void> => {
+        vi.setSystemTime(new Date(NOW.getTime() + 1000));
+        await triggerSaveSettings(createSettingsState(10), createSettingsState(5));
+      };
+
+      await tick();
+
+      expect(checker.getStatus().nextCheckAt).toEqual(new Date(NOW.getTime() + 1000 + TEN_MINUTES_IN_MILLISECONDS));
+    });
+  });
 });

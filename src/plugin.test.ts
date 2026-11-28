@@ -28,6 +28,7 @@ import {
 import { CheckEmailsCommandHandler } from './command-handlers/check-emails-command-handler.ts';
 import { RedownloadAllEmailsCommandHandler } from './command-handlers/redownload-all-emails-command-handler.ts';
 import { RedownloadRecentEmailsCommandHandler } from './command-handlers/redownload-recent-emails-command-handler.ts';
+import { EmailCheckStatusBarComponent } from './email-check-status-bar-component.ts';
 import { EmailCheckerComponent } from './email-checker.ts';
 import { EmailNoteCreator } from './email-note-creator.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
@@ -92,6 +93,10 @@ vi.mock('./providers/email-provider-manager.ts', async () => ({
   EmailProviderManagerComponent: await loadableComponentStub()
 }));
 
+vi.mock('./email-check-status-bar-component.ts', async () => ({
+  EmailCheckStatusBarComponent: await loadableComponentStub()
+}));
+
 vi.mock('./email-checker.ts', async () => ({
   EmailCheckerComponent: await loadableComponentStub()
 }));
@@ -126,6 +131,7 @@ vi.spyOn(CommandHandlerComponent.prototype, 'registerCommandHandlers').mockResol
 
 const MockCheckEmailsCommandHandler = vi.mocked(CheckEmailsCommandHandler);
 const MockEmailChecker = vi.mocked(EmailCheckerComponent);
+const MockEmailCheckStatusBar = vi.mocked(EmailCheckStatusBarComponent);
 const MockEmailNoteCreator = vi.mocked(EmailNoteCreator);
 const MockMailTmDomainManager = vi.mocked(MailTmDomainManager);
 const MockEmailProviderManager = vi.mocked(EmailProviderManagerComponent);
@@ -229,6 +235,18 @@ describe('Plugin', () => {
       });
     });
 
+    it('should create EmailCheckStatusBarComponent with app, emailChecker, pluginId, and pluginSettingsComponent', async () => {
+      const plugin = new Plugin(app, manifest);
+      await plugin.onload();
+
+      expect(MockEmailCheckStatusBar).toHaveBeenCalledWith({
+        app,
+        emailChecker: instanceOf(MockEmailChecker),
+        pluginId: 'email-to-vault',
+        pluginSettingsComponent: instanceOf(MockPluginSettingsComponent)
+      });
+    });
+
     it('should create PluginSettingsTab with plugin, settings component, provider manager, notice component, and manifest id', async () => {
       const plugin = new Plugin(app, manifest);
       await plugin.onload();
@@ -289,6 +307,7 @@ describe('Plugin', () => {
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockPluginSettingsComponent));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailProviderManager));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailChecker));
+      expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockEmailCheckStatusBar));
       expect(addChildSpy).toHaveBeenCalledWith(instanceOf(MockTemplatesLanguageComponent));
     });
 
