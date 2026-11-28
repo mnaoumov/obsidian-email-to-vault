@@ -95,6 +95,15 @@ describe('MailTmProvider', () => {
     vi.clearAllMocks();
   });
 
+  describe('archiveMessage', () => {
+    it('should refuse, since a Mail.tm mailbox has no folders', async () => {
+      const manager = createManager();
+
+      await expect(manager.archiveMessage()).rejects.toThrow('A Mail.tm mailbox has no folders to move a message to.');
+      expect(mockRequestUrl).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteMessage', () => {
     it('should send DELETE request with auth token', async () => {
       const manager = createManager({

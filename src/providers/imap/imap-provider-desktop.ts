@@ -24,6 +24,13 @@ import type {
 
 import { EmailProviderAuthenticationError } from '../email-provider-authentication-error.ts';
 
+interface EnsureMailboxExistsParams {
+  readonly client: ImapFlow;
+  readonly mailbox: string;
+  // The settings label that names the mailbox, so the error says which one to fix.
+  readonly settingName: string;
+}
+
 // The few `ImapFlowError` fields read here. The package does not export that type from its entry point.
 interface ImapFlowErrorLike {
   readonly authenticationFailed?: boolean;
@@ -38,6 +45,25 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
     private readonly pluginSettingsComponent: PluginSettingsComponent
   ) {
     super();
+  }
+
+  // `UID MOVE` keeps the flags, so an unread email stays unread in the archive. The imapflow library falls back to
+  // COPY, then `\Deleted` and EXPUNGE, on a server without the MOVE extension.
+  public async archiveMessage(messageId: string): Promise<void> {
+    const { imapArchiveMailbox, imapMailbox } = this.pluginSettingsComponent.settings;
+    await this.withConnection(async (client) => {
+      const lock = await client.getMailboxLock(imapMailbox);
+      try {
+        const result = await client.messageMove(messageId, imapArchiveMailbox, { uid: true });
+        if (result === false) {
+          throw new Error(
+            `The IMAP server would not move the email to the mailbox "${imapArchiveMailbox}". Check that the "Archive mailbox" setting names a folder that exists.`
+          );
+        }
+      } finally {
+        lock.release();
+      }
+    });
   }
 
   public async deleteMessage(messageId: string): Promise<void> {
@@ -147,21 +173,13 @@ export class ImapProviderDesktopComponent extends ComponentEx implements EmailPr
 
   // Asking `STATUS` of the configured mailbox proves more than the login: a wrong mailbox name fails here too, rather
   // than at the next check. It reads counts only, so no message is fetched, flagged or moved.
+  // The archive mailbox, when set, is checked the same way, since a missing one would fail only after the first note.
   public async testConnection(): Promise<void> {
-    const mailbox = this.pluginSettingsComponent.settings.imapMailbox;
+    const { imapArchiveMailbox, imapMailbox } = this.pluginSettingsComponent.settings;
     await this.withConnection(async (client) => {
-      let status: Awaited<ReturnType<ImapFlow['status']>>;
-      try {
-        status = await client.status(mailbox, { messages: true });
-      } catch (error) {
-        // `status()` raises `NotFound` only after a `LIST` confirmed that the mailbox does not exist.
-        if ((error as ImapFlowErrorLike).code === 'NotFound') {
-          throw new Error(`The IMAP server has no mailbox named "${mailbox}". Check the "Mailbox" setting.`, { cause: error });
-        }
-        throw error;
-      }
-      if (status === false) {
-        throw new Error(`The IMAP server accepted the login but would not report on the mailbox "${mailbox}".`);
+      await ensureMailboxExists({ client, mailbox: imapMailbox, settingName: 'Mailbox' });
+      if (imapArchiveMailbox) {
+        await ensureMailboxExists({ client, mailbox: imapArchiveMailbox, settingName: 'Archive mailbox' });
       }
     });
   }
@@ -231,6 +249,23 @@ function collectAttachments(bodyStructure?: MessageStructureObject): EmailAttach
   const attachments: EmailAttachment[] = [];
   walkBodyStructure(bodyStructure, attachments);
   return attachments;
+}
+
+async function ensureMailboxExists(params: EnsureMailboxExistsParams): Promise<void> {
+  const { client, mailbox, settingName } = params;
+  let status: Awaited<ReturnType<ImapFlow['status']>>;
+  try {
+    status = await client.status(mailbox, { messages: true });
+  } catch (error) {
+    // `status()` raises `NotFound` only after a `LIST` confirmed that the mailbox does not exist.
+    if ((error as ImapFlowErrorLike).code === 'NotFound') {
+      throw new Error(`The IMAP server has no mailbox named "${mailbox}". Check the "${settingName}" setting.`, { cause: error });
+    }
+    throw error;
+  }
+  if (status === false) {
+    throw new Error(`The IMAP server accepted the login but would not report on the mailbox "${mailbox}".`);
+  }
 }
 
 // What the server said when it refused, as `: "<text>"`, or nothing when it said nothing readable. A rejected

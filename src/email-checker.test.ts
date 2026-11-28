@@ -25,6 +25,7 @@ import {
 import type { EmailNoteCreator } from './email-note-creator.ts';
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { PluginSettings } from './plugin-settings.ts';
+import type { EmailMessageSummary } from './providers/email-provider-types.ts';
 import type { EmailProvider } from './providers/email-provider.ts';
 
 import { EmailCheckerComponent } from './email-checker.ts';
@@ -39,12 +40,20 @@ vi.stubGlobal('window', {
   setInterval: vi.fn(() => 0)
 });
 
+interface CreateArchiveCheckerResult {
+  readonly checker: EmailCheckerComponent;
+  readonly emailProvider: EmailProvider;
+  readonly noteCreator: EmailNoteCreator;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
+}
+
 interface CreateMockPluginSettingsComponentResult {
   readonly pluginSettingsComponent: PluginSettingsComponent;
   readonly triggerSaveSettings: (newState: ReadonlyPluginSettingsState<PluginSettings>, oldState: ReadonlyPluginSettingsState<PluginSettings>) => Promise<void>;
 }
 
 interface MockEmailProviderOverrides {
+  readonly archiveMessage?: EmailProvider['archiveMessage'];
   readonly deleteMessage?: EmailProvider['deleteMessage'];
   readonly getMessages?: EmailProvider['getMessages'];
   readonly markMessageAsSeen?: EmailProvider['markMessageAsSeen'];
@@ -55,6 +64,8 @@ interface MockPluginSettingsComponentOverrides {
   readonly emailAddress?: string;
   readonly emailCheckIntervalInMinutes?: number;
   readonly emailProviderType?: EmailProviderType;
+  readonly imapArchiveMailbox?: string;
+  readonly imapMailbox?: string;
   readonly lastProcessedEmailTimestamp?: string;
   readonly shouldDeleteSeenEmails?: boolean;
   readonly shouldMarkEmailsAsSeen?: boolean;
@@ -62,6 +73,7 @@ interface MockPluginSettingsComponentOverrides {
 
 function createMockEmailProvider(overrides?: MockEmailProviderOverrides): EmailProvider {
   return strictProxy<EmailProvider>({
+    archiveMessage: overrides?.archiveMessage ?? vi.fn(),
     deleteMessage: overrides?.deleteMessage ?? vi.fn(),
     getMessages: overrides?.getMessages ?? vi.fn(async () => {
       await noopAsync();
@@ -90,6 +102,8 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
     emailAddress: overrides?.emailAddress ?? 'test@mail.tm',
     emailCheckIntervalInMinutes: overrides?.emailCheckIntervalInMinutes ?? 10,
     emailProviderType: overrides?.emailProviderType ?? EmailProviderType.MailTm,
+    imapArchiveMailbox: overrides?.imapArchiveMailbox ?? '',
+    imapMailbox: overrides?.imapMailbox ?? 'INBOX',
     lastProcessedEmailTimestamp: overrides?.lastProcessedEmailTimestamp ?? '',
     shouldDeleteSeenEmails: overrides?.shouldDeleteSeenEmails ?? false,
     shouldMarkEmailsAsSeen: overrides?.shouldMarkEmailsAsSeen ?? true
@@ -286,6 +300,102 @@ describe('EmailChecker', () => {
       expect(emailProvider.markMessageAsSeen).toHaveBeenCalledWith('msg1');
     });
 
+    describe('archive mailbox', () => {
+      function createArchiveMessages(): EmailMessageSummary[] {
+        return [
+          {
+            createdAt: '2026-01-01T00:00:00.000Z',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'read',
+            seen: true,
+            subject: 'Read',
+            to: []
+          },
+          {
+            createdAt: '2026-01-01T00:00:00.000Z',
+            from: { address: 'a@b.com', name: '' },
+            hasAttachments: false,
+            id: 'unread',
+            seen: false,
+            subject: 'Unread',
+            to: []
+          }
+        ];
+      }
+
+      function createArchiveChecker(settingsOverrides: MockPluginSettingsComponentOverrides): CreateArchiveCheckerResult {
+        const emailProvider = createMockEmailProvider({
+          getMessages: vi.fn(async () => {
+            await noopAsync();
+            return createArchiveMessages();
+          })
+        });
+        const { pluginSettingsComponent } = createMockPluginSettingsComponent({
+          emailProviderType: EmailProviderType.Imap,
+          imapArchiveMailbox: 'Archive',
+          lastProcessedEmailTimestamp: '2026-06-01T00:00:00.000Z',
+          ...settingsOverrides
+        });
+        const noteCreator = createMockNoteCreator();
+        const checker = new EmailCheckerComponent({
+          emailNoteCreator: noteCreator,
+          emailProvider,
+          pluginNoticeComponent: strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }),
+          pluginSettingsComponent
+        });
+        return { checker, emailProvider, noteCreator, pluginSettingsComponent };
+      }
+
+      it('should import every message, read or not, and move each one instead of marking it as seen', async () => {
+        const { checker, emailProvider, noteCreator } = createArchiveChecker({});
+
+        await checker.checkEmails();
+
+        expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(2);
+        expect(emailProvider.archiveMessage).toHaveBeenCalledWith('read');
+        expect(emailProvider.archiveMessage).toHaveBeenCalledWith('unread');
+        expect(emailProvider.markMessageAsSeen).not.toHaveBeenCalled();
+        expect(emailProvider.deleteMessage).not.toHaveBeenCalled();
+      });
+
+      it('should ignore the date bookmark and leave it unchanged when marking as seen is off', async () => {
+        const { checker, emailProvider, noteCreator, pluginSettingsComponent } = createArchiveChecker({ shouldMarkEmailsAsSeen: false });
+
+        await checker.checkEmails();
+
+        expect(noteCreator.saveEmailAsNote).toHaveBeenCalledTimes(2);
+        expect(emailProvider.archiveMessage).toHaveBeenCalledTimes(2);
+        expect(pluginSettingsComponent.editAndSave).not.toHaveBeenCalled();
+      });
+
+      it('should still delete instead of moving when deleting seen emails is on', async () => {
+        const { checker, emailProvider } = createArchiveChecker({ shouldDeleteSeenEmails: true });
+
+        await checker.checkEmails();
+
+        expect(emailProvider.deleteMessage).toHaveBeenCalledWith('unread');
+        expect(emailProvider.archiveMessage).not.toHaveBeenCalled();
+      });
+
+      it('should ignore the archive mailbox for Mail.tm', async () => {
+        const { checker, emailProvider } = createArchiveChecker({ emailProviderType: EmailProviderType.MailTm });
+
+        await checker.checkEmails();
+
+        expect(emailProvider.archiveMessage).not.toHaveBeenCalled();
+        expect(emailProvider.markMessageAsSeen).toHaveBeenCalledWith('unread');
+      });
+
+      it('should refuse an archive mailbox that is the mailbox itself, before reading any message', async () => {
+        const { checker, emailProvider, noteCreator } = createArchiveChecker({ imapArchiveMailbox: 'INBOX' });
+
+        await expect(checker.checkEmails()).rejects.toThrow('The "Archive mailbox" setting names the same folder as the "Mailbox" setting ("INBOX")');
+
+        expect(emailProvider.getMessages).not.toHaveBeenCalled();
+        expect(noteCreator.saveEmailAsNote).not.toHaveBeenCalled();
+      });
+    });
     it('should neither mark as seen nor delete when shouldMarkEmailsAsSeen is disabled', async () => {
       const emailProvider = createMockEmailProvider({
         getMessages: vi.fn(async () => {

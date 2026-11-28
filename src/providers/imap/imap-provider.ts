@@ -38,6 +38,10 @@ export class ImapProviderComponent extends ComponentEx implements EmailProvider 
     this.pluginNoticeComponent = params.pluginNoticeComponent;
   }
 
+  public async archiveMessage(messageId: string): Promise<void> {
+    await this.platformImapProvider.archiveMessage(messageId);
+  }
+
   public async deleteMessage(messageId: string): Promise<void> {
     await this.platformImapProvider.deleteMessage(messageId);
   }
