@@ -44,6 +44,10 @@ export class EmailProviderManagerComponent extends ComponentEx implements EmailP
     this.mailTmDomainManager = params.mailTmDomainManager;
   }
 
+  public async archiveMessage(messageId: string): Promise<void> {
+    return this.getActiveProvider().archiveMessage(messageId);
+  }
+
   public async deleteMessage(messageId: string): Promise<void> {
     return this.getActiveProvider().deleteMessage(messageId);
   }

@@ -16,6 +16,11 @@ export class ImapProviderMobileComponent extends ComponentEx implements EmailPro
     super();
   }
 
+  public async archiveMessage(): Promise<void> {
+    this.showNotice();
+    await noopAsync();
+  }
+
   public async deleteMessage(): Promise<void> {
     this.showNotice();
     await noopAsync();

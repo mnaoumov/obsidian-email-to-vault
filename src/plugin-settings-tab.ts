@@ -136,6 +136,19 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }
         }),
         this.settingEx({
+          desc: createFragment((f) => {
+            f.appendText('Mailbox folder each email is moved to after it is saved as a note. Leave empty to keep emails where they are.');
+            f.createEl('br');
+            f.appendText('When set, every email in the mailbox above is imported and then moved, with its read state kept, instead of being marked as seen. The folder must already exist and must differ from the mailbox above. "Delete seen emails" still wins over it.');
+          }),
+          name: 'Archive mailbox',
+          render: (setting) => {
+            setting.addText((text) => {
+              this.bind({ propertyName: 'imapArchiveMailbox', valueComponent: text });
+            });
+          }
+        }),
+        this.settingEx({
           desc: 'Email address used as the login username.',
           name: 'Email address',
           render: (setting) => {

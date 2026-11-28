@@ -28,6 +28,7 @@ export class PluginSettings {
   public emailNoteTemplate = DEFAULT_EMAIL_NOTE_TEMPLATE;
   public emailPasswordSecretKey = '';
   public emailProviderType = EmailProviderType.MailTm;
+  public imapArchiveMailbox = '';
   public imapHost = '';
   public imapMailbox = 'INBOX';
   public imapPort = DEFAULT_IMAP_PORT;

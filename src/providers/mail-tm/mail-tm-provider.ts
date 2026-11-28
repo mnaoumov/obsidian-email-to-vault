@@ -1,6 +1,7 @@
 import type { App } from 'obsidian';
 
 import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
 
 import type { PluginSettingsComponent } from '../../plugin-settings-component.ts';
 import type {
@@ -108,6 +109,12 @@ export class MailTmProviderComponent extends ComponentEx implements EmailProvide
     this.mailTmDomainManager = params.mailTmDomainManager;
     this.pluginId = params.pluginId;
     this.pluginSettingsComponent = params.pluginSettingsComponent;
+  }
+
+  // The checker never archives on Mail.tm, so reaching this is a bug rather than a setting the user can fix.
+  public async archiveMessage(): Promise<void> {
+    await noopAsync();
+    throw new Error('A Mail.tm mailbox has no folders to move a message to.');
   }
 
   public async deleteMessage(messageId: string): Promise<void> {

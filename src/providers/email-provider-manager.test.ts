@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./mail-tm/mail-tm-provider.ts', async () => {
   const { Component } = await vi.importActual<ObsidianComponentModule>('obsidian');
   class MockMailTmProviderComponent extends Component {
+    public archiveMessage = vi.fn(async () => noopAsync());
     public deleteMessage = vi.fn(async () => noopAsync());
 
     public downloadAttachment = vi.fn(async () => {
@@ -229,6 +230,22 @@ describe('EmailProviderManager', () => {
   });
 
   describe('delegation', () => {
+    it('should delegate archiveMessage to active provider', async () => {
+      const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
+      const manager = new EmailProviderManagerComponent({
+        app: createMockApp(),
+        mailTmDomainManager: createMockMailTmDomainManager(),
+        pluginId: 'email-to-vault',
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
+        pluginSettingsComponent
+      });
+      manager.load();
+
+      await manager.archiveMessage('msg-1');
+
+      expect(mocks.mockMailTmProviderInstance?.['archiveMessage']).toHaveBeenCalledWith('msg-1');
+    });
+
     it('should delegate deleteMessage to active provider', async () => {
       const { pluginSettingsComponent } = createMockPluginSettingsComponent(EmailProviderType.MailTm);
       const manager = new EmailProviderManagerComponent({

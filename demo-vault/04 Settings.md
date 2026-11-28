@@ -24,8 +24,10 @@ Open **Settings -> Community plugins -> `Email to Vault`** to configure the plug
   - use TLS/SSL for the connection.
 - `imapMailbox`
   - the mailbox folder to read, e.g. `INBOX`.
+- `imapArchiveMailbox`
+  - a folder to move each email to once it has been saved as a note, e.g. `Archive`. Empty, the default, keeps emails where they are. When set, every email in `imapMailbox` is imported, read or not, and is then moved with its read state kept, rather than marked as seen. The folder must already exist and must differ from `imapMailbox`. `shouldDeleteSeenEmails` still wins over it.
 - **Test connection** (button)
-  - logs in with the settings above and asks the server about `imapMailbox`, so a wrong mailbox name is caught too. Nothing is imported. The registered Mail.tm group has the same button.
+  - logs in with the settings above and asks the server about `imapMailbox`, and about `imapArchiveMailbox` when it is set, so a wrong mailbox name is caught too. Nothing is imported. The registered Mail.tm group has the same button.
 
 ## Fetching
 
@@ -34,7 +36,7 @@ Open **Settings -> Community plugins -> `Email to Vault`** to configure the plug
 - `shouldMarkEmailsAsSeen`
   - flag each email as seen on the server after it is saved, so it is not imported again. Disable to leave mail untouched and track imported messages by date instead.
 - `lastProcessedEmailTimestamp`
-  - internal bookmark of the most recent email already imported (used when `shouldMarkEmailsAsSeen` is off).
+  - internal bookmark of the most recent email already imported (used when `shouldMarkEmailsAsSeen` is off, and not with `imapArchiveMailbox`).
 - `shouldDeleteSeenEmails`
   - delete each email from the mailbox once it has been saved as a note.
 

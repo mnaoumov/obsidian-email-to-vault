@@ -226,6 +226,12 @@ export class EmailCheckerComponent extends ComponentEx {
     return this.pluginSettingsComponent.settings.emailProviderType === EmailProviderType.Imap ? 'IMAP' : 'Mail.tm';
   }
 
+  // Deleting still wins over archiving, and Mail.tm has no folders to archive to.
+  private isArchiveMode(): boolean {
+    const settings = this.pluginSettingsComponent.settings;
+    return settings.emailProviderType === EmailProviderType.Imap && !settings.shouldDeleteSeenEmails && !!settings.imapArchiveMailbox;
+  }
+
   // The skip is the backoff, stretched when the server asked for a longer wait than that (`Retry-After`).
   private recordScheduledTransientFailure(failure: ScheduledTransientFailure): void {
     this.consecutiveScheduledTransientFailures++;
@@ -241,14 +247,24 @@ export class EmailCheckerComponent extends ComponentEx {
 
   private async saveNewEmails(): Promise<number> {
     const settings = this.pluginSettingsComponent.settings;
+    const isArchiveMode = this.isArchiveMode();
+    if (isArchiveMode && settings.imapArchiveMailbox === settings.imapMailbox) {
+      // Moving a message into the folder it is read from would import it again on every check.
+      throw new Error(
+        `The "Archive mailbox" setting names the same folder as the "Mailbox" setting ("${settings.imapMailbox}"). Choose another folder, or leave "Archive mailbox" empty.`
+      );
+    }
     const messages = await this.emailProvider.getMessages();
-    const isTimestampMode = !settings.shouldMarkEmailsAsSeen && !settings.shouldDeleteSeenEmails;
-    const newMessages = this.selectNewMessages(messages, isTimestampMode);
+    const isTimestampMode = !isArchiveMode && !settings.shouldMarkEmailsAsSeen && !settings.shouldDeleteSeenEmails;
+    // Every imported message leaves the mailbox in archive mode, so whatever is still there is new, read or not.
+    const newMessages = isArchiveMode ? messages : this.selectNewMessages(messages, isTimestampMode);
 
     for (const message of newMessages) {
       await this.emailNoteCreator.saveEmailAsNote(message);
       if (settings.shouldDeleteSeenEmails) {
         await this.emailProvider.deleteMessage(message.id);
+      } else if (isArchiveMode) {
+        await this.emailProvider.archiveMessage(message.id);
       } else if (settings.shouldMarkEmailsAsSeen) {
         await this.emailProvider.markMessageAsSeen(message.id);
       }

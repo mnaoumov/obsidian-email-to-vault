@@ -1,4 +1,5 @@
 import type {
+  CopyResponseObject,
   FetchMessageObject,
   MailboxLockObject,
   MailboxObject,
@@ -89,6 +90,10 @@ const mocks = vi.hoisted(() => ({
       await noopAsync();
       return true;
     }),
+    messageMove: vi.fn(async (): Promise<CopyResponseObject | false> => {
+      await noopAsync();
+      return { destination: 'Archive', path: 'INBOX' };
+    }),
     status: vi.fn(async (): Promise<false | StatusObject> => {
       await noopAsync();
       return { messages: 3, path: 'INBOX' };
@@ -110,6 +115,7 @@ vi.mock('imapflow', () => {
     public mailbox: MockMailbox;
     public messageDelete: ReturnType<typeof vi.fn>;
     public messageFlagsAdd: ReturnType<typeof vi.fn>;
+    public messageMove: ReturnType<typeof vi.fn>;
     public status: ReturnType<typeof vi.fn>;
 
     public constructor() {
@@ -122,6 +128,7 @@ vi.mock('imapflow', () => {
       this.logout = mocks.mockClientDefaults.logout;
       this.messageDelete = mocks.mockClientDefaults.messageDelete;
       this.messageFlagsAdd = mocks.mockClientDefaults.messageFlagsAdd;
+      this.messageMove = mocks.mockClientDefaults.messageMove;
       this.status = mocks.mockClientDefaults.status;
       mocks.mockLatestClient = castTo<Record<string, ReturnType<typeof vi.fn>>>(this);
     }
@@ -136,6 +143,7 @@ vi.mock('mailparser', () => ({
 interface MockPluginSettingsComponentOverrides {
   readonly emailAddress?: string;
   readonly emailPasswordSecretKey?: string;
+  readonly imapArchiveMailbox?: string;
   readonly imapHost?: string;
   readonly imapMailbox?: string;
   readonly imapPort?: number;
@@ -174,6 +182,7 @@ function createMockPluginSettingsComponent(overrides?: MockPluginSettingsCompone
     settings: {
       emailAddress: overrides?.emailAddress ?? 'user@example.com',
       emailPasswordSecretKey: overrides?.emailPasswordSecretKey ?? 'test-key',
+      imapArchiveMailbox: overrides?.imapArchiveMailbox ?? '',
       imapHost: overrides?.imapHost ?? 'imap.example.com',
       imapMailbox: overrides?.imapMailbox ?? 'INBOX',
       imapPort: overrides?.imapPort ?? 993,
@@ -766,6 +775,27 @@ describe('ImapProvider', () => {
     });
   });
 
+  describe('archiveMessage', () => {
+    it('should move the message by UID from the mailbox to the archive mailbox', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent({ imapArchiveMailbox: 'Archive' }));
+
+      await provider.archiveMessage('42');
+
+      expect(mocks.mockLatestClient?.['getMailboxLock']).toHaveBeenCalledWith('INBOX');
+      expect(mocks.mockLatestClient?.['messageMove']).toHaveBeenCalledWith('42', 'Archive', { uid: true });
+      expect(mocks.mockLatestClient?.['messageFlagsAdd']).not.toHaveBeenCalled();
+    });
+
+    it('should name the setting when the server will not move the message', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent({ imapArchiveMailbox: 'Nope' }));
+      mocks.mockClientDefaults.messageMove.mockResolvedValueOnce(false);
+
+      await expect(provider.archiveMessage('42')).rejects.toThrow(
+        'The IMAP server would not move the email to the mailbox "Nope". Check that the "Archive mailbox" setting names a folder that exists.'
+      );
+    });
+  });
+
   describe('deleteMessage', () => {
     it('should delete message by UID', async () => {
       const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent());
@@ -792,6 +822,24 @@ describe('ImapProvider', () => {
       mocks.mockClientDefaults.status.mockRejectedValueOnce(Object.assign(new Error('Mailbox doesn\'t exist: Nope'), { code: 'NotFound' }));
 
       await expect(provider.testConnection()).rejects.toThrow('The IMAP server has no mailbox named "Nope". Check the "Mailbox" setting.');
+    });
+
+    it('should also ask STATUS of the archive mailbox when one is set', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent({ imapArchiveMailbox: 'Archive' }));
+
+      await provider.testConnection();
+
+      expect(mocks.mockLatestClient?.['status']).toHaveBeenCalledWith('INBOX', { messages: true });
+      expect(mocks.mockLatestClient?.['status']).toHaveBeenCalledWith('Archive', { messages: true });
+    });
+
+    it('should name the archive mailbox setting when the server has no such mailbox', async () => {
+      const provider = new ImapProviderDesktopComponent(createMockApp(), createMockPluginSettingsComponent({ imapArchiveMailbox: 'Nope' }));
+      mocks.mockClientDefaults.status
+        .mockResolvedValueOnce({ messages: 3, path: 'INBOX' })
+        .mockRejectedValueOnce(Object.assign(new Error('Mailbox doesn\'t exist: Nope'), { code: 'NotFound' }));
+
+      await expect(provider.testConnection()).rejects.toThrow('The IMAP server has no mailbox named "Nope". Check the "Archive mailbox" setting.');
     });
 
     it('should rethrow any other STATUS error', async () => {

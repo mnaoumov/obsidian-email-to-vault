@@ -4,6 +4,10 @@ import type {
 } from './email-provider-types.ts';
 
 export interface EmailProvider {
+  /**
+   * Moves the message to the configured archive mailbox, keeping its flags. Only IMAP has mailboxes to move between.
+   */
+  readonly archiveMessage: (messageId: string) => Promise<void>;
   readonly deleteMessage: (messageId: string) => Promise<void>;
   readonly downloadAttachment: (params: EmailProviderDownloadAttachmentParams) => Promise<ArrayBuffer>;
   /**

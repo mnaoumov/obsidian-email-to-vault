@@ -139,6 +139,16 @@ describe('ImapProviderMobile', () => {
     });
   });
 
+  describe('archiveMessage', () => {
+    it('should show notice', async () => {
+      const provider = new ImapProviderMobileComponent(strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }));
+
+      await provider.archiveMessage();
+
+      expect(mockShowNotice).toHaveBeenCalledWith('IMAP is not available on mobile devices');
+    });
+  });
+
   describe('deleteMessage', () => {
     it('should show notice', async () => {
       const provider = new ImapProviderMobileComponent(strictProxy<PluginNoticeComponent>({ showNotice: mockShowNotice }));

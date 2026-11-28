@@ -24,6 +24,7 @@ import { ImapProviderComponent } from './imap-provider.ts';
 
 const mocks = vi.hoisted(() => ({
   mockDesktopProvider: {
+    archiveMessage: vi.fn(async () => noopAsync()),
     deleteMessage: vi.fn(async () => noopAsync()),
     downloadAttachment: vi.fn(async () => {
       await noopAsync();
@@ -57,6 +58,7 @@ const mocks = vi.hoisted(() => ({
     testConnection: vi.fn(async () => noopAsync())
   } satisfies EmailProvider,
   mockMobileProvider: {
+    archiveMessage: vi.fn(async () => noopAsync()),
     deleteMessage: vi.fn(async () => noopAsync()),
     downloadAttachment: vi.fn(async () => {
       await noopAsync();
@@ -94,6 +96,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./imap-provider-desktop.ts', () => {
   return {
     ImapProviderDesktopComponent: class MockImapProviderDesktopComponent {
+      public archiveMessage = mocks.mockDesktopProvider.archiveMessage;
       public deleteMessage = mocks.mockDesktopProvider.deleteMessage;
       public downloadAttachment = mocks.mockDesktopProvider.downloadAttachment;
       public downloadMessageSource = mocks.mockDesktopProvider.downloadMessageSource;
@@ -108,6 +111,7 @@ vi.mock('./imap-provider-desktop.ts', () => {
 vi.mock('./imap-provider-mobile.ts', () => {
   return {
     ImapProviderMobileComponent: class MockImapProviderMobileComponent {
+      public archiveMessage = mocks.mockMobileProvider.archiveMessage;
       public deleteMessage = mocks.mockMobileProvider.deleteMessage;
       public downloadAttachment = mocks.mockMobileProvider.downloadAttachment;
       public downloadMessageSource = mocks.mockMobileProvider.downloadMessageSource;
@@ -246,6 +250,19 @@ describe('ImapProvider', () => {
       await provider.testConnection();
 
       expect(mocks.mockDesktopProvider.testConnection).toHaveBeenCalledOnce();
+    });
+
+    it('should delegate archiveMessage to platform provider', async () => {
+      const provider = new ImapProviderComponent({
+        app: createMockApp(),
+        pluginNoticeComponent: strictProxy<PluginNoticeComponent>({}),
+        pluginSettingsComponent: createMockPluginSettingsComponent()
+      });
+      await provider.loadWithPromises();
+
+      await provider.archiveMessage('42');
+
+      expect(mocks.mockDesktopProvider.archiveMessage).toHaveBeenCalledWith('42');
     });
 
     it('should delegate deleteMessage to platform provider', async () => {
