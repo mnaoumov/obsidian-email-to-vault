@@ -494,8 +494,6 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     });
   }
 
-  // Returns the key rather than leaving the caller to read it back from the settings: the save awaits, and a settings
-  // reload or re-validation landing in that window can leave the key unset, which `setSecret` rejects (#10).
   private buildTestConnectionSetting(): SettingGroupItem {
     return this.settingEx({
       desc: 'Log in to the mail server with the settings above and say whether it worked. No email is imported.',
@@ -517,6 +515,8 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
     });
   }
 
+  // Returns the key rather than leaving the caller to read it back from the settings: the save awaits, and a settings
+  // reload or re-validation landing in that window can leave the key unset, which `setSecret` rejects (#10).
   private async ensurePasswordSecretKey(): Promise<string> {
     const existingSecretKey = this.pluginSettingsComponent.settings.emailPasswordSecretKey;
     if (existingSecretKey) {
